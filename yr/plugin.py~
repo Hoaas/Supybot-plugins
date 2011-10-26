@@ -1,0 +1,38 @@
+###
+# Copyright (c) 2010, Terje Hoaas
+# All rights reserved.
+#
+#
+###
+
+import supybot.utils as utils
+from supybot.commands import *
+import supybot.plugins as plugins
+import supybot.ircutils as ircutils
+import supybot.callbacks as callbacks
+
+
+class Temperature(callbacks.Plugin):
+    """Add the help for "@plugin help Temperature" here
+    This should describe *how* to use this plugin."""
+    threaded = True
+
+    def temp(self, irc, msg, args, text):
+        """<text>
+
+        Replies with <text> as an action.  use nested commands to your benefit
+        here.
+        """
+        t = "-1,1° (-4.3°), Svak vind, 2,5 m/s fra SW."
+        if text:
+            irc.reply(t, action=False)
+        else:
+            raise callbacks.ArgumentError
+    temp = wrap(temp, ['text'])
+
+
+
+Class = Temperature
+
+
+# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
