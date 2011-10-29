@@ -44,12 +44,15 @@ class Twitter(callbacks.Plugin):
     This should describe *how* to use this plugin."""
     threaded = True
 
-    def twitter(self, irc, msg, args, nick, rt):
-        """<nick> [--reply]
+    def twitter(self, irc, msg, args, nick, reply, rt):
+        """<nick> [--reply] [--rt]
 
-        Returns last tweet (which is not an @reply) by <nick>. If --reply is given the last tweet will be replied regardless of if it was an @reply or not.
+        Returns last tweet (which is not an @reply) by <nick>. If --reply is given the last tweet will be replied regardless of if it was an @reply or not. Same goes for --rt and retweets.
         """
         url = "http://api.twitter.com/1/statuses/user_timeline/" + nick + ".json"
+
+        if rt:
+            url += "?include_rts=true"
 
         try:
             req = urllib2.Request(url)
@@ -83,12 +86,12 @@ class Twitter(callbacks.Plugin):
             return
         # Loop over all tweets
         for i in range(len(data)):
-            # If we don't want retweets
-            if (not rt and not data[i]["in_reply_to_screen_name"]):
+            # If we don't want @replies
+            if (not reply and not data[i]["in_reply_to_screen_name"]):
                 index = i
                 break
-            # If we want the last tweet even if it is a retweet
-            elif (rt):
+            # If we want the last tweet even if it is an @reply
+            elif (reply):
                 index = i
                 break
 
@@ -100,7 +103,7 @@ class Twitter(callbacks.Plugin):
 #        date_object = datetime.strptime(date,  "%a %b %d %H:%M:%S +0000 %Y")
 
         irc.reply(retvalue.encode("utf-8"))
-    twitter = wrap(twitter, [('something'), optional(('literal', '--reply'))])
+    twitter = wrap(twitter, [('something'), optional(('literal', '--reply')), optional(('literal', '--rt'))])
 
 
 Class = Twitter
