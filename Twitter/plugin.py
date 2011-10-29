@@ -44,47 +44,63 @@ class Twitter(callbacks.Plugin):
     This should describe *how* to use this plugin."""
     threaded = True
 
-    def twitter(self, irc, msg, args, nick):
-        """<nick>
+    def twitter(self, irc, msg, args, nick, rt):
+        """<nick> [--reply]
 
-        Returns last tweet by <nick>.
+        Returns last tweet (which is not an @reply) by <nick>. If --reply is given the last tweet will be replied regardless of if it was an @reply or not.
         """
-        url = "http://api.twitter.com/1/users/lookup.json?screen_name=" + nick
+        url = "http://api.twitter.com/1/statuses/user_timeline/" + nick + ".json"
+
         try:
             req = urllib2.Request(url)
             stream = urllib2.urlopen(req)
-            data = stream.read()
+            datas = stream.read()
         except urllib2.URLError, (err):
-            if(err.code and err.code == 404):
+            if (err.code and err.code == 404):
                 irc.reply("User not found.")
+            elif (err.code and err.code == 401):
+                irc.reply("Not authorized. Protected tweets?")
             else:
-                irc.reply("Error: Failed to open url. API might be unavailable.")
+                if (err.code):
+                    irc.reply("Error: Looks like I haven't bothered adding a special case for http error #" + str(err.code))
+                else:
+                    irc.reply("Error: Failed to open url. API might be unavailable.")
             return
         try:
-            data = json.loads(data)
+            data = json.loads(datas)
         except:
             irc.reply("Error: Failed to parsed receive data.")
+            self.log.warning("Plugin Twitter failed to parse json-data. Here are the data:")
+            self.log.warning(data)
             return
-#        print "--------- This is the full json ---------"
-#        print json.dumps(data, sort_keys=True, indent=4)
-#        print "--------- That was it! ---------"
-        if (len(data) != 1):
-            retvalue = "No data from API. -> " + url
-        elif(data[0]["protected"]):
-            retvalue = "Protected feed."
-        else:
-            try:
-                name = data[0]["screen_name"]
-                text = data[0]["status"]["text"]
-                date = data[0]["status"]["created_at"]
-                retvalue = "Tweeted by " + name + ", " + date + ": " + text
-            except KeyError, (err):
-                retvalue = "User has not tweeted yet, or no tweet available at " + url
+
+#        self.log.info("--------- This is the full json ---------")
+#        self.log.info(json.dumps(data, sort_keys=True, indent=4))
+#        self.log.info("--------- That was it! ---------")
+
+        if len(data) == 0:
+            irc.reply("User has not tweeted yet.")
+            return
+        # Loop over all tweets
+        for i in range(len(data)):
+            # If we don't want retweets
+            if (not rt and not data[i]["in_reply_to_screen_name"]):
+                index = i
+                break
+            # If we want the last tweet even if it is a retweet
+            elif (rt):
+                index = i
+                break
+
+        name = data[index]["user"]["screen_name"]
+        text = data[index]["text"]
+        date = data[index]["created_at"]
+        retvalue = "Tweeted by " + name + ", " + date + ": " + text
 
 #        date_object = datetime.strptime(date,  "%a %b %d %H:%M:%S +0000 %Y")
 
         irc.reply(retvalue.encode("utf-8"))
-    twitter = wrap(twitter, ['text'])
+    twitter = wrap(twitter, [('something'), optional(('literal', '--reply'))])
 
 
 Class = Twitter
