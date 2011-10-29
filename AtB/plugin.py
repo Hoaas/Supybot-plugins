@@ -54,9 +54,11 @@ class AtB(callbacks.Plugin):
 #			name = "Voll Studentby" # hack
 
 		idList = self._getIdList(name)
-		if (idList == -1):
-			print "Error: Could not open URL. (AtB / _getIdList())"
-		if(len(idList) < 1):
+		if (idList == -1 or not idList):
+			irc.reply("Error. Kunne ikke åpne URLen. hoaas.net er sikkert nede.")
+			self.log.debug("Error: Could not open URL. (AtB / _getIdList())")
+			return
+		elif(len(idList) < 1):
 			irc.reply("Ingen holdeplasser som starter på \"" + name + "\" ble funnet.")
 			return
 
