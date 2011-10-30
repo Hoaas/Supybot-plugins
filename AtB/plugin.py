@@ -54,7 +54,8 @@ class AtB(callbacks.Plugin):
 #			name = "Voll Studentby" # hack
 
 		idList = self._getIdList(name)
-		if (idList == -1 or not idList):
+
+		if (idList == -1):
 			irc.reply("Error. Kunne ikke åpne URLen. hoaas.net er sikkert nede.")
 			self.log.debug("Error: Could not open URL. (AtB / _getIdList())")
 			return
@@ -86,18 +87,21 @@ class AtB(callbacks.Plugin):
 			if(li[0] == selectedstop):
 				newlist.append(li)
 
-		rettowardscity = ""
-		retfromcity = ""
+		rettowardscity = None
+		retfromcity = None
+
 		for li in newlist:                    # For all busstops. Should be only 2.
 			id = li[1]
 			busstopname = li[0]
 			times, towardsCity = self._getTimes(id)
-			if(times == -1):                # In case of errors
+			if (times == -1):                # In case of errors
 				irc.reply("Error: Could not open URL. API probably down.")
 				return
-			elif(times == -2):
+			elif (times == -2):
 				irc.reply("Error: No data for busstop " + busstopname +  ".")
 				return
+			elif (times == -3):
+				continue
 			if(towardsCity):
 				rettowardscity = unicode(busstopname, 'utf8') + " mot sentrum: " + times
 			else:
@@ -117,11 +121,11 @@ class AtB(callbacks.Plugin):
 	def _getIdList(self, name):
 	#    url = "http://api.busbuddy.norrs.no:8080/api/1.2/busstops"     # URL to JSON data that contains list over busstops
 		url = "http://hoaas.net/busstops"   # Alternative local url
-		apikey = "your-api-key-here"         # Private API key. Please don't use this :(
+		#apikey = "your-api-key-here"         # Private API key. Please don't use this :(
 
 		try:
 			req = urllib2.Request(url)
-			req.add_header('X-norrs-busbuddy-apikey', apikey)   # Recommended to add API-key in header. Could be added in url as "http://example.com/bus?apikey=23141234"
+			#req.add_header('X-norrs-busbuddy-apikey', apikey)   # Recommended to add API-key in header. Could be added in url as "http://example.com/bus?apikey=23141234"
 			stream = urllib2.urlopen(req)
 			data = stream.read()
 		except:
@@ -133,7 +137,7 @@ class AtB(callbacks.Plugin):
 			if ( busstop["name"].encode('utf8').lower().startswith(name.lower()) or
 				 ( busstop["nameWithAbbreviations"] and
 				   busstop["nameWithAbbreviations"].encode('utf8').lower().startswith(name.lower()) ) ):
-				hitlist.append((busstop["name"].encode('utf8'), busstop["busStopId"]))
+				hitlist.append((busstop["name"].encode('utf8'), busstop["locationId"]))
 		return hitlist
 
 	"""Get the passing times of the next busses for the spesified ID.
@@ -141,7 +145,7 @@ class AtB(callbacks.Plugin):
 	The return string do not contain the name of the busstop.
 	"""
 	def _getTimes(self, id):
-		url = "http://api.busbuddy.norrs.no:8080/api/1.2/departures/" # <busStopId>
+		url = "http://api.busbuddy.norrs.no:8080/api/1.3/departures/" # <busStopId>
 		url += str(id)
 		apikey = "your-api-key-here"         # Private API key. Please don't use this :(
 
@@ -152,6 +156,8 @@ class AtB(callbacks.Plugin):
 			data = stream.read()
 		except:
 			return -1, -1
+		if (len(data) == 0):
+			return -3, -3
 		try:
 			data = json.loads(data)
 		except:
