@@ -29,6 +29,7 @@
 
 ###
 
+import urllib
 import urllib2
 import supybot.utils as utils
 from supybot.commands import *
@@ -50,9 +51,7 @@ class Series(callbacks.Plugin):
         """
         url = "http://www.episodeworld.com/botsearch/"
         
-        # Replaces all spaces with underline. urllib2 doesn't like spaces.
-        search = search.replace(" ", "_")
-        url += search
+        url += urllib.quote(search)
         try:
             req = urllib2.Request(url)
             f = urllib2.urlopen(req)
@@ -88,9 +87,8 @@ class Series(callbacks.Plugin):
         Returns information about the given series. Uses tvrage.com
         """
         url = "http://services.tvrage.com/tools/quickinfo.php?show="
-        # Replaces all spaces with underline. urllib2 doesn't like spaces.
-        search = search.replace(" ", "_")
-        url += search
+
+        url += urllib.quote(search)
         try:
             req = urllib2.Request(url)
             f = urllib2.urlopen(req)
