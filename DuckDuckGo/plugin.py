@@ -83,7 +83,7 @@ class DuckDuckGo(callbacks.Plugin):
         try:
             root = etree.fromstring(xml)
         except:
-            print "DDG: Redirected from " + url+ " to " + f.geturl()
+            self.log.info("DDG: Redirected from " + url+ " to " + f.geturl())
             irc.reply(f.geturl())
             return
         
