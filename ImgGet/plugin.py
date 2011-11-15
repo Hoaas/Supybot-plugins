@@ -233,6 +233,7 @@ class ImgGet(callbacks.Plugin):
         
         secondsfloat =  float((endtime - starttime).seconds)\
          + float((endtime - starttime).microseconds) / float(1000000)
+        speed = None
         if(contentlength):
             contentlength = float(contentlength)
             speed = (contentlength / secondsfloat)
