@@ -24,7 +24,7 @@ class Wolfram(callbacks.Privmsg):
             for plaintext in pod.findall('.//plaintext'):
                 if plaintext.text:
                     found = True
-                    if(title == "Input interpretation" or title == "Result"):
+                    if(title == "Input interpretation" or title == "Result" or title == "Input" or title == "Exact result" or title == "Decimal approximation"):
                         irc.reply(("%s: %s" % (title, plaintext.text)).encode('utf-8'))
         if not found:
             irc.reply("huh, I dunno, I'm still a baby AI. Wait till the singularity I guess?")
