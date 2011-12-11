@@ -48,7 +48,7 @@ class Patdown(callbacks.Plugin):
 
     def patdown(self, irc, msg, args, user):   
         """patdown <nick|ip|hostname>
-        Checks if the target have any record at http://www.youhavedownloaded.com/
+        Checks if the target has any record at http://www.youhavedownloaded.com/
         """
         # If input is an IP
         try:
@@ -119,9 +119,9 @@ class Patdown(callbacks.Plugin):
                 ret += cleanlist[i] + ", "
         ret = ret[:-2]
         if user:
-            irc.reply(user + " (" + ip + ") have downloaded: " + ret)
+            irc.reply(user + " (" + ip + ") has downloaded: " + ret)
         else:
-            irc.reply(ip + " have downloaded: " + ret)
+            irc.reply(ip + " has downloaded: " + ret)
 
 
     patdown = wrap(patdown, ['text'])
