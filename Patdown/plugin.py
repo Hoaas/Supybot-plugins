@@ -71,7 +71,7 @@ class Patdown(callbacks.Plugin):
                 irc.reply("ALERT! ERROR! No srsly, not sure what this is.")
                 return
             except socket.gaierror:
-                irc.reply("No IP found.")
+                irc.reply("No IP found. (it was a hostname, right?)")
                 return
             ip = ip[0]
         
