@@ -252,7 +252,7 @@ Check "pollen list" for list of locations.')
         url = self._getURL(irc, msg, args, channel, alias, None, None)
         if not url:
             return
-        html = self._fetchHtml(url)
+        html = self._fetchHtml(irc, url)
         if not html:
             return
         
@@ -273,7 +273,7 @@ Check "pollen list" for list of locations.')
         url = self._getURL(irc, msg, args, channel, alias, None, None)
         if not url:
             return
-        html = self._fetchHtml(url)
+        html = self._fetchHtml(irc, url)
         if not html:
             return
         
@@ -308,7 +308,7 @@ Check "pollen list" for list of locations.')
             return
         
         # Sinply fetches the html
-        html = self._fetchHtml(url)
+        html = self._fetchHtml(irc, url)
         if not html:
             return
         
@@ -461,7 +461,7 @@ Check "pollen list" for list of locations.')
         else:
             return url
         
-    def _fetchHtml(self, url):
+    def _fetchHtml(self, irc, url):
         try:
             url.encode('utf-8')
             req = urllib2.Request(url)
@@ -470,7 +470,8 @@ Check "pollen list" for list of locations.')
             return html
         except:
             irc.reply("I am truly sorry, but I seem to be unable to get any reasonable response from " + url)
-            return None        
+            return None     
+
     def _getDataFromForecast(self, html):
         name, weathertype, tempdesc, winddesc, tempdigit, winddigit = None, None, None, None, None, None
         
