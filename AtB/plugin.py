@@ -50,8 +50,6 @@ class AtB(callbacks.Plugin):
         Returns time until passing of the next busses for the spesified bus stop. 
         Returns time on the first bus stop with matching name. Not alphabetic.
         """
-#		if (name == "voll" or name == "Voll"):
-#			name = "Voll Studentby" # hack
 
 		idList = self._getIdList(name)
 
@@ -67,18 +65,6 @@ class AtB(callbacks.Plugin):
 		for lists in idList:
 			stops.append(lists[0])          # Create a list over all the matching stops
 		stopsset = set(stops)               # Remove all duplicates
-
-#		if ( len(stopsset) > 10):           # With very many hits we simply say how many it was.
-#			irc.reply(str(len(stopsset)) + " treff. Vennligst spesifiser.")
-#			return
-#		elif ( len(stopsset) > 1 ):         # With less than X (but over 1) we list all the hits.
-#			s = ""
-#			for name in stopsset:           # For each unique name
-#				s += str(name) + ", "       # Add to string
-#			s = s[:-2]                      # Remove trailing ,
-#			s += "."                        # and add .
-#			irc.reply(str(len(stopsset)) + " treff. " + s + " Vennligst spesifiser.")
-#			return
 
 
 		selectedstop = list(stopsset).pop(0)
