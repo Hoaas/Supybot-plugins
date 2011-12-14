@@ -97,7 +97,7 @@ class Patdown(callbacks.Plugin):
         s = text.find("</table>", d)+8
 
         if ( text.find("Downloaded files") == -1 ):
-            irc.reply("All clean.")
+            irc.reply(ip + " clean.")
             return
         text = text[d:s]
 
