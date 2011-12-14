@@ -54,6 +54,7 @@ class Patdown(callbacks.Plugin):
         try:
             socket.inet_aton(user)
             ip = user
+            input = None
             user = None
 
         except socket.error:
@@ -85,19 +86,19 @@ class Patdown(callbacks.Plugin):
             irc.reply("Failed to open " + url)
             return
         t = text.find("<title>")
-        ip = text[t+5:text.find("</title>", t)]
-        ip = ip[ip.find("IP")+3:]
-        ip = ip[:ip.find(" | ")]
+        what = text[t+5:text.find("</title>", t)]
+        what = what[what.find("IP")+3:]
+        what = what[:what.find(" | ")]
 
-        if ( ip == "No results" ):
-            irc.reply("Failed to look up ip")
+        if ( what == "No results" ):
+            irc.reply("Failed to look up ip.")
             return
 
         d = text.find("Downloaded files")+len("Downloaded files</h3>")
         s = text.find("</table>", d)+8
 
         if ( text.find("Downloaded files") == -1 ):
-            irc.reply(ip + " clean.")
+            irc.reply(ip + " is clean.")
             return
         text = text[d:s]
 
