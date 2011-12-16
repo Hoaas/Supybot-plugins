@@ -29,6 +29,7 @@
 
 ###
 
+import urllib, urllib2
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
@@ -43,7 +44,64 @@ class SWTOR(callbacks.Plugin):
     """Add the help for "@plugin help SWTOR" here
     This should describe *how* to use this plugin."""
     threaded = True
+    
+    def _status(self, html, server):
+        location = html.find('data-name="' + server)
+        if location == -1:
+            return -1, -1, -1, -1, -1
+        
+        statloc = html.find('<div class="status">', location)
+        statloc = html.find('<span class=', statloc)+5 # + anything should work.
+        statloc = html.find('>', statloc)+1
+        status = html[statloc:html.find('</span>', statloc)]
+        
+        nameloc = html.find('<div class="name">', location) + len('<div class="name">')
+        name = html[nameloc:html.find('<', nameloc)]
+        
+        loadloc = html.find('<div class="population popload3">') + len('<div class="population popload3">')
+        load = html[loadloc:html.find('<', loadloc)]
 
+        typeloc = html.find('<div class="type">', location) + len('<div class="type">')
+        type = html[typeloc:html.find('<', typeloc)]
+
+        langloc = html.find('<div class="language">', location) + len('<div class="language">')
+        lang = html[langloc:html.find('<', langloc)]
+        return status, name, load, type, lang
+        
+        
+
+
+    def status(self, irc, msg, args, server):
+        """status [server]
+        Returns the status of the selected server, and general stats about all
+        servers.
+        """
+        if not server:
+            server = "Scepter of Ragnos"
+        server = server.lower()
+        
+        url = "http://www.swtor.com/server-status"
+        try:
+            req = urllib2.Request(url)
+            f = urllib2.urlopen(req)
+            html = f.read()
+        except:
+            irc.reply("Failed to open " + url)
+            return
+       
+        html = html[html.find('<div id="mainBody">'):html.find('<div class="mainContentFullBottom">')]
+        
+        status, name, load, type, lang = self._status(html, server.lower())
+        
+        if (status == -1):
+            irc.reply('Could not find a servername that starts with "' + server
+                    + '"')
+            return
+        irc.reply('Status on "' + name + '": ' + status + ". Population: " + load + ". " + lang + " " +
+                type + ".")
+
+    status = wrap(status, [optional('text')])
+    
 
 Class = SWTOR
 
