@@ -58,7 +58,7 @@ class SWTOR(callbacks.Plugin):
         nameloc = html.find('<div class="name">', location) + len('<div class="name">')
         name = html[nameloc:html.find('<', nameloc)]
         
-        loadloc = html.find('<div class="population popload3">') + len('<div class="population popload3">')
+        loadloc = html.find('<div class="population popload', location) + len('<div class="population popload3">')
         load = html[loadloc:html.find('<', loadloc)]
 
         typeloc = html.find('<div class="type">', location) + len('<div class="type">')
@@ -66,6 +66,7 @@ class SWTOR(callbacks.Plugin):
 
         langloc = html.find('<div class="language">', location) + len('<div class="language">')
         lang = html[langloc:html.find('<', langloc)]
+#        return str(statloc), str(nameloc), str(loadloc), str(typeloc), str(langloc)
         return status, name, load, type, lang
         
         
@@ -88,7 +89,6 @@ class SWTOR(callbacks.Plugin):
         except:
             irc.reply("Failed to open " + url)
             return
-       
         html = html[html.find('<div id="mainBody">'):html.find('<div class="mainContentFullBottom">')]
         
         status, name, load, type, lang = self._status(html, server.lower())
@@ -97,7 +97,7 @@ class SWTOR(callbacks.Plugin):
             irc.reply('Could not find a servername that starts with "' + server
                     + '"')
             return
-        irc.reply('Status on "' + name + '": ' + status + ". Population: " + load + ". " + lang + " " +
+        irc.reply('Status of "' + name + '": ' + status + ". Population: " + load + ". " + lang + " " +
                 type + ".")
 
     status = wrap(status, [optional('text')])
