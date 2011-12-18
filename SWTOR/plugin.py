@@ -97,8 +97,7 @@ class SWTOR(callbacks.Plugin):
             irc.reply('Could not find a servername that starts with "' + server
                     + '"')
             return
-        irc.reply('Status of "' + name + '": ' + status + ". Population: " + load + ". " + lang + " " +
-                type + ".")
+        irc.reply(name + ": " + status + ". Population: " + load + ". " + type + ". " + lang + ".")
 
     status = wrap(status, [optional('text')])
     
