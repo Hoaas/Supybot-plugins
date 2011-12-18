@@ -131,7 +131,7 @@ class AtB(callbacks.Plugin):
 	The return string do not contain the name of the busstop.
 	"""
 	def _getTimes(self, id):
-		url = "http://api.busbuddy.norrs.no:8080/api/1.3/departures/" # <busStopId>
+		url = "http://api.busbuddy.norrs.no:8080/api/1.3/departures/" # <locationId>
 		url += str(id)
 		apikey = "your-api-key-here"         # Private API key. Please don't use this :(
 
