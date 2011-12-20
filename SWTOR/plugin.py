@@ -50,21 +50,25 @@ class SWTOR(callbacks.Plugin):
         if location == -1:
             return -1, -1, -1, -1, -1
         
+        # Assuming this tag always stays the same
         statloc = html.find('<div class="status">', location)
-        statloc = html.find('<span class=', statloc)+5 # + anything should work.
-        statloc = html.find('>', statloc)+1
+        statloc = html.find('<span class=', statloc)
+        statloc = html.find('>', statloc) + 1
         status = html[statloc:html.find('</span>', statloc)]
         
         nameloc = html.find('<div class="name">', location) + len('<div class="name">')
         name = html[nameloc:html.find('<', nameloc)]
         
-        loadloc = html.find('<div class="population popload', location) + len('<div class="population popload3">')
+        loadloc = html.find('<div class="population popload', location)
+        loadloc = html.find('>', loadloc) + 1
         load = html[loadloc:html.find('<', loadloc)]
 
-        typeloc = html.find('<div class="type">', location) + len('<div class="type">')
+        typeloc = html.find('<div class="type">', location)
+        typelod = html.find('>', typeloc) + 1
         type = html[typeloc:html.find('<', typeloc)]
 
-        langloc = html.find('<div class="language">', location) + len('<div class="language">')
+        langloc = html.find('<div class="language">', location)
+        langloc = html.find('>', langloc) + 1
         lang = html[langloc:html.find('<', langloc)]
 #        return str(statloc), str(nameloc), str(loadloc), str(typeloc), str(langloc)
         return status, name, load, type, lang
@@ -88,6 +92,10 @@ class SWTOR(callbacks.Plugin):
             html = f.read()
         except:
             irc.reply("Failed to open " + url)
+            return
+        downmessageloc = html.find("SWTOR.com is currently unavailable while we perform scheduled maintenance. Please check back again soon!")
+        if downmessageloc != -1:
+            irc.reply("SWTOR.com is currently unavailable while we perform scheduled maintenance. Please check back again soon!")
             return
         html = html[html.find('<div id="mainBody">'):html.find('<div class="mainContentFullBottom">')]
         
