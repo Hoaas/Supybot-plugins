@@ -59,19 +59,19 @@ class SWTOR(callbacks.Plugin):
         nameloc = html.find('<div class="name">', location) + len('<div class="name">')
         name = html[nameloc:html.find('<', nameloc)]
         
-        loadloc = html.find('<div class="population popload', location)
+        loadloc = html.find('<div class="population', location)
         loadloc = html.find('>', loadloc) + 1
         load = html[loadloc:html.find('<', loadloc)]
 
         typeloc = html.find('<div class="type">', location)
-        typelod = html.find('>', typeloc) + 1
-        type = html[typeloc:html.find('<', typeloc)]
+        typeloc = html.find('>', typeloc) + 1
+        stype = html[typeloc:html.find('<', typeloc)]
 
         langloc = html.find('<div class="language">', location)
         langloc = html.find('>', langloc) + 1
         lang = html[langloc:html.find('<', langloc)]
 #        return str(statloc), str(nameloc), str(loadloc), str(typeloc), str(langloc)
-        return status, name, load, type, lang
+        return status, name, load, stype, lang
         
         
 
@@ -99,13 +99,13 @@ class SWTOR(callbacks.Plugin):
             return
         html = html[html.find('<div id="mainBody">'):html.find('<div class="mainContentFullBottom">')]
         
-        status, name, load, type, lang = self._status(html, server.lower())
+        status, name, load, stype, lang = self._status(html, server.lower())
         
         if (status == -1):
             irc.reply('Could not find a servername that starts with "' + server
                     + '"')
             return
-        irc.reply(name + ": " + status + ". Population: " + load + ". " + type + ". " + lang + ".")
+        irc.reply(name + ": " + status + ". Population load: " + load + ". " + stype + ". " + lang + ".")
 
     status = wrap(status, [optional('text')])
     
