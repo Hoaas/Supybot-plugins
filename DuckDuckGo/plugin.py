@@ -48,7 +48,7 @@ class DuckDuckGo(callbacks.Plugin):
 
         Searches duckduckgo.com and returns any zero-click information, if any."""
         
-        showurl = True
+        showurl = False
         safesearch = False
         maxreplies = 3
         showaddionalhits = False
@@ -89,6 +89,7 @@ class DuckDuckGo(callbacks.Plugin):
         
         type = root.findtext("Type")
         answer = root.findtext("Answer")
+        definition = root.findtext("Definition")
         abstract = root.findtext("AbstractText")
         abstracturl = root.findtext("AbstractURL")
         results = root.findall("Results/Result")
@@ -104,6 +105,10 @@ class DuckDuckGo(callbacks.Plugin):
             else:
                 output = abstract.strip()
             irc.reply(output.encode('utf-8'))
+            repliessofar += 1
+            return
+        if definition and repliessofar < maxreplies:
+            irc.reply(definition.strip().encode('utf-8'))
             repliessofar += 1
             return
 
