@@ -42,7 +42,9 @@ import supybot.callbacks as callbacks
 
 
 class AutoOp(callbacks.Plugin):
-    """This plugin autoop/halfop/voice depending on hostmask. The only command is autoop (for adding hostmasks)."""
+    """This plugin autoop/halfop/voice depending on hostmask. The only command
+    is autoop (for adding hostmasks). WARNING: Very not thread safe. Several
+    commands issued at the same time will overwrite each other."""
     threaded = True
     def autovoice(self, irc, msg, args, channel, user):
         """[<channel>] <nick|hostmask>
@@ -65,6 +67,8 @@ class AutoOp(callbacks.Plugin):
         self._automode(irc, msg, channel, user, "op")
     autoop = wrap(autoop, [('checkCapability', 'owner'), 'channeldb', "anything"])
 
+    """Takes in a nickname or hostmask and a mode and adds it to the database
+    if it isn't already added."""
     def _automode(self, irc, msg, channel, user, mode):
         hostmask = ""
         # If it is a valid nick and currently in the channel
@@ -76,6 +80,7 @@ class AutoOp(callbacks.Plugin):
             hostmask = user
         # Add the hostmask to file. Returns True on success.
         ret = self._writeToFile(channel, hostmask, mode)
+        self._autoMagic(irc, msg, channel)
         if ret == -1:
             irc.reply("Not a valid regex for hostmask :(:(")
             return
@@ -86,7 +91,6 @@ class AutoOp(callbacks.Plugin):
             irc.reply("Cannot read and/or write (to) database.")
             return
         # Check if any users in the channel match the hostmasks added.
-        # self._autoMagic(irc, msg, channel)
 
     def _autoMagic(self, irc, msg, channel):
         # If bot does not got op
@@ -94,7 +98,8 @@ class AutoOp(callbacks.Plugin):
             return
         # Read database
         hostdict, _ = self._readFile(channel)
-        
+
+        # If for some reason _readFile() failed 
         if hostdict == -3:
             return -3
         elif hostdict == -2:
@@ -102,6 +107,7 @@ class AutoOp(callbacks.Plugin):
         elif hostdict == -1:
             return -1
 
+        # List of those nicks that are to gain modes
         oplist = []
         halfoplist = []
         voicelist = []
@@ -110,8 +116,8 @@ class AutoOp(callbacks.Plugin):
         for u in irc.state.channels[channel].users:
             hostname = irc.state.nickToHostmask(u)
             for regex in hostdict.iteritems():
-                #irc.reply (u + " " + str(regex) + " - " + str(regex in hostdict))
-                if hostname == regex[0]:
+                match = re.search(regex[0], hostname)
+                if match:
                     if regex[1] == "op":
                         if u not in irc.state.channels[channel].ops:
                             oplist.append(u)
@@ -121,7 +127,7 @@ class AutoOp(callbacks.Plugin):
                     elif regex[1] == "voice":
                         if u not in irc.state.channels[channel].voices:
                             voicelist.append(u)
-        
+  
         maxmodes = 4
  
         # While there are still people to give op to
@@ -155,92 +161,11 @@ class AutoOp(callbacks.Plugin):
     # Whe the bot is oped we want to check all the hosts in the channel and op those that should have op.
     def doMode(self, irc, msg):
         channel = msg.args[0]
-        # modes = msg.args[1]
-        targets = msg.args[2:]
-        # All oped targets
-        for t in targets:
-            # If bot is target of the mode change
-            if(irc.nick == t):
-                if irc.nick in irc.state.channels[channel].ops:                                
-                    # Bot have gained op!
-                    self._autoMagic(irc, msg, channel) 
-                    # List to contains nick that are getting the appropriate mode
-                    oplist = []
-                    halfoplist = []
-                    voicelist = []
-                    
-                    for u in irc.state.channels[channel].users:
-                        # Ignore those that have op
-                        if u not in irc.state.channels[channel].ops:
-                            
-                            host =  irc.state.nickToHostmask(u).split("@")[1]
-                            mode = self._autoMode(channel, host)
-                            if(mode == "voice" or mode == "op" or mode == "halfop"):
-                                if mode == "op":
-                                    oplist.append(u)
-                                elif mode == "voice":
-                                    voicelist.appen(u)
-                                elif mode == "halfop":
-                                    halfoplist.append(u)
-                                self.log.info("AutoOp: Auto" + mode + " to " + u + " (" + host + ")")
-                            elif(mode != False):
-                                self.log.warning("AutoOp: Hostmask hit for " + u + " (" + host + "), but unknow mode.")
-                            else:
-                                self.log.debug("AutoOp: No match for " + u + " (" + host + ").")
-                    maxmodes = 4
-                    
-                    # While there are still people to give op to
-                    while len(oplist) > 0:
-                        # Op the first 4, or whatever maxmode is
-                        irc.queueMsg(ircmsgs.ops(channel, oplist[:maxmodes]))
-                        # Remove those that have been given op from the list
-                        oplist = oplist[maxmodes:]
-                        # If the list is shorter than maxmode, op them all.
-                        if len(oplist) <= maxmodes:
-                            irc.queueMsg(ircmsgs.ops(channel, oplist))
-                            break;
-                    
-                    while len(halfoplist) > 0:
-                        irc.queueMsg(ircmsgs.ops(channel, halfoplist[:maxmodes]))
-                        halfoplist = halfoplist[maxmodes:]
-                        if len(halfoplist) <= maxmodes:
-                            irc.queueMsg(ircmsgs.ops(channel, halfoplist))
-                            break;
-                    
-                    while len(voicelist) > 0:
-                        irc.queueMsg(ircmsgs.ops(channel, voicelist[:maxmodes]))
-                        oplist = voicelist[maxmodes:]
-                        if len(voicelist) <= maxmodes:
-                            irc.queueMsg(ircmsgs.ops(channel, voicelist))
-                            break;
-                        
-                    # Can't really remember that this does.
-                    irc.noReply()
-                                               
-                                                
+        self._autoMagic(irc, msg, channel) 
+ 
     def doJoin(self, irc, msg):
         channel = msg.args[0]
-        # If bot got op
-        if irc.nick in irc.state.channels[channel].ops:
-            self._autoMagic(irc, msg, channel)
-            mode = self._autoMode(channel, msg.host)
-            if(mode == "voice" or mode == "op" or mode == "halfop"):
-                if mode == "op":
-                    modemsg = ircmsgs.op(channel, msg.nick)
-                elif mode == "voice":
-                    modemsg = ircmsgs.voice(channel, msg.nick)
-                elif mode == "halfop":
-                    modemsg = ircmsgs.halfop(channel, msg.nick)
-                irc.queueMsg(modemsg)
-                irc.noReply()
-	        self.log.info("AutoOp: Auto" + mode + " to " + msg.nick + " (" + msg.host + ")")
-	    elif(mode != False):
-                selg.log.warning("AutoOp: Hostmask hit for " + msg.nick + " (" + msg.host + "), but unknown mode.")
-            else:
-                self.log.debug("AutoOp: No match on " + msg.nick + " (" + msg.host + ").")
-        else:
-           # If the bot don't got op, perhaps say something now and then?
-           pass
+        self._autoMagic(irc, msg, channel)
 
     def _readFile(self, channel):
         # Check if db file exists, create if it doesn't.
@@ -269,7 +194,7 @@ class AutoOp(callbacks.Plugin):
             hostdict = simplejson.load(logfile)
             # self.log.info("DEBUG: " + str(json))
         except simplejson.JSONDecodeError, j:
-            self.log.critical("ERROR: AutoOp failed to decode database as json. Creating a new file. Everything in the file is now lost. Sorry.")
+            self.log.critical("ERROR: AutoOp failed to decode database for channel " + channel + " as json. Creating a new file. Everything in the file is now lost. Sorry.")
         logfile.close()
         return hostdict, dataDir
 
