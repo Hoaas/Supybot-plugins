@@ -30,6 +30,7 @@
 ###
 import re
 import os.path
+import simplejson
 import supybot.ircdb as ircdb
 import supybot.conf as conf
 import supybot.utils as utils
@@ -43,17 +44,113 @@ import supybot.callbacks as callbacks
 class AutoOp(callbacks.Plugin):
     """This plugin autoop/halfop/voice depending on hostmask. The only command is autoop (for adding hostmasks)."""
     threaded = True
-    
-    def autoop(self, irc, msg, args, channel, hostmask):
-        """[<channel>] <regex for hostmask> <op|voice|halfop> [<#comment>] 
-        
-        Comment is only visible in the database file.
-        Adds hostmask to the autoop list. Make sure it is correct regex. There is no error check on this.
-        Be very careful when using this command. Might be better to edit the file manually.
+    def autovoice(self, irc, msg, args, channel, user):
+        """[<channel>] <nick|hostmask>
+        Adds (nicks) hostmask to the autoop list. Hostmask can be a regex.
         """
-        self.log.info("Adding hostmask: " + hostmask + " for channel " + channel)
-        self._addHostMask(channel, hostmask)
-    autoop = wrap(autoop, [('checkCapability', 'owner'), 'channeldb', 'text'])
+        self._automode(irc, msg, channel, user, "voice")
+    autovoice = wrap(autovoice, [('checkCapability', 'owner'), 'channeldb', 'anything'])
+    
+    def autohalfop(self, irc, msg, args, channel, user):
+        """[<channel>] <nick|hostmask>
+        Adds (nicks) hostmask to the autoop list. Hostmask can be a regex.
+        """
+        self._automode(irc, msg, channel, user, "halfop")
+    autohalfop = wrap(autohalfop, [('checkCapability', 'owner'), 'channeldb', 'anything'])
+
+    def autoop(self, irc, msg, args, channel, user):
+        """[<channel>] <nick|hostmask>
+        Adds (nicks) hostmask to the autoop list. Hostmask can be a regex.
+        """
+        self._automode(irc, msg, channel, user, "op")
+    autoop = wrap(autoop, [('checkCapability', 'owner'), 'channeldb', "anything"])
+
+    def _automode(self, irc, msg, channel, user, mode):
+        hostmask = ""
+        # If it is a valid nick and currently in the channel
+        if ( irc.isNick(user) and user in
+                irc.state.channels[msg.args[0]].users ):
+            hostmask = irc.state.nickToHostmask(user)
+        # assume it is a hostmask, and check that
+        else:
+            hostmask = user
+        # Add the hostmask to file. Returns True on success.
+        ret = self._writeToFile(channel, hostmask, mode)
+        if ret == -1:
+            irc.reply("Not a valid regex for hostmask :(:(")
+            return
+        elif ret == -2: 
+            irc.reply("Regex already in database.")
+            return
+        elif ret == -3:
+            irc.reply("Cannot read and/or write (to) database.")
+            return
+        # Check if any users in the channel match the hostmasks added.
+        # self._autoMagic(irc, msg, channel)
+
+    def _autoMagic(self, irc, msg, channel):
+        # If bot does not got op
+        if irc.nick not in irc.state.channels[channel].ops:
+            return
+        # Read database
+        hostdict, _ = self._readFile(channel)
+        
+        if hostdict == -3:
+            return -3
+        elif hostdict == -2:
+            return -2
+        elif hostdict == -1:
+            return -1
+
+        oplist = []
+        halfoplist = []
+        voicelist = []
+
+        # For all nicks in channel
+        for u in irc.state.channels[channel].users:
+            hostname = irc.state.nickToHostmask(u)
+            for regex in hostdict.iteritems():
+                #irc.reply (u + " " + str(regex) + " - " + str(regex in hostdict))
+                if hostname == regex[0]:
+                    if regex[1] == "op":
+                        if u not in irc.state.channels[channel].ops:
+                            oplist.append(u)
+                    elif regex[1] == "halfop":
+                        if u not in irc.state.channels[channel].halfops:
+                            halfoplist.append(u)
+                    elif regex[1] == "voice":
+                        if u not in irc.state.channels[channel].voices:
+                            voicelist.append(u)
+        
+        maxmodes = 4
+ 
+        # While there are still people to give op to
+        while len(oplist) > 0:
+            # Op the first 4, or whatever maxmode is
+            irc.queueMsg(ircmsgs.ops(channel, oplist[:maxmodes]))
+            # Remove those that have been given op from the list
+            oplist = oplist[maxmodes:]
+            # If the list is shorter than maxmode, op them all.
+            if len(oplist) <= maxmodes:
+                irc.queueMsg(ircmsgs.ops(channel, oplist))
+                break;
+                    
+        while len(halfoplist) > 0:
+            irc.queueMsg(ircmsgs.halfops(channel, halfoplist[:maxmodes]))
+            halfoplist = halfoplist[maxmodes:]
+            if len(halfoplist) <= maxmodes:
+                irc.queueMsg(ircmsgs.halfops(channel, halfoplist))
+                break;
+                    
+        while len(voicelist) > 0:
+            irc.queueMsg(ircmsgs.voices(channel, voicelist[:maxmodes]))
+            voicelist = voicelist[maxmodes:]
+            if len(voicelist) <= maxmodes:
+                irc.queueMsg(ircmsgs.voices(channel, voicelist))
+                break;
+
+        # Can't really remember that this does.
+        irc.noReply()
 
     # Whe the bot is oped we want to check all the hosts in the channel and op those that should have op.
     def doMode(self, irc, msg):
@@ -66,7 +163,7 @@ class AutoOp(callbacks.Plugin):
             if(irc.nick == t):
                 if irc.nick in irc.state.channels[channel].ops:                                
                     # Bot have gained op!
-                    
+                    self._autoMagic(irc, msg, channel) 
                     # List to contains nick that are getting the appropriate mode
                     oplist = []
                     halfoplist = []
@@ -123,7 +220,9 @@ class AutoOp(callbacks.Plugin):
                                                 
     def doJoin(self, irc, msg):
         channel = msg.args[0]
+        # If bot got op
         if irc.nick in irc.state.channels[channel].ops:
+            self._autoMagic(irc, msg, channel)
             mode = self._autoMode(channel, msg.host)
             if(mode == "voice" or mode == "op" or mode == "halfop"):
                 if mode == "op":
@@ -142,23 +241,54 @@ class AutoOp(callbacks.Plugin):
         else:
            # If the bot don't got op, perhaps say something now and then?
            pass
-            
-    def _addHostMask(self, channel, hostmask):
+
+    def _readFile(self, channel):
+        # Check if db file exists, create if it doesn't.
         dataDir = conf.supybot.directories.data
         channel = channel.lower()
         chandir = dataDir.dirize(channel)
-        
+
         if not os.path.exists(chandir):
             os.makedirs(chandir)
-            
+
         dataDir = dataDir.dirize(channel + "/AutoOp.db")
         if not os.path.isfile(dataDir):
             # I believe this overwrites if the file exists
-            open(dataDir, 'w')
-         
-        # a for append   
-        logfile = open(dataDir, 'a')
-        logfile.write(hostmask + '\n')
+            self.log.info("AutoOp: Creating new database at " + dataDir)
+            try:
+                open(dataDir, 'w')
+            except IOError:
+                return -3, -3
+        # db exists now.
+        try:
+            logfile = open(dataDir, 'r')
+        except  IOError:
+            return -3, -3
+        hostdict = {}
+        try:
+            hostdict = simplejson.load(logfile)
+            # self.log.info("DEBUG: " + str(json))
+        except simplejson.JSONDecodeError, j:
+            self.log.critical("ERROR: AutoOp failed to decode database as json. Creating a new file. Everything in the file is now lost. Sorry.")
+        logfile.close()
+        return hostdict, dataDir
+
+    def _writeToFile(self, channel, hostmask, mode):
+        hostdict, dataDir = self._readFile(channel)
+        
+        # In case of -3, db could not be accessed.
+        if hostdict == -3:
+            return -3
+
+        # If hostmask already exists there is no need to add it.
+        if (hostmask in hostdict):
+            return -2
+
+        # Write dictionary to file again
+        logfile = open(dataDir, 'w')
+        hostdict[hostmask] = mode
+        self.log.info("AutoOp: Adding " + hostmask + " in " + channel + " to database as " + mode + ".")
+        logfile.write(simplejson.dumps(hostdict))
 
     def _autoMode(self, channel, hostmask):
         dataDir = conf.supybot.directories.data
