@@ -45,7 +45,7 @@ class AutoOp(callbacks.Plugin):
     """This plugin autoop/halfop/voice depending on hostmask. The only command
     is autoop (for adding hostmasks). WARNING: Very not thread safe. Several
     commands issued at the same time will overwrite each other."""
-    threaded = True
+    
     def autovoice(self, irc, msg, args, channel, user):
         """[<channel>] <nick|hostmask>
         Adds (nicks) hostmask to the autoop list. Hostmask can be a regex.
