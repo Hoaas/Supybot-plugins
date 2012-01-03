@@ -20,7 +20,7 @@ class Wolfram(callbacks.Privmsg):
 
         found = False
 	maxoutput = 2
-	output = 0
+	outputcount = 0
         for pod in tree.findall('.//pod'):
             title = pod.attrib['title']
             for plaintext in pod.findall('.//plaintext'):
@@ -32,10 +32,12 @@ class Wolfram(callbacks.Privmsg):
                     title == "Exact result" or 
                     title == "Decimal approximation"):
                     """
-                    if output < maxoutput:
-                        irc.reply(("%s: %s" % (title,
-                            plaintext.text.replace('\n', ', '))).encode('utf-8'))
-                        output += 1
+                    if outputcount < maxoutput:
+                        output = plaintext.text
+                        output = output.replace(' | ', ': ')
+                        output = output.replace('\n', ', ')
+                        irc.reply(("%s: %s" % (title, output.encode('utf-8'))))
+                        outputcount += 1
         if not found:
             irc.reply("huh, I dunno, I'm still a baby AI. Wait till the singularity I guess?")
 
