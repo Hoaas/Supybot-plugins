@@ -60,7 +60,7 @@ class UrlShortener(callbacks.Plugin):
                 shorturl = f.read()
                 irc.reply("Short url: " + shorturl)
             except:
-                print "Failed to shorten url: " + longurl
+                self.log.warning("Failed to shorten url: " + longurl)
 
         
 Class = UrlShortener
