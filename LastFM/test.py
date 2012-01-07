@@ -1,5 +1,5 @@
 ###
-# Copyright (c) 2010, Terje Hoaas
+# Copyright (c) 2010, William Donaldson
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without

@@ -1,5 +1,5 @@
 ###
-# Copyright (c) 2010, William Donaldson
+# Copyright (c) 2010, Terje Hoaas
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,42 +28,10 @@
 
 ###
 
-"""
-Allows users to access information from Last.fm.
-"""
+from supybot.test import *
 
-import supybot
-import supybot.world as world
-
-# Use this for the version of this plugin.  You may wish to put a CVS keyword
-# in here if you're keeping the plugin in CVS or some similar system.
-__version__ = "1.0"
-
-# XXX Replace this with an appropriate author or supybot.Author instance.
-__author__ = supybot.Author('William Donaldson', 'Biiaru', 'supybotplugins@biiaru.net')
-
-# This is a dictionary mapping supybot.Author instances to lists of
-# contributions.
-__contributors__ = {}
-
-# This is a url where the most recent plugin package can be downloaded.
-__url__ = '' # 'http://supybot.com/Members/yourname/LastFM/download'
-
-import config
-import plugin
-import pylast
-import apisettings
-reload(plugin) # In case we're being reloaded.
-reload(pylast) # If I upgrade pylast
-reload(apisettings)
-# Add more reloads here if you add third-party modules and want them to be
-# reloaded when this plugin is reloaded.  Don't forget to import them as well!
-
-if world.testing:
-    import test
-
-Class = plugin.Class
-configure = config.configure
+class LastFMTestCase(PluginTestCase):
+    plugins = ('LastFM',)
 
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

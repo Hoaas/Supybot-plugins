@@ -1,5 +1,6 @@
+# coding=utf8
 ###
-# Copyright (c) 2010, William Donaldson
+# Copyright (c) 2010, Terje Hoås
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,18 +30,21 @@
 ###
 
 """
-Allows users to access information from Last.fm.
+Add a description of the plugin (to be presented to the user inside the wizard)
+here.  This should describe *what* the plugin does.
 """
 
 import supybot
 import supybot.world as world
 
+supybot.authors.hoaas = supybot.Author('Terje Hoås', 'Hoaas', 'terjehoaas@gmail.com')
+
 # Use this for the version of this plugin.  You may wish to put a CVS keyword
 # in here if you're keeping the plugin in CVS or some similar system.
-__version__ = "1.0"
+__version__ = ""
 
 # XXX Replace this with an appropriate author or supybot.Author instance.
-__author__ = supybot.Author('William Donaldson', 'Biiaru', 'supybotplugins@biiaru.net')
+__author__ = supybot.authors.hoaas
 
 # This is a dictionary mapping supybot.Author instances to lists of
 # contributions.
@@ -51,11 +55,7 @@ __url__ = '' # 'http://supybot.com/Members/yourname/LastFM/download'
 
 import config
 import plugin
-import pylast
-import apisettings
 reload(plugin) # In case we're being reloaded.
-reload(pylast) # If I upgrade pylast
-reload(apisettings)
 # Add more reloads here if you add third-party modules and want them to be
 # reloaded when this plugin is reloaded.  Don't forget to import them as well!
 

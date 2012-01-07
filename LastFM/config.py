@@ -1,6 +1,5 @@
-# coding=utf8
 ###
-# Copyright (c) 2010, Terje Hoås
+# Copyright (c) 2010, William Donaldson
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
