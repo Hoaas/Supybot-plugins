@@ -37,8 +37,8 @@ import supybot.plugins as plugins
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 
-class LastFM(callbacks.Plugin):
-    """Add the help for "@plugin help LastFM" here
+class hLastFM(callbacks.Plugin):
+    """Add the help for "@plugin help hLastFM" here
     This should describe *how* to use this plugin."""
     threaded = True
     
@@ -118,7 +118,7 @@ class LastFM(callbacks.Plugin):
 
     lastfm = wrap(lastfm, [optional('text')])
 
-Class = LastFM
+Class = hLastFM
 
 
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:

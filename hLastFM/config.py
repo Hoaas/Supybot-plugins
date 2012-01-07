@@ -38,12 +38,12 @@ def configure(advanced):
     # user or not.  You should effect your configuration by manipulating the
     # registry as appropriate.
     from supybot.questions import expect, anything, something, yn
-    conf.registerPlugin('LastFM', True)
+    conf.registerPlugin('hLastFM', True)
 
 
-LastFM = conf.registerPlugin('LastFM')
+hLastFM = conf.registerPlugin('hLastFM')
 # This is where your configuration variables (if any) should go.  For example:
-# conf.registerGlobalValue(LastFM, 'someConfigVariableName',
+# conf.registerGlobalValue(hoaas-LastFM, 'someConfigVariableName',
 #     registry.Boolean(False, """Help for someConfigVariableName."""))
 
 
