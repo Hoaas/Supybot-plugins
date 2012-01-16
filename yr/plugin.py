@@ -106,20 +106,34 @@ class yr(callbacks.Plugin):
         # last <li>s before </ul>
         htmltemp = html
         name = None
-        try:
-            htmltemp = htmltemp[htmltemp.find('<table class="yr-table yr-table-station yr-popup-area">'):]
-            htmltemp = htmltemp[htmltemp.find('<thead>'):]
-            htmltemp = htmltemp[htmltemp.find('<strong>')+8:]
-            htmltemp = htmltemp[:htmltemp.find("</strong>")]
-            name = htmltemp
-        except:
-            pass
+
+        # Currently, this is not used to find the name of the local
+        # weatherstation, so it is commented out. Should be fixed.
+#        try:
+#            htmltemp = htmltemp[htmltemp.find('<table class="yr-table yr-table-station yr-popup-area">'):]
+#            htmltemp = htmltemp[htmltemp.find('<thead>'):]
+#            htmltemp = htmltemp[htmltemp.find('<strong>')+8:]
+#            htmltemp = htmltemp[:htmltemp.find("</strong>")]
+#            name = htmltemp
+#        except:
+#            pass
         if not name:
-            abstract = '<meta http-equiv="Abstract" content="'
-            startofname = html.find(abstract)+len(abstract)
-            html = html[startofname:]
-            html = html[:html.find('" />')]
-            name = html        
+            where = '<div class="yr-content-title clearfix">a'
+            temp = html.find(where)+len(where)
+            startofname = html.find('<h1>', temp) + len('<h1>')
+            endofname = html.find('</h1>', startofname)
+            name = html[startofname:endofname]
+            name = name.replace('<span>', '')
+            name = name.replace('</span>', '')
+            name = name.replace('<strong>', '')
+            name = name.replace('</strong>', '')
+
+            # This returns something like Værvarsel for Nrk.Ver.Bib.Geotre.PunktUtlandet
+            # abstract = '<meta http-equiv="Abstract" content="'
+            # startofname = html.find(abstract)+len(abstract)
+            # html = html[startofname:]
+            # html = html[:html.find('" />')]
+            # name = html        
         return name
                 
     def _pollen(self, locations, loc):
