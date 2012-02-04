@@ -194,7 +194,7 @@ class AutoOp(callbacks.Plugin):
             hostdict = simplejson.load(logfile)
             # self.log.info("DEBUG: " + str(json))
         except simplejson.JSONDecodeError, j:
-            self.log.critical("ERROR: AutoOp failed to decode database for channel " + channel + " as json. Creating a new file. Everything in the file is now lost. Sorry.")
+            pass # Happens when the file doesn't exist.
         logfile.close()
         return hostdict, dataDir
 
