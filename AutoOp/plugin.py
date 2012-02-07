@@ -214,6 +214,7 @@ class AutoOp(callbacks.Plugin):
         hostdict[hostmask] = mode
         self.log.info("AutoOp: Adding " + hostmask + " in " + channel + " to database as " + mode + ".")
         logfile.write(simplejson.dumps(hostdict))
+        irc.replySuccess()
 
     def _autoMode(self, channel, hostmask):
         dataDir = conf.supybot.directories.data
