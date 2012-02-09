@@ -160,8 +160,11 @@ class AutoOp(callbacks.Plugin):
 
     # Whe the bot is oped we want to check all the hosts in the channel and op those that should have op.
     def doMode(self, irc, msg):
-        channel = msg.args[0]
-        self._autoMagic(irc, msg, channel) 
+        pass
+        ## Removed since this triggers on every time someone is oped. And a lot
+        ## of times on netsplit
+        #channel = msg.args[0]
+        #self._autoMagic(irc, msg, channel) 
  
     def doJoin(self, irc, msg):
         channel = msg.args[0]
