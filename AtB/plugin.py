@@ -54,7 +54,7 @@ class AtB(callbacks.Plugin):
 		idList = self._getIdList(name)
 
 		if (idList == -1):
-			irc.reply("Error. Kunne ikke åpne URLen. hoaas.net er sikkert nede.")
+			irc.reply("Error. Kunne ikke åpne URLen. hoaas.no er sikkert nede.")
 			self.log.debug("Error: Could not open URL. (AtB / _getIdList())")
 			return
 		elif(len(idList) < 1):
@@ -106,7 +106,7 @@ class AtB(callbacks.Plugin):
 	"""
 	def _getIdList(self, name):
 	#    url = "http://api.busbuddy.norrs.no:8080/api/1.2/busstops"     # URL to JSON data that contains list over busstops
-		url = "http://hoaas.net/busstops"   # Alternative local url
+		url = "http://hoaas.no/busstops"   # Alternative local url
 		#apikey = "your-api-key-here"         # Private API key. Please don't use this :(
 
 		try:
