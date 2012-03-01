@@ -75,11 +75,17 @@ class AutoOp(callbacks.Plugin):
         if ( irc.isNick(user) and user in
                 irc.state.channels[msg.args[0]].users ):
             hostmask = irc.state.nickToHostmask(user)
+            # Hostmasks might contain ., which is bit of a universal character
+            # in regex.
+            hostmask = hostmask.replace(".", "\.")
         # assume it is a hostmask, and check that
         else:
             hostmask = user
+
+
         # Add the hostmask to file. Returns True on success.
         ret = self._writeToFile(channel, hostmask, mode)
+        irc.replySuccess()
         self._autoMagic(irc, msg, channel)
         if ret == -1:
             irc.reply("Not a valid regex for hostmask :(:(")
@@ -129,7 +135,6 @@ class AutoOp(callbacks.Plugin):
                             voicelist.append(u)
   
         maxmodes = 4
- 
         # While there are still people to give op to
         while len(oplist) > 0:
             # Op the first 4, or whatever maxmode is
@@ -217,7 +222,6 @@ class AutoOp(callbacks.Plugin):
         hostdict[hostmask] = mode
         self.log.info("AutoOp: Adding " + hostmask + " in " + channel + " to database as " + mode + ".")
         logfile.write(simplejson.dumps(hostdict))
-        irc.replySuccess()
 
     def _autoMode(self, channel, hostmask):
         dataDir = conf.supybot.directories.data
