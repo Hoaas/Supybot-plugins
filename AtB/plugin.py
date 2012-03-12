@@ -140,8 +140,9 @@ class AtB(callbacks.Plugin):
 			req.add_header('X-norrs-busbuddy-apikey', apikey)
 			stream = urllib2.urlopen(req)
 			data = stream.read()
-		except:
-			return -1, -1
+		except Exception as e:
+                    self.log.error("AtB API ({1}): {0}".format(str(e), url))
+		    return -1, -1
 		if (len(data) == 0):
 			return -3, -3
 		try:
