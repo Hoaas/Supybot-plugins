@@ -528,7 +528,6 @@ Check "pollen list" for list of locations.')
             
             start = winddesc.find(", ") + 2
             stop = winddesc.find("m/s")
-            self.log.info(winddesc[start:stop].replace(',', '.').strip())
             winddigit = float(winddesc[start:stop].replace(',', '.').strip())
         except:
             self.log.debug("DEBUG: _getDataFromForecast in yr failed.")
