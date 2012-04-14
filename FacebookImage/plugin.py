@@ -52,8 +52,7 @@ class FacebookImage(callbacks.Plugin):
         if not enabled:
             return
         for url in utils.web.urlRe.findall(msg.args[1]):
-            if(url.endswith("_n.jpg") and (url.startswith("http://fbcdn-sphotos-a.akamaihd.net") or
-                    url.startswith("https://fbcdn-sphotos-a.akamaihd.net"))):
+            if(url.endswith(".jpg") and "fbcdn" in url and "sphotos" in url):
                 filename = url.split("/")[-1]
                 uid = filename.split("_")[2]
                 albumid = filename.split("_")[3]
