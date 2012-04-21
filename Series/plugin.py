@@ -64,7 +64,8 @@ class Series(callbacks.Plugin):
             # 3: Url
             if l < 1:
                 raise Exception("html-0-error")
-            irc.reply(html[0].strip())
+            if(html[0].strip() != search):
+                irc.reply(html[0].strip())
 
             if l < 2:
                 return
