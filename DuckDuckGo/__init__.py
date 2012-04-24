@@ -37,14 +37,12 @@ here.  This should describe *what* the plugin does.
 import supybot
 import supybot.world as world
 
-supybot.authors.hoaas = supybot.Author('Terje Hoås', 'Hoaas', 'terjehoaas@gmail.com')
-
 # Use this for the version of this plugin.  You may wish to put a CVS keyword
 # in here if you're keeping the plugin in CVS or some similar system.
 __version__ = ""
 
 # XXX Replace this with an appropriate author or supybot.Author instance.
-__author__ = supybot.authors.hoaas
+__author__ = supybot.Author('Terje Hoås', 'Hoaas', 'terjehoaas@gmail.com')
 
 # This is a dictionary mapping supybot.Author instances to lists of
 # contributions.

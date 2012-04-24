@@ -42,7 +42,7 @@ import supybot.world as world
 __version__ = ""
 
 # XXX Replace this with an appropriate author or supybot.Author instance.
-__author__ = supybot.authors.unknown
+__author__ = supybot.Author('Terje Hoås', 'Hoaas', 'terjehoaas@gmail.com')
 
 # This is a dictionary mapping supybot.Author instances to lists of
 # contributions.
