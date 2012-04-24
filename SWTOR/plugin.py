@@ -41,8 +41,8 @@ _ = PluginInternationalization('SWTOR')
 
 @internationalizeDocstring
 class SWTOR(callbacks.Plugin):
-    """Add the help for "@plugin help SWTOR" here
-    This should describe *how* to use this plugin."""
+    """Fetches the status for Star Wars: The Old Republic servers from
+    http://www.swtor.com/server-status"""
     threaded = True
     
     def _status(self, html, server):

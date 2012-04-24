@@ -1,1 +1,1 @@
-Insert a description of your plugin here, with any notes, etc. about using it.
+URLs above a certain length is shortened with is.gd.

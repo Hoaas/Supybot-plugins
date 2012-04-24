@@ -91,7 +91,8 @@ class ImgGet(callbacks.Plugin):
             irc.reply("Could not connect to google at this point")
             return
         
-        try: data = simplejson.load(response)
+        try:
+            data = simplejson.load(response)
         except simplejson.JSONDecodeError, e:
             self.log.debug(e)
             irc.reply("Got a strange response from Google. *confused*")

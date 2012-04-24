@@ -1,1 +1,2 @@
-Insert a description of your plugin here, with any notes, etc. about using it.
+Can get a random suggestion from WhatTheFuckShouldIMakeForDinner.com aswell as outputting an URL for todays FoodPornDaily.com
+

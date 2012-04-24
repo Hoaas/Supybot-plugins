@@ -39,8 +39,8 @@ import supybot.callbacks as callbacks
 
 
 class WTFSIMFD(callbacks.Plugin):
-    """Add the help for "@plugin help WTFSIMFD" here
-    This should describe *how* to use this plugin."""
+    """Can get a random suggestion from WhatTheFuckShouldIMakeForDinner.com
+    aswell as outputting an URL for todays FoodPornDaily.com"""
     threaded = True
     
     def dinner(self, irc, msg, args):

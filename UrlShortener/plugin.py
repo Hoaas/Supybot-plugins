@@ -39,8 +39,7 @@ import supybot.callbacks as callbacks
 
 
 class UrlShortener(callbacks.Plugin):
-    """Add the help for "@plugin help UrlShortener" here
-    This should describe *how* to use this plugin."""
+    """URLs above a certain lenght is shortened."""
     threaded = True
 
     def doPrivmsg(self, irc, msg):

@@ -42,8 +42,8 @@ _ = PluginInternationalization('Patdown')
 
 @internationalizeDocstring
 class Patdown(callbacks.Plugin):
-    """Add the help for "@plugin help Patdown" here
-    This should describe *how* to use this plugin."""
+    """Checks if a nick (does not work with hidden hostmasks), ip or hostmask
+    have a record on youhavedownloaded.com"""
     threaded = True
 
     def patdown(self, irc, msg, args, user):   
