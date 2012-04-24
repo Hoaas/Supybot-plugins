@@ -68,7 +68,11 @@ class NTNUCourses(callbacks.Plugin):
             irc.reply("No information. Possibly not a valid course code, or API is offline.")
             return
 
-        j = json.loads(html)
+        try:
+            j = json.loads(html)
+        except ValueError as err:
+            #irc.reply(str(err))
+            pass
 
         ## Full JSON for debugging, with pretty formating.
         # print "--------- This is the full json ---------"
