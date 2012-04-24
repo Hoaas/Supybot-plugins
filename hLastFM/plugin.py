@@ -39,14 +39,15 @@ import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 
 class hLastFM(callbacks.Plugin):
-    """Add the help for "@plugin help hLastFM" here
-    This should describe *how* to use this plugin."""
+    """Simply returns current playing track for a LastFM user. If no track is
+    currently playing the last played track will be displayed."""
     threaded = True
     
     def lastfm(self, irc, msg, args, user):
         """<user>
 
-        Returns last played track for user"""
+        Returns last played track for user. If no username is supplies, the
+        nick of the one calling the command will be attempted."""
         
         if not user:
             user = msg.nick

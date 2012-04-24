@@ -1,1 +1,1 @@
-Insert a description of your plugin here, with any notes, etc. about using it.
+Simply outputs the currently playing or last played track for a LastFM user.
