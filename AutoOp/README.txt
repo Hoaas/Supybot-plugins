@@ -1,1 +1,4 @@
-Insert a description of your plugin here, with any notes, etc. about using it.
+This plugin autoops based on regex matching nick!ident@hostmask.
+
+Probably better off with just creating supybot users.
+This shit is seriously buggy.
