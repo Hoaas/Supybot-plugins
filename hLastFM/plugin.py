@@ -28,6 +28,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 ###
+import os
 from lxml import etree
 import urllib2, urllib
 
@@ -49,10 +50,18 @@ class hLastFM(callbacks.Plugin):
         
         if not user:
             user = msg.nick
+        try:
+            keyfilepath = os.path.join( os.path.dirname(__file__), 'apikey.txt')
+            keyfile = open(keyfilepath, 'r')
+            apikey = keyfile.readline()
+        except IOError as err:
+            irc.reply("Could not open file with apikey. Is it present?")
+            self.log.warning("hLastFM error, API key missing. Check out README.txt. API key available from http://www.last.fm/api Error message: " + str(err))
+            return
         url = "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks"
-        url += "&user=" + user
+        url += "&user=" + urllib.quote(user)
         url += "&limit=1"
-        url += "&api_key=your-api-key-here"
+        url += "&api_key=" + apikey
         ref = 'irc://%s/%s' % (dynamic.irc.server, dynamic.irc.nick)
         
         charset = "utf-8"
@@ -64,11 +73,16 @@ class hLastFM(callbacks.Plugin):
             req.add_header('Server / nick', ref)
             f = urllib2.urlopen(req)
             xml = f.read()
-            info = f.info()
-            ignore, charset = info['Content-Type'].split('charset=')  
-        except:
-            print "Failed to open " + url
-            irc.reply("Did not find any tracks for that user. (actually, HTTPError.)")
+            #info = f.info()
+            #ignore, charset = info['Content-Type'].split('charset=')  
+        except urllib2.HTTPError as err:
+            if err.code == 403:
+                irc.reply(str(err) + " API key not valid?")
+            elif err.code == 400:
+                irc.reply("No such user.")
+            else:
+                irc.reply("Could not open URL. " + str(err))
+            self.log.debug("Failed to open " + url + " " + str(err))
             return
         try:
             root = etree.fromstring(xml)
@@ -84,18 +98,13 @@ class hLastFM(callbacks.Plugin):
         # Find element
         recent = root.find("recenttracks")
         if len(recent) == 0:
-            irc.reply("Did not find any recent tracks for that user. (e001)")
-            return
-        if not recent.items():
-            irc.reply("Did not find any recent tracks for that user. (e002)")
+            irc.reply("Did not find any recent tracks for that user.")
             return
         for attr in recent.items():
             if attr[0] == "user":
                 user = attr[1]
         
         track = recent.find("track")
-        if len(track) == 0:
-            irc.reply("Did not find any recent tracks for that user. (e003)")
             
         now = False
         if track.items():
