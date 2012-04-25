@@ -94,6 +94,10 @@ class Twitter(callbacks.Plugin):
             elif (reply):
                 index = i
                 break
+            # In order to avoid error if we don't want replies, but there is
+            # nothing else.
+            else:
+                index = 0
 
         name = data[index]["user"]["screen_name"]
         text = data[index]["text"]
