@@ -48,9 +48,9 @@ SpotifyLookup = conf.registerPlugin('SpotifyLookup')
 #     registry.Boolean(False, """Help for someConfigVariableName."""))
 conf.registerChannelValue(SpotifyLookup, 'prefix',
     registry.String(">> ", """Prefix when responding."""))
-conf.registerChannelValue(SpotifyLookup, 'titleOnUrl',
+conf.registerChannelValue(SpotifyLookup, 'titlewhenhttp',
     registry.Boolean(False, """Respond on Spotify HTTP-urls aswell"""))
-conf.registerChannelValue(SpotifyLookup, 'spotifyURItoHTTP',
+conf.registerChannelValue(SpotifyLookup, 'outputurl',
     registry.Boolean(True, """Reply with url to HTTP-version aswell"""))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
