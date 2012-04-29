@@ -1,1 +1,1 @@
-Insert a description of your plugin here, with any notes, etc. about using it.
+Supply a username and get the latest tweet.

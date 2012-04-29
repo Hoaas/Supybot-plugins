@@ -1,1 +1,3 @@
-Insert a description of your plugin here, with any notes, etc. about using it.
+AtB is bus company in Trondheim, Norway.
+This plugin uses api.busbuddy.no to deliver realtime information about some routes.
+Also capable of calculating some prices. Probably out of date now.
