@@ -61,9 +61,10 @@ class FacebookImage(callbacks.Plugin):
                     req = urllib2.Request(url)
                     f = urllib2.urlopen(req)
                     jsonstr = f.read()
+                except urllib2.HTTPError, err:
+                    self.log.warning("Facebook API returned " + str(err.code) + " for url " + url)
                 except urllib2.URLError, err:
-                    self.log.warning("Facebook API returned " +
-                            str(err.code) + " for url " + url)
+                    self.log.warning("Failed to load Facebook API. Possible timeout. Error: " + str(err))
                 j = json.loads(jsonstr)
                 name = j["name"]
                 irc.reply("By {0} (http://www.facebook.com/photo.php?pid={1}&id={2})".format(j["name"].encode('utf-8'), albumid, uid))
