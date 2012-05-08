@@ -184,10 +184,10 @@ class Twitter(callbacks.Plugin):
         name = data[index]["user"]["screen_name"]
         text = data[index]["text"]
         date = data[index]["created_at"]
-        retvalue = "Tweeted by " + name + ", " + date + ": " + text
 
-#        date_object = datetime.strptime(date,  "%a %b %d %H:%M:%S +0000 %Y")
+        relativeTime = self._time_created_at(date)
 
+        retvalue = "Tweeted by " + ircutils.underline(ircutils.bold("@" + name)) + ": " + self._unescape(text) + " (" + ircutils.bold(relativeTime) + ")"
         irc.reply(retvalue.encode("utf-8"))
     twitter = wrap(twitter, [('something'), optional(('literal', '--reply')), optional(('literal', '--rt'))])
 
