@@ -40,8 +40,9 @@ import supybot.callbacks as callbacks
 
 
 class Twitter(callbacks.Plugin):
-    """Add the help for "@plugin help Twitter" here
-    This should describe *how* to use this plugin."""
+    """Simply use the commands available in this plugin. Allows fetching of the
+    latest tween from a specified twitter handle, and listing of top ten
+    trending tweets."""
     threaded = True
 
     def twitter(self, irc, msg, args, nick, reply, rt):
