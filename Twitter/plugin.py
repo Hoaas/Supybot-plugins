@@ -109,10 +109,19 @@ class Twitter(callbacks.Plugin):
         Returns the Top 10 Twitter trends world wide..
         """
 
-        #req = urllib2.Request('https://api.twitter.com/1/trends/23424977.json')
-        req = urllib2.Request('https://api.twitter.com/1/trends/1.json')
-        stream = urllib2.urlopen(req)
-        datas = stream.read()
+        #woeid = 23424977 # US
+        woeid = 1 # World wide
+        try:
+            req = urllib2.Request('https://api.twitter.com/1/trends/%s.json' % woeid)
+            stream = urllib2.urlopen(req)
+            datas = stream.read()
+        except urllib2.HTTPError, err:
+            if err.code == 404:
+                irc.reply("No trend found for given location.")
+                self.log.warning("Twitter trends: Failed to find location with WOEID %s." % woeid)
+            else:
+                self.log.warning("Twitter trends: API returned http error %s" % err.code)
+            return
         
         try:
             data = json.loads(datas)
