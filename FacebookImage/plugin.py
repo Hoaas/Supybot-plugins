@@ -43,31 +43,85 @@ _ = PluginInternationalization('FacebookImage')
 class FacebookImage(callbacks.Plugin):
     """Set config supybot.plugins.FacebookImage.enable to True, and every time
     someone posts a direct link to an image on facebook it will post the name
-    of the poster and the URL to the album."""
+    of the poster and the URL to the album. Can also be checked manually with
+    the facestalk command. This command will attempt to find a facebook-type 
+    picture filename in all words. If the word 'facestalk' appears the auto-check
+    will automaticly yield."""
     threaded = True
     
     def doPrivmsg(self, irc, msg):
         channel = msg.args[0].lower()
         enabled = self.registryValue('enable', channel)
         if not enabled:
+           return
+        # If the command is called, this must be ignored, or the output will come twice.
+        if msg.args[1].find("facestalk") != -1:
             return
         for url in utils.web.urlRe.findall(msg.args[1]):
-            if(url.endswith(".jpg") or url.endswith(".jpg?dl=1") and "fbcdn" in url and "sphotos" in url):
-                filename = url.split("/")[-1]
-                uid = filename.split("_")[2]
-                albumid = filename.split("_")[3]
-                url = "https://graph.facebook.com/" + uid
-                try:
-                    req = urllib2.Request(url)
-                    f = urllib2.urlopen(req)
-                    jsonstr = f.read()
-                except urllib2.HTTPError, err:
-                    self.log.warning("Facebook API returned " + str(err.code) + " for url " + url)
-                except urllib2.URLError, err:
-                    self.log.warning("Failed to load Facebook API. Possible timeout. Error: " + str(err))
-                j = json.loads(jsonstr)
-                name = j["name"]
-                irc.reply("By {0} (http://www.facebook.com/photo.php?pid={1}&id={2})".format(j["name"].encode('utf-8'), albumid, uid))
+            if((url.endswith(".jpg") or url.endswith(".jpg?dl=1")) and "fbcdn" in url):
+                self._replyStalk(irc, url)
+
+    def _replyStalk(self, irc, word):
+        filename = word.split("/")[-1]
+        name, uid, albumid = self._getNameAndID(filename)
+        # With no UID we got nothing
+        if not uid:
+            return False
+        # With UID but without albumid we most likely got a profile picture
+        elif albumid == -1:
+            irc.reply("Profile picture of {0} (https://www.facebook.com/profile.php?id={1})".format(name, uid))
+            return True
+        # If we have everything it is probably a regular picture.
+        irc.reply("By {0} (https://www.facebook.com/profile.php?id={2}) in this album: https://www.facebook.com/photo.php?pid={1}&id={2}".format(name, albumid, uid))
+        return True
+
+    def facestalk(self, irc, msg, args, words):
+        """<text>
+        If one of the words in the text ends with a facebook-style image filename 
+        the name of the poster of the image will be returned in addition to link 
+        to the profile and possibly a link to the album.
+        Link to the album might be restricted according the the owners privacy settings.
+        """
+        found = False
+        for word in words.split():
+            if(word.endswith(".jpg") or word.endswith(".jpg?dl=1")):
+                if self._replyStalk(irc, word):
+                    found = True
+        if not found:
+            irc.reply("Could not find a facebook style file name.")
+    facestalk = wrap(facestalk, ['text'])
+
+    def _getNameAndID(self, filename):
+        numbers = filename.split("_")
+        # If it is a direct link to a profile picture
+        if len(numbers) == 4:
+            uid = numbers[1]
+            albumid = -1
+        # Normal picture
+        elif len(numbers) == 6:
+            uid = numbers[2]
+            albumid = numbers[3]
+        # If we don't have digits at this point the url was probably something different.
+        if not uid.isdigit() and not albumid.isdigit():
+            self.log.info("NOT A DIGIT")
+            return 
+
+        url = "http://graph.facebook.com/" + uid
+        try:
+            req = urllib2.Request(url)
+            f = urllib2.urlopen(req)
+            jsonstr = f.read()
+        except urllib2.HTTPError, err:
+            self.log.warning("Facebook API returned " + str(err.code) + " for url " + url)
+            return
+        except urllib2.URLError, err:
+            self.log.warning("Failed to load Facebook API. Possible timeout. Error: " + str(err))
+            return
+        j = json.loads(jsonstr)
+        name = j["name"].encode('utf-8')
+        return name, uid, albumid 
+
+
                         
 Class = FacebookImage
 
