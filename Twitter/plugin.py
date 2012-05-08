@@ -136,18 +136,30 @@ class Twitter(callbacks.Plugin):
         retvalue = ircutils.bold("Current Top 10 Twitter trends: ") + ttrends
         irc.reply(retvalue)
 
-    def twitter(self, irc, msg, args, nick, reply, rt):
-        """<nick> [--reply] [--rt]
+    def twitter(self, irc, msg, args, options, nick):
+        """[--reply] [--rt] <nick> | <--id id>
 
-        Returns last tweet (which is not an @reply) by <nick>. 
+        Returns last tweet (which is not an @reply) by <nick> or tweet with id
+        'id'.
         If --reply is given the last tweet will be replied regardless of if it was an @reply or not.
         If --reply is not given, and there are only replies available, the last
         one will be outputed anyway. Same
         Same goes for --rt and retweets.
         """
-        url = "http://api.twitter.com/1/statuses/user_timeline/" + nick + ".json"
-
-        if rt:
+        id, rt, reply = False, False, False
+        if options:
+            for (type, arg) in options:
+                if type == 'id':
+                    id = True
+                if type == 'rt':
+                    rt = True
+                if type == 'reply':
+                    reply = True
+        if id:
+            url = "http://api.twitter.com/1/statuses/show/%s.json" % nick
+        else:
+            url = "http://api.twitter.com/1/statuses/user_timeline/%s.json" % nick
+        if rt and not id:
             url += "?include_rts=true"
 
         try:
@@ -156,7 +168,7 @@ class Twitter(callbacks.Plugin):
             datas = stream.read()
         except urllib2.URLError, (err):
             if (err.code and err.code == 404):
-                irc.reply("User not found.")
+                irc.reply("User or tweet not found.")
             elif (err.code and err.code == 401):
                 irc.reply("Not authorized. Protected tweets?")
             else:
@@ -173,10 +185,17 @@ class Twitter(callbacks.Plugin):
             self.log.warning(data)
             return
 
-#        self.log.info("--------- This is the full json ---------")
-#        self.log.info(json.dumps(data, sort_keys=True, indent=4))
-#        self.log.info("--------- That was it! ---------")
+        # If an ID was given.
+        if id:
+            text = self._unescape(data["text"]).encode("utf-8")
+            nick = data["user"]["screen_name"].encode("utf-8")
+            name = data["user"]["name"].encode("utf-8")
+            date = data["created_at"]
+            relativeTime = self._time_created_at(date)
+            irc.reply("{0} ({1}): ({2})".format(name, ircutils.underline(ircutils.bold("@" + nick)), self._unescape(text), ircutils.bold(relativeTime)))
+            return
 
+        # If it was a regular nick
         if len(data) == 0:
             irc.reply("User has not tweeted yet.")
             return
@@ -194,16 +213,16 @@ class Twitter(callbacks.Plugin):
             # nothing else.
             else:
                 index = 0
-
-        name = data[index]["user"]["screen_name"]
-        text = data[index]["text"]
+        name = data[index]["user"]["name"].encode('utf-8')
+        nick = data[index]["user"]["screen_name"].encode('utf-8')
+        text = data[index]["text"].encode('utf-8')
         date = data[index]["created_at"]
 
         relativeTime = self._time_created_at(date)
 
-        retvalue = "Tweeted by " + ircutils.underline(ircutils.bold("@" + name)) + ": " + self._unescape(text) + " (" + ircutils.bold(relativeTime) + ")"
-        irc.reply(retvalue.encode("utf-8"))
-    twitter = wrap(twitter, [('something'), optional(('literal', '--reply')), optional(('literal', '--rt'))])
+        irc.reply("{0} ({1}): ({2})".format(name, ircutils.underline(ircutils.bold("@" + nick)), self._unescape(text), ircutils.bold(relativeTime)))
+#        [getopts({'current': '', 'forecast': '', 'all': ''})
+    twitter = wrap(twitter, [getopts({'reply':'', 'rt': '', 'id': ''}), ('something')])
 
 
 Class = Twitter
