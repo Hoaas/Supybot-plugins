@@ -101,9 +101,10 @@ class FacebookImage(callbacks.Plugin):
         elif len(numbers) == 6:
             uid = numbers[2]
             albumid = numbers[3]
+        else:
+            return
         # If we don't have digits at this point the url was probably something different.
         if not uid.isdigit() and not albumid.isdigit():
-            self.log.info("NOT A DIGIT")
             return 
 
         url = "http://graph.facebook.com/" + uid
