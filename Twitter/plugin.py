@@ -32,11 +32,19 @@
 import urllib2
 import json
 import datetime
+import string
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
+
+#libraries for time_created_at
+import time
+from datetime import tzinfo, datetime, timedelta
+
+# for unescape
+import re, htmlentitydefs
 
 
 class Twitter(callbacks.Plugin):
@@ -95,6 +103,28 @@ class Twitter(callbacks.Plugin):
         else:
             rel_time = "less than %s second%s ago" % (d.seconds, plural(d.seconds))
         return  rel_time
+
+    def trends(self, irc, msg, args):
+        """
+        Returns the Top 10 Twitter trends in the United States.
+        """
+
+        req = urllib2.Request('https://api.twitter.com/1/trends/23424977.json')
+        stream = urllib2.urlopen(req)
+        datas = stream.read()
+        
+        try:
+            data = json.loads(datas)
+        except:
+            irc.reply("Error: Failed to parsed receive data.")
+            self.log.warning("Here are data:")
+            self.log.warning(data)
+            return
+
+        ttrends = string.join([trend['name'] for trend in data[0]['trends']], " | ")
+        asof = data[0]['as_of']
+        retvalue = ircutils.bold("Current Top 10 Twitter trends: ") + ttrends
+        irc.reply(retvalue)
 
     def twitter(self, irc, msg, args, nick, reply, rt):
         """<nick> [--reply] [--rt]
