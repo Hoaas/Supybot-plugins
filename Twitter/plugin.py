@@ -106,10 +106,11 @@ class Twitter(callbacks.Plugin):
 
     def trends(self, irc, msg, args):
         """
-        Returns the Top 10 Twitter trends in the United States.
+        Returns the Top 10 Twitter trends world wide..
         """
 
-        req = urllib2.Request('https://api.twitter.com/1/trends/23424977.json')
+        #req = urllib2.Request('https://api.twitter.com/1/trends/23424977.json')
+        req = urllib2.Request('https://api.twitter.com/1/trends/1.json')
         stream = urllib2.urlopen(req)
         datas = stream.read()
         
