@@ -192,7 +192,7 @@ class Twitter(callbacks.Plugin):
             name = data["user"]["name"].encode("utf-8")
             date = data["created_at"]
             relativeTime = self._time_created_at(date)
-            irc.reply("{0} ({1}): ({2})".format(name, ircutils.underline(ircutils.bold("@" + nick)), self._unescape(text), ircutils.bold(relativeTime)))
+            irc.reply("{0} ({1}): {2} ({3})".format(name, ircutils.underline(ircutils.bold("@" + nick)), self._unescape(text), ircutils.bold(relativeTime)))
             return
 
         # If it was a regular nick
@@ -220,7 +220,7 @@ class Twitter(callbacks.Plugin):
 
         relativeTime = self._time_created_at(date)
 
-        irc.reply("{0} ({1}): ({2})".format(name, ircutils.underline(ircutils.bold("@" + nick)), self._unescape(text), ircutils.bold(relativeTime)))
+        irc.reply("{0} ({1}): {2} ({3})".format(name, ircutils.underline(ircutils.bold("@" + nick)), self._unescape(text), ircutils.bold(relativeTime)))
 #        [getopts({'current': '', 'forecast': '', 'all': ''})
     twitter = wrap(twitter, [getopts({'reply':'', 'rt': '', 'id': ''}), ('something')])
 
