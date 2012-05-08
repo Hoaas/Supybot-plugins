@@ -129,7 +129,11 @@ class Twitter(callbacks.Plugin):
     def twitter(self, irc, msg, args, nick, reply, rt):
         """<nick> [--reply] [--rt]
 
-        Returns last tweet (which is not an @reply) by <nick>. If --reply is given the last tweet will be replied regardless of if it was an @reply or not. Same goes for --rt and retweets.
+        Returns last tweet (which is not an @reply) by <nick>. 
+        If --reply is given the last tweet will be replied regardless of if it was an @reply or not.
+        If --reply is not given, and there are only replies available, the last
+        one will be outputed anyway. Same
+        Same goes for --rt and retweets.
         """
         url = "http://api.twitter.com/1/statuses/user_timeline/" + nick + ".json"
 
