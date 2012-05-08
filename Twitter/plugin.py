@@ -65,6 +65,36 @@ class Twitter(callbacks.Plugin):
                     pass
             return text # leave as is
         return re.sub("&#?\w+;", fixup, text)
+  
+    def _time_created_at(self, s):
+        """
+        recieving text element of 'created_at' in the response of Twitter API,
+        returns relative time string from now.
+        """
+
+        plural = lambda n: n > 1 and "s" or ""
+
+        try:
+            ddate = time.strptime(s, "%a %b %d %H:%M:%S +0000 %Y")[:-2]
+        except ValueError:
+            return "", ""
+        #created_at = datetime(*ddate, tzinfo=None) - timedelta(hours=5)
+        created_at = datetime(*ddate, tzinfo=None)
+        d = datetime.utcnow() - created_at
+
+        if d.days:
+            rel_time = "%s days ago" % d.days
+        elif d.seconds > 3600:
+            hours = d.seconds / 3600
+            rel_time = "%s hour%s ago" % (hours, plural(hours))
+        elif 60 <= d.seconds < 3600:
+            minutes = d.seconds / 60
+            rel_time = "%s minute%s ago" % (minutes, plural(minutes))
+        elif 30 < d.seconds < 60:
+            rel_time = "less than a minute ago"
+        else:
+            rel_time = "less than %s second%s ago" % (d.seconds, plural(d.seconds))
+        return  rel_time
 
     def twitter(self, irc, msg, args, nick, reply, rt):
         """<nick> [--reply] [--rt]
