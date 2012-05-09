@@ -99,7 +99,7 @@ class SpotifyLookup(callbacks.Plugin):
 
 			# If a type was found
 			if spotifytype:
-                            self.log.info('spotify uri triggered by "%s" detected.' % msg.prefix)
+                            self.log.info('spotify uri detected, triggered by "%s".' % msg.prefix)
 
                             if linkwashttp and not titleOnUrl:
                                 continue
