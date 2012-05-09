@@ -54,6 +54,7 @@ class Twitter(callbacks.Plugin):
     threaded = True
 
     def _unescape(self, text):
+        text = text.replace("\n", " ")
         def fixup(m):
             text = m.group(0)
             if text[:2] == "&#":
