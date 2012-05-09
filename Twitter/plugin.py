@@ -90,7 +90,10 @@ class Twitter(callbacks.Plugin):
         try:
             ddate = time.strptime(s, "%a %b %d %H:%M:%S +0000 %Y")[:-2]
         except ValueError:
-            return "", ""
+            try:
+                ddate = time.strptime(s, "%a, %d %b %Y %H:%M:%S +0000")[:-2]
+            except ValueError:
+                return "", ""
 
         created_at = datetime(*ddate, tzinfo=None)
         d = datetime.utcnow() - created_at
@@ -195,25 +198,22 @@ class Twitter(callbacks.Plugin):
 
         for result in results:
             date = result["created_at"]
-            #relativeTime = self._time_created_at(date)
+            relativeTime = self._time_created_at(date)
             nick = result["from_user"].encode('utf-8')
             name = result["from_user_name"].encode('utf-8')
             text = self._unescape(result["text"]).encode('utf-8')
-            irc.reply("{0} ({1}): {2} ({3})".format(ircutils.underline(ircutils.bold("@" + nick)), name, text, ircutils.bold(date)))
+            irc.reply("{0} ({1}): {2} ({3})".format(ircutils.underline(ircutils.bold("@" + nick)), name, text, ircutils.bold(relativeTime)))
     tsearch = wrap(tsearch, [getopts({'num':('int', 'number of results', lambda i: 0 < i <= 10)}), ('text')])
 
 
     def twitter(self, irc, msg, args, options, nick):
-        """[--reply] [--rt] <nick> | <--id id>
+        """[--reply] [--rt] [--num number] <nick> | <--id id>
 
-        Returns last tweet (which is not an @reply) by <nick> or tweet with id
-        'id'.
-        If --reply is given the last tweet will be replied regardless of if it was an @reply or not.
-        If --reply is not given, and there are only replies available, the last
-        one will be outputed anyway. Same
-        Same goes for --rt and retweets.
+        Returns last tweet or 'number' tweets (max 10). Only replies tweets that are
+        @replies or retweets if specified with the appropriate arguments.
+        Or returns tweet with id 'id'.
         """
-        id, rt, reply = False, False, False
+        id, rt, reply, num = False, False, False, False
         if options:
             for (type, arg) in options:
                 if type == 'id':
@@ -222,6 +222,11 @@ class Twitter(callbacks.Plugin):
                     rt = True
                 if type == 'reply':
                     reply = True
+                if type == 'num':
+                    num = arg
+        if not num:
+            num = 1
+
         if id:
             url = "http://api.twitter.com/1/statuses/show/%s.json" % nick
         else:
@@ -266,30 +271,31 @@ class Twitter(callbacks.Plugin):
         if len(data) == 0:
             irc.reply("User has not tweeted yet.")
             return
+        indexlist = []
+        counter = 0
         # Loop over all tweets
         for i in range(len(data)):
+            if counter >= num:
+                break
             # If we don't want @replies
             if (not reply and not data[i]["in_reply_to_screen_name"]):
-                index = i
-                break
-            # If we want the last tweet even if it is an @reply
+                indexlist.append(i)
+                counter += 1
+            # If we want this tweet even if it is an @reply
             elif (reply):
-                index = i
-                break
-            # In order to avoid error if we don't want replies, but there is
-            # nothing else.
-            else:
-                index = 0
-        name = data[index]["user"]["name"].encode('utf-8')
-        nick = data[index]["user"]["screen_name"].encode('utf-8')
-        text = self._unescape(data[index]["text"]).encode('utf-8')
-        date = data[index]["created_at"]
+                indexlist.append(i)
+                counter += 1
+        #irc.reply(str(indexlist) + " total " + str(len(data)) + " tweets.")
+        for index in indexlist:
+            name = data[index]["user"]["name"].encode('utf-8')
+            nick = data[index]["user"]["screen_name"].encode('utf-8')
+            text = self._unescape(data[index]["text"]).encode('utf-8')
+            date = data[index]["created_at"]
 
-        relativeTime = self._time_created_at(date)
+            relativeTime = self._time_created_at(date)
 
-        irc.reply("{0} ({1}): {2} ({3})".format(ircutils.underline(ircutils.bold("@" + nick)), name, text, ircutils.bold(relativeTime)))
-#        [getopts({'current': '', 'forecast': '', 'all': ''})
-    twitter = wrap(twitter, [getopts({'reply':'', 'rt': '', 'id': ''}), ('something')])
+            irc.reply("{0} ({1}): {2} ({3})".format(ircutils.underline(ircutils.bold("@" + nick)), name, text, ircutils.bold(relativeTime)))
+    twitter = wrap(twitter, [getopts({'reply':'', 'rt': '', 'id': '', 'num': ('int', 'number of tweets', lambda i: 0 < i <= 10)}), ('something')])
 
 
 Class = Twitter
