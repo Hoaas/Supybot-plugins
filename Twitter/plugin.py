@@ -29,7 +29,7 @@
 
 ###
 
-import urllib2
+import urllib, urllib2
 import json
 import datetime
 import string
@@ -82,11 +82,15 @@ class Twitter(callbacks.Plugin):
 
         plural = lambda n: n > 1 and "s" or ""
 
+        # twitter search and timelines use different timeformats
+        # timeline's created_at Tue May 08 10:58:49 +0000 2012
+        # search's created_at Thu, 06 Oct 2011 19:41:12 +0000
+
         try:
             ddate = time.strptime(s, "%a %b %d %H:%M:%S +0000 %Y")[:-2]
         except ValueError:
             return "", ""
-        #created_at = datetime(*ddate, tzinfo=None) - timedelta(hours=5)
+
         created_at = datetime(*ddate, tzinfo=None)
         d = datetime.utcnow() - created_at
 
@@ -132,9 +136,71 @@ class Twitter(callbacks.Plugin):
             return
 
         ttrends = string.join([trend['name'] for trend in data[0]['trends']], " | ")
-        asof = data[0]['as_of']
+        # asof = data[0]['as_of'] #asof date if you want to use
         retvalue = ircutils.bold("Current Top 10 Twitter trends: ") + ttrends
         irc.reply(retvalue)
+
+
+    def tsearch(self, irc, msg, args, num, term):
+        """ [--num number] <term>
+
+        Searches Twitter for the <term> and returns the most recent results.
+        Number is number of results. Must be a number higher than 0 and max 10.
+        """
+
+        url = "http://search.twitter.com/search.json?include_entities=false&q=" + urllib.quote(term)
+        # https://dev.twitter.com/docs/api/1/get/search
+        # https://dev.twitter.com/docs/using-search
+
+        # number of tweets, max 100.
+        # should be 1 min, max 10, because of flood
+        if num:
+            url += "&rpp=" + str(num[0][1]) # num contains a list with one tuple, ('num', 1)
+        else:
+            url += "&rpp=3"
+
+        # return_type = popular, mixed(default), recent
+
+        # lang . Uses ISO-639 codes like 'en'
+        # http://en.wikipedia.org/wiki/ISO_639-1
+
+
+        try:
+            req = urllib2.Request(url)
+            stream = urllib2.urlopen(req)
+            datas = stream.read()
+        except urllib2.URLError, (err):
+            if (err.code and err.code == 406):
+                irc.reply("Invalid format is specified in the request.")
+            elif (err.code and err.code == 420):
+                irc.reply("You are being rate-limited by the Twitter API.")
+            else:
+                if (err.code):
+                    irc.reply("Missing error" + str(err.code))
+                else:
+                    irc.reply("Error: Failed to open url.")
+            return
+        try:
+            data = json.loads(datas)
+        except:
+            irc.reply("Error: Failed to parsed receive data.")
+            self.log.warning("Plugin Twitter failed to parse json-data.")
+            self.log.warning(data)
+            return
+
+        # self.log.info(json.dumps(data, sort_keys=True, indent=4))
+
+        results = data["results"]
+
+        for result in results:
+            date = result["created_at"]
+            #relativeTime = self._time_created_at(date)
+            nick = result["from_user"].encode('utf-8')
+            name = result["from_user_name"].encode('utf-8')
+            text = self._unescape(result["text"]).encode('utf-8')
+            irc.reply("{0} ({1}): {2} ({3})".format(ircutils.underline(ircutils.bold("@" + nick)), name, text, ircutils.bold(date)))
+    tsearch = wrap(tsearch, [getopts({'num':('int', 'number of results', lambda i: 0 < i <= 10)}), ('text')])
+
 
     def twitter(self, irc, msg, args, options, nick):
         """[--reply] [--rt] <nick> | <--id id>
@@ -187,12 +253,12 @@ class Twitter(callbacks.Plugin):
 
         # If an ID was given.
         if id:
-            text = self._unescape(data["text"]).encode("utf-8")
-            nick = data["user"]["screen_name"].encode("utf-8")
-            name = data["user"]["name"].encode("utf-8")
+            text = self._unescape(data["text"]).encode('utf-8')
+            nick = data["user"]["screen_name"].encode('utf-8')
+            name = data["user"]["name"].encode('utf-8')
             date = data["created_at"]
             relativeTime = self._time_created_at(date)
-            irc.reply("{0} ({1}): {2} ({3})".format(name, ircutils.underline(ircutils.bold("@" + nick)), text, ircutils.bold(relativeTime)))
+            irc.reply("{0} ({1}): {2} ({3})".format(ircutils.underline(ircutils.bold("@" + nick)), name, text, ircutils.bold(relativeTime)))
             return
 
         # If it was a regular nick
@@ -220,7 +286,7 @@ class Twitter(callbacks.Plugin):
 
         relativeTime = self._time_created_at(date)
 
-        irc.reply("{0} ({1}): {2} ({3})".format(name, ircutils.underline(ircutils.bold("@" + nick)), text, ircutils.bold(relativeTime)))
+        irc.reply("{0} ({1}): {2} ({3})".format(ircutils.underline(ircutils.bold("@" + nick)), name, text, ircutils.bold(relativeTime)))
 #        [getopts({'current': '', 'forecast': '', 'all': ''})
     twitter = wrap(twitter, [getopts({'reply':'', 'rt': '', 'id': ''}), ('something')])
 
