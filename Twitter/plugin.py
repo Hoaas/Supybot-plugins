@@ -117,8 +117,7 @@ class Twitter(callbacks.Plugin):
         Returns the Top 10 Twitter trends world wide..
         """
 
-        #woeid = 23424977 # US
-        woeid = 1 # World wide
+        woeid = self.registryValue('woeid', msg.args[0]) # Where On Earth ID
         try:
             req = urllib2.Request('https://api.twitter.com/1/trends/%s.json' % woeid)
             stream = urllib2.urlopen(req)
@@ -192,19 +191,39 @@ class Twitter(callbacks.Plugin):
             self.log.warning(data)
             return
 
-        # self.log.info(json.dumps(data, sort_keys=True, indent=4))
-
         results = data["results"]
 
         for result in results:
-            date = result["created_at"]
-            relativeTime = self._time_created_at(date)
             nick = result["from_user"].encode('utf-8')
             name = result["from_user_name"].encode('utf-8')
             text = self._unescape(result["text"]).encode('utf-8')
-            irc.reply("{0} ({1}): {2} ({3})".format(ircutils.underline(ircutils.bold("@" + nick)), name, text, ircutils.bold(relativeTime)))
+            date = result["created_at"]
+            relativeTime = self._time_created_at(date)
+            tweetid = result["id"]
+            self._outputTweet(irc, msg, nick, name, text, relativeTime, tweetid)
     tsearch = wrap(tsearch, [getopts({'num':('int', 'number of results', lambda i: 0 < i <= 10)}), ('text')])
 
+    def _outputTweet(self, irc, msg, nick, name, text, time, tweetid):
+        ret = ircutils.underline(ircutils.bold("@" + nick))
+        hideName = self.registryValue('hideRealName', msg.args[0])
+        if not hideName:
+            ret += " ({})".format(name)
+        ret += ": {0} ({1})".format(text, ircutils.bold(time))
+        if self.registryValue('addShortUrl', msg.args[0]):
+            url = self._createShortUrl(nick, tweetid)
+            if (url):
+                ret += " {0}".format(url)
+        irc.reply(ret)
+
+    def _createShortUrl(self, nick, tweetid):
+        longurl = "https://twitter.com/#!/{0}/status/{1}".format(nick, tweetid)
+        try:
+            req = urllib2.Request("http://is.gd/api.php?longurl=" + urllib.quote(longurl))
+            f = urllib2.urlopen(req)
+            shorturl = f.read()
+            return shorturl
+        except:
+            return False
 
     def twitter(self, irc, msg, args, options, nick):
         """[--reply] [--rt] [--num number] <nick> | <--id id>
@@ -264,7 +283,8 @@ class Twitter(callbacks.Plugin):
             name = data["user"]["name"].encode('utf-8')
             date = data["created_at"]
             relativeTime = self._time_created_at(date)
-            irc.reply("{0} ({1}): {2} ({3})".format(ircutils.underline(ircutils.bold("@" + nick)), name, text, ircutils.bold(relativeTime)))
+            tweetid = data["id"]
+            self._outputTweet(irc, msg, nick, name, text, relativeTime, tweetid)
             return
 
         # If it was a regular nick
@@ -285,16 +305,17 @@ class Twitter(callbacks.Plugin):
             elif (reply):
                 indexlist.append(i)
                 counter += 1
-        #irc.reply(str(indexlist) + " total " + str(len(data)) + " tweets.")
-        for index in indexlist:
-            name = data[index]["user"]["name"].encode('utf-8')
-            nick = data[index]["user"]["screen_name"].encode('utf-8')
-            text = self._unescape(data[index]["text"]).encode('utf-8')
-            date = data[index]["created_at"]
 
+        for index in indexlist:
+            text = self._unescape(data[index]["text"]).encode('utf-8')
+            nick = data[index]["user"]["screen_name"].encode('utf-8')
+            name = data[index]["user"]["name"].encode('utf-8')
+            date = data[index]["created_at"]
+            tweetid = data[index]["id"]
             relativeTime = self._time_created_at(date)
 
-            irc.reply("{0} ({1}): {2} ({3})".format(ircutils.underline(ircutils.bold("@" + nick)), name, text, ircutils.bold(relativeTime)))
+            self._outputTweet(irc, msg, nick, name, text, relativeTime, tweetid)
+
         # If more tweets were requested than were found
         if len(indexlist) < num:
             irc.reply("You requested {} tweets but there were {} that matched your requirements.".format(num, len(indexlist)))
