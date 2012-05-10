@@ -45,6 +45,8 @@ Twitter = conf.registerPlugin('Twitter')
 # This is where your configuration variables (if any) should go.  For example:
 # conf.registerGlobalValue(Twitter, 'someConfigVariableName',
 #     registry.Boolean(False, """Help for someConfigVariableName."""))
-
+conf.registerChannelValue(Twitter, 'hideRealName', registry.Boolean(False, """Do not show real name when displaying tweets."""))
+conf.registerChannelValue(Twitter, 'addShortUrl', registry.Boolean(False, """Whether or not to add a short URL to the tweets."""))
+conf.registerChannelValue(Twitter, 'woeid', registry.Integer(1, """Where On Earth ID. World Wide is 1. USA is 23424977."""))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
