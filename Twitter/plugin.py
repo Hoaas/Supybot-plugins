@@ -295,6 +295,9 @@ class Twitter(callbacks.Plugin):
             relativeTime = self._time_created_at(date)
 
             irc.reply("{0} ({1}): {2} ({3})".format(ircutils.underline(ircutils.bold("@" + nick)), name, text, ircutils.bold(relativeTime)))
+        # If more tweets were requested than were found
+        if len(indexlist) < num:
+            irc.reply("You requested {} tweets but there were {} that matched your requirements.".format(num, len(indexlist)))
     twitter = wrap(twitter, [getopts({'reply':'', 'rt': '', 'id': '', 'num': ('int', 'number of tweets', lambda i: 0 < i <= 10)}), ('something')])
 
 
