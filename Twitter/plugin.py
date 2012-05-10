@@ -322,6 +322,47 @@ class Twitter(callbacks.Plugin):
     twitter = wrap(twitter, [getopts({'reply':'', 'rt': '', 'id': '', 'num': ('int', 'number of tweets', lambda i: 0 < i <= 10)}), ('something')])
 
 
+    def tagdef(self, irc, msg, args, term):
+        """<term>
+        Returns the tag defition from tagdef.com
+        """
+
+        # tagdef API: http://api.tagdef.com/
+        # tagdef seems to break when you ask and issue
+        # #hashtag when you need to submit hashtag
+        term = term.replace('#','')
+
+        try:
+            req = urllib2.Request('http://api.tagdef.com/one.%s.json' % term)
+            stream = urllib2.urlopen(req)
+            datas = stream.read()
+        except urllib2.HTTPError, err:
+            if err.code == 404:
+                irc.reply("No tag definition found for: %s" % term)
+                self.log.warning("Failed to find definition for %s." % term)
+            else:
+                self.log.warning("tagdef API returned error %s" % err.code)
+            return
+
+        try:
+            data = json.loads(datas)
+        except:
+            irc.reply("Error: Failed to parse received data.")
+            self.log.warning("Failed to parse tagdef data.")
+            self.log.warning(datas)
+            return
+
+        number_of = data['num_defs'] # number of definitions
+        definition = data['defs']['def']['text']
+        # time = data['defs']['def']['time']
+        # upvotes = data['defs']['def']['upvotes']
+        # downvotes = data['defs']['def']['downvotes']
+        uri = data['defs']['def']['uri']
+
+        retvalue = ircutils.underline("Tagdef: #%s" % term) + " " + definition + " " + uri
+        irc.reply(retvalue)
+    tagdef = wrap(tagdef, ['text'])
+
 Class = Twitter
 
 
