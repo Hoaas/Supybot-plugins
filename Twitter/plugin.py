@@ -216,9 +216,7 @@ class Twitter(callbacks.Plugin):
         irc.reply(ret)
 
     def _createShortUrl(self, nick, tweetid):
-        longurl =\
-        "https://twitter.com/#!/{0}/status/{1}".format(urllib.quote(nick),\
-                urllib.quote(tweetid))
+        longurl = "https://twitter.com/#!/{0}/status/{1}".format(nick, tweetid)
         try:
             req = urllib2.Request("http://is.gd/api.php?longurl=" + urllib.quote(longurl))
             f = urllib2.urlopen(req)
@@ -302,7 +300,9 @@ class Twitter(callbacks.Plugin):
             description = data['description'].encode('utf-8')
             screen_name = data['screen_name'].encode('utf-8')
             name = data['name'].encode('utf-8')
-            url = data['url'].encode('utf-8')
+            url = data['url']
+            if url:
+                url = url.encode('utf-8')
     
             ret = ircutils.underline(ircutils.bold("@" + nick))
             ret += " ({}):".format(name)
@@ -315,6 +315,8 @@ class Twitter(callbacks.Plugin):
             if location: 
                 ret += " " + location
             #irc.reply("%s %s %s %s %s %s %s" % (screen_name, name, url, description, friends, followers, location))
+            ret = ret.replace("\r", "")
+            ret = ret.replace("\n", " ")
             irc.reply(ret)
             return
 
