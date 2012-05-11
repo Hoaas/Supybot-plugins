@@ -216,7 +216,9 @@ class Twitter(callbacks.Plugin):
         irc.reply(ret)
 
     def _createShortUrl(self, nick, tweetid):
-        longurl = "https://twitter.com/#!/{0}/status/{1}".format(nick, tweetid)
+        longurl =\
+        "https://twitter.com/#!/{0}/status/{1}".format(urllib.quote(nick),\
+                urllib.quote(tweetid))
         try:
             req = urllib2.Request("http://is.gd/api.php?longurl=" + urllib.quote(longurl))
             f = urllib2.urlopen(req)
@@ -226,13 +228,14 @@ class Twitter(callbacks.Plugin):
             return False
 
     def twitter(self, irc, msg, args, options, nick):
-        """[--reply] [--rt] [--num number] <nick> | <--id id>
+        """[--reply] [--rt] [--num number] <nick> | <--id id> | [--info nick]
 
         Returns last tweet or 'number' tweets (max 10). Only replies tweets that are
         @replies or retweets if specified with the appropriate arguments.
         Or returns tweet with id 'id'.
+        Or returns information on user with --info. 
         """
-        id, rt, reply, num = False, False, False, False
+        id, rt, reply, num, info = False, False, False, False, False
         if options:
             for (type, arg) in options:
                 if type == 'id':
@@ -243,13 +246,17 @@ class Twitter(callbacks.Plugin):
                     reply = True
                 if type == 'num':
                     num = arg
+                if type == 'info':
+                    info = True
         if not num:
             num = 1
 
         if id:
-            url = "http://api.twitter.com/1/statuses/show/%s.json" % nick
+            url = "http://api.twitter.com/1/statuses/show/%s.json" % urllib.quote(nick)
+        elif info:
+            url = "https://api.twitter.com/1/users/show.json?screen_name=%s" % urllib.quote(nick)
         else:
-            url = "http://api.twitter.com/1/statuses/user_timeline/%s.json" % nick
+            url = "http://api.twitter.com/1/statuses/user_timeline/%s.json" % urllib.quote(nick)
         if rt and not id:
             url += "?include_rts=true"
 
@@ -287,6 +294,30 @@ class Twitter(callbacks.Plugin):
             self._outputTweet(irc, msg, nick, name, text, relativeTime, tweetid)
             return
 
+        # If info was given
+        if info:
+            location = data['location'].encode('utf-8')
+            followers = data['followers_count']
+            friends = data['friends_count']
+            description = data['description'].encode('utf-8')
+            screen_name = data['screen_name'].encode('utf-8')
+            name = data['name'].encode('utf-8')
+            url = data['url'].encode('utf-8')
+    
+            ret = ircutils.underline(ircutils.bold("@" + nick))
+            ret += " ({}):".format(name)
+            if url:
+                ret += " {}".format(ircutils.underline(url))
+            if description:
+                ret += " {}".format(description)
+            ret += " {} friends,".format(ircutils.bold(friends))
+            ret += " {} followers.".format(ircutils.bold(followers))
+            if location: 
+                ret += " " + location
+            #irc.reply("%s %s %s %s %s %s %s" % (screen_name, name, url, description, friends, followers, location))
+            irc.reply(ret)
+            return
+
         # If it was a regular nick
         if len(data) == 0:
             irc.reply("User has not tweeted yet.")
@@ -319,7 +350,7 @@ class Twitter(callbacks.Plugin):
         # If more tweets were requested than were found
         if len(indexlist) < num:
             irc.reply("You requested {} tweets but there were {} that matched your requirements.".format(num, len(indexlist)))
-    twitter = wrap(twitter, [getopts({'reply':'', 'rt': '', 'id': '', 'num': ('int', 'number of tweets', lambda i: 0 < i <= 10)}), ('something')])
+    twitter = wrap(twitter, [getopts({'reply':'', 'rt': '', 'info': '', 'id': '', 'num': ('int', 'number of tweets', lambda i: 0 < i <= 10)}), ('something')])
 
 
     def tagdef(self, irc, msg, args, term):
