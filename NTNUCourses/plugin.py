@@ -61,7 +61,7 @@ class NTNUCourses(callbacks.Plugin):
         ref = 'irc://%s/%s' % (dynamic.irc.server, dynamic.irc.nick)
         try:
             req = urllib2.Request(url)
-            req.add_header(ref, 'http://sourceforge.net/projects/supybot/')
+            req.add_header(ref, 'https://github.com/Hoaas/Supybot-plugins/')
             f = urllib2.urlopen(req)
             html = f.read()
         except:
