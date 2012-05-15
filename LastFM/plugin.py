@@ -38,7 +38,7 @@ import supybot.plugins as plugins
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 
-class hLastFM(callbacks.Plugin):
+class LastFM(callbacks.Plugin):
     """Simply returns current playing track for a LastFM user. If no track is
     currently playing the last played track will be displayed."""
     threaded = True
@@ -57,7 +57,7 @@ class hLastFM(callbacks.Plugin):
             apikey = keyfile.readline()
         except IOError as err:
             irc.reply("Could not open file with apikey. Is it present?")
-            self.log.warning("hLastFM error, API key missing. Check out README.txt. API key available from http://www.last.fm/api Error message: " + str(err))
+            self.log.warning("LastFM error, API key missing. Check out README.txt. API key available from http://www.last.fm/api Error message: " + str(err))
             return
         url = "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks"
         url += "&user=" + urllib.quote(user)
@@ -128,7 +128,7 @@ class hLastFM(callbacks.Plugin):
 
     lastfm = wrap(lastfm, [optional('text')])
 
-Class = hLastFM
+Class = LastFM
 
 
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
