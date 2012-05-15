@@ -1,3 +1,9 @@
+EVERYONE:
+---------
+
+Read LICENSE.  It's a 3-clause BSD license, but you should read it
+anyway.
+
 ATB:
 ------
 
