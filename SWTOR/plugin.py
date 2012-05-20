@@ -77,7 +77,7 @@ class SWTOR(callbacks.Plugin):
 
 
     def status(self, irc, msg, args, server):
-        """status [server]
+        """[server]
         Returns the status of the selected server, and general stats about all
         servers.
         """
