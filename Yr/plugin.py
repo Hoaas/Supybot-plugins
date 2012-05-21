@@ -312,6 +312,10 @@ Check "pollen list" for list of locations.')
             irc.reply('Sorry, failed to retrieve weather from ' + url)
             return
 
+        if tempdigit <= 0:
+            tempdesc = ircutils.mircColor(tempdesc, 12) # Light blue
+        else:
+            tempdesc = ircutils.mircColor(tempdesc, 5) # Red
         # Only calculate windchill if there is a winddesc and temperature under 10°C and wind over 4.8 km/h
         if winddesc and tempdigit and winddigit and tempdigit < 10 and (winddigit*3.6) > 4.8:
 
@@ -319,10 +323,20 @@ Check "pollen list" for list of locations.')
             # T_wc = felt temperature, T_a = temperature in the air in °C, V = windspeed in km/h.
             windchill = 13.12 + 0.6215 * tempdigit - 11.37 * ((winddigit * 3.6)**0.16) + 0.3965 * tempdigit * ((winddigit * 3.6)**0.16)
             
-            if weathertype:
-                rep = '%s (%.1f°). %s. %s (%s)' % (tempdesc, windchill, weathertype, winddesc, name)
+            windchillstr = "%.1f°" % windchill
+            # If not in english: use , instead of .
+            if not "place" in url:
+                windchillstr = windchillstr.replace(".", ",")
+
+            if windchill <= 0:
+                windchillstr = ircutils.mircColor(windchillstr, 12) # Light blue
             else:
-                rep = '%s (%.1f°). %s (%s)' % (tempdesc, windchill, winddesc, name)
+                windchillstr = ircutils.mircColor(windchillstr, 5) # Red
+
+            if weathertype:
+                rep = '%s (%s). %s. %s (%s)' % (tempdesc, windchillstr, weathertype, winddesc, name)
+            else:
+                rep = '%s (%s). %s (%s)' % (tempdesc, windchillstr, winddesc, name)
         else:
             if weathertype and winddesc:
                 rep = '%s. %s. %s (%s)' % (tempdesc, weathertype, winddesc, name)
