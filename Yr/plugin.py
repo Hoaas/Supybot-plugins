@@ -160,8 +160,25 @@ class Yr(callbacks.Plugin):
         rtoday = ""
         rtomorrow = ""
         for i in today:
+            if "Beskjeden" in today[i]:
+                today[i] = ircutils.mircColor(today[i], "Light green")
+            elif "Moderat" in today[i]:
+                today[i] = ircutils.mircColor(today[i], "Orange")
+            elif "Kraftig" in today[i]:
+                today[i] = ircutils.mircColor(today[i], "Red")
+            elif "Ekstrem" in today[i]:
+                today[i] = ircutils.mircColor(today[i], "Brown")
+
             rtoday += plants[i] + " (" + today[i] + "), "
         for i in tomorrow:
+            if "Beskjeden" in tomorrow[i]:
+                tomorrow[i] = ircutils.mircColor(tomorrow[i], "Light green")
+            elif "Moderat" in tomorrow[i]:
+                tomorrow[i] = ircutils.mircColor(tomorrow[i], "Orange")
+            elif "Kraftig" in tomorrow[i]:
+                tomorrow[i] = ircutils.mircColor(tomorrow[i], "Red")
+            elif "Ekstrem" in tomorrow[i]:
+                tomorrow[i] = ircutils.mircColor(tomorrow[i], "Brown")
             rtomorrow += plants[i] + " (" + tomorrow[i] + "), "
         rtoday = rtoday[:-2]
         rtomorrow = rtomorrow[:-2]
@@ -315,7 +332,7 @@ Check "pollen list" for list of locations.')
         if tempdigit <= 0:
             tempdesc = ircutils.mircColor(tempdesc, 12) # Light blue
         else:
-            tempdesc = ircutils.mircColor(tempdesc, 5) # Red
+            tempdesc = ircutils.mircColor(tempdesc, 4) # Red
         # Only calculate windchill if there is a winddesc and temperature under 10°C and wind over 4.8 km/h
         if winddesc and tempdigit and winddigit and tempdigit < 10 and (winddigit*3.6) > 4.8:
 
@@ -331,7 +348,7 @@ Check "pollen list" for list of locations.')
             if windchill <= 0:
                 windchillstr = ircutils.mircColor(windchillstr, 12) # Light blue
             else:
-                windchillstr = ircutils.mircColor(windchillstr, 5) # Red
+                windchillstr = ircutils.mircColor(windchillstr, 4) # Red
 
             if weathertype:
                 rep = '%s (%s). %s. %s (%s)' % (tempdesc, windchillstr, weathertype, winddesc, name)
