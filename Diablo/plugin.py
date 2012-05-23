@@ -108,7 +108,7 @@ class Diablo(callbacks.Plugin):
         else:
             hardcore = ircutils.mircColor(hardcore, "Red")
 
-        irc.reply("Diablo III server ({0}): {1}. Auction House: Gold {2}. Hardcore {3}.".format(area, status, gold, hardcore))
+        irc.reply("Diablo III server ({0}): {1}. AH gold / hardcore: {2} / {3}.".format(area, status, gold, hardcore))
     status = wrap(status, [optional('text')])
 
 Class = Diablo
