@@ -94,19 +94,22 @@ class Diablo(callbacks.Plugin):
         hardcore = html[ html.find(needle) + len(needle) : html.find('">', html.find(needle) + len(needle)) ]
         
         if status == "Available":
-            status = ircutils.mircColor("↑", "Green")
+            icon = ircutils.mircColor("▲", "Light Green")
         else:
-            status = ircutils.mircColor(status, "Red")
+            icon = ircutils.mircColor("▼", "Red")
+        status = "{} {}".format(icon, status)
 
         if gold == "Available":
-            gold = ircutils.mircColor("↑", "Green")
+            icon = ircutils.mircColor("▲", "Light Green")
         else:
-            gold = ircutils.mircColor(gold, "Red")
+            icon = ircutils.mircColor("▼", "Red")
+        gold = "{} {}".format(icon, gold)
 
         if hardcore == "Available":
-            hardcore = ircutils.mircColor("↑", "Green")
+            icon = ircutils.mircColor("▲", "Light Green")
         else:
-            hardcore = ircutils.mircColor(hardcore, "Red")
+            icon = ircutils.mircColor("▼", "Red")
+        hardcore = "{} {}".format(icon, hardcore)
 
         irc.reply("Diablo III server ({0}): {1}. AH gold / hardcore: {2} / {3}.".format(area, status, gold, hardcore))
     status = wrap(status, [optional('text')])
