@@ -119,6 +119,8 @@ class FacebookImage(callbacks.Plugin):
             self.log.warning("Failed to load Facebook API. Possible timeout. Error: " + str(err))
             return
         j = json.loads(jsonstr)
+        if j == False:
+            return None, None, None
         name = j["name"].encode('utf-8')
         return name, uid, albumid 
 
