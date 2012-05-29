@@ -71,6 +71,10 @@ class FacebookImage(callbacks.Plugin):
         elif albumid == -1:
             irc.reply("Profile picture of {0} (https://www.facebook.com/profile.php?id={1})".format(name, uid))
             return True
+        # This might possibly happen because of a new format.
+        if not name:
+            irc.reply("In this album: https://www.facebook.com/photo.php?fbid={}".format(uid))
+            return True
         # If we have everything it is probably a regular picture.
         irc.reply("By {0} (https://www.facebook.com/profile.php?id={2}) in this album: https://www.facebook.com/photo.php?pid={1}&id={2}".format(name, albumid, uid))
         return True
@@ -106,7 +110,6 @@ class FacebookImage(callbacks.Plugin):
         # If we don't have digits at this point the url was probably something different.
         if not uid.isdigit() and not albumid.isdigit():
             return None, None, None
-
         url = "http://graph.facebook.com/" + uid
         try:
             req = urllib2.Request(url)
@@ -120,7 +123,12 @@ class FacebookImage(callbacks.Plugin):
             return
         j = json.loads(jsonstr)
         if j == False:
-            return None, None, None
+            # Happens with some images. Not 100% sure why. Might be a new
+            # format
+            if uid:
+                return None, uid, None
+            else:
+                return None, None, None
         name = j["name"].encode('utf-8')
         return name, uid, albumid 
 
