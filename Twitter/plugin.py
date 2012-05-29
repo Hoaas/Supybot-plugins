@@ -144,30 +144,45 @@ class Twitter(callbacks.Plugin):
         irc.reply(retvalue)
 
 
-    def tsearch(self, irc, msg, args, num, term):
-        """ [--num number] <term>
+    def tsearch(self, irc, msg, args, optlist, term):
+        """ [--num number] [--searchtype mixed | recent | popular] [--lang xx] <term>
 
         Searches Twitter for the <term> and returns the most recent results.
         Number is number of results. Must be a number higher than 0 and max 10.
+        searchtype being recent, popular or mixed. Popular is the default.
         """
 
         url = "http://search.twitter.com/search.json?include_entities=false&q=" + urllib.quote(term)
         # https://dev.twitter.com/docs/api/1/get/search
         # https://dev.twitter.com/docs/using-search
 
-        # number of tweets, max 100.
-        # should be 1 min, max 10, because of flood
-        if num:
-            url += "&rpp=" + str(num[0][1]) # num contains a list with one tuple, ('num', 1)
-        else:
-            url += "&rpp=3"
+        num, searchtype, lang = False, False, False
 
-        # return_type = popular, mixed(default), recent
+        if optlist:
+            for (type, arg) in optlist:
+                if type == 'num':
+                    num = arg
+                if type == 'searchtype':
+                    searchtype = arg
+                if type == 'lang':
+                    lang = arg
+        url += "&rpp="
+        if not num:
+            num = 3
+        url += str(num)
 
+        # mixed: Include both popular and real time results in the response.
+        # recent: return only the most recent results in the response
+        # popular: return only the most popular results in the response.
+        if searchtype:
+            url += "&result_type=" + searchtype
+        
         # lang . Uses ISO-639 codes like 'en'
         # http://en.wikipedia.org/wiki/ISO_639-1
+        if lang:
+            url += "&lang=" + lang
 
-
+        self.log.info(url)
         try:
             req = urllib2.Request(url)
             stream = urllib2.urlopen(req)
@@ -192,16 +207,23 @@ class Twitter(callbacks.Plugin):
             return
 
         results = data["results"]
+        outputs = 0
+        if len(results) == 0:
+            irc.reply("Error: No Twitter Search results found: %s" % term)
+        else:
+            for result in results:
+                if outputs >= num:
+                    return
+                nick = result["from_user"].encode('utf-8')
+                name = result["from_user_name"].encode('utf-8')
+                text = self._unescape(result["text"]).encode('utf-8')
+                date = result["created_at"]
+                relativeTime = self._time_created_at(date)
+                tweetid = result["id"]
+                self._outputTweet(irc, msg, nick, name, text, relativeTime, tweetid)
+                outputs += 1
 
-        for result in results:
-            nick = result["from_user"].encode('utf-8')
-            name = result["from_user_name"].encode('utf-8')
-            text = self._unescape(result["text"]).encode('utf-8')
-            date = result["created_at"]
-            relativeTime = self._time_created_at(date)
-            tweetid = result["id"]
-            self._outputTweet(irc, msg, nick, name, text, relativeTime, tweetid)
-    tsearch = wrap(tsearch, [getopts({'num':('int', 'number of results', lambda i: 0 < i <= 10)}), ('text')])
+    tsearch = wrap(tsearch, [getopts({'num':('int', 'number of results', lambda i: 0 < i <= 10), 'searchtype':('literal', ('popular', 'mixed', 'recent')), 'lang':('something')}), ('text')])
 
     def _outputTweet(self, irc, msg, nick, name, text, time, tweetid):
         ret = ircutils.underline(ircutils.bold("@" + nick))
@@ -399,4 +421,4 @@ class Twitter(callbacks.Plugin):
 Class = Twitter
 
 
-# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
+# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=279:
