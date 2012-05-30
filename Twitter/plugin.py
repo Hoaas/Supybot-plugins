@@ -145,7 +145,7 @@ class Twitter(callbacks.Plugin):
 
 
     def tsearch(self, irc, msg, args, optlist, term):
-        """ [--num number] [--searchtype mixed | recent | popular] [--lang xx] <term>
+        """ [--num number] [--searchtype mixed,recent,popular] [--lang xx] <term>
 
         Searches Twitter for the <term> and returns the most recent results.
         Number is number of results. Must be a number higher than 0 and max 10.
@@ -156,33 +156,30 @@ class Twitter(callbacks.Plugin):
         # https://dev.twitter.com/docs/api/1/get/search
         # https://dev.twitter.com/docs/using-search
 
-        num, searchtype, lang = False, False, False
+        args = {'num': 3, 'searchtype': None, 'lang': None}
 
         if optlist:
-            for (type, arg) in optlist:
-                if type == 'num':
-                    num = arg
-                if type == 'searchtype':
-                    searchtype = arg
-                if type == 'lang':
-                    lang = arg
-        url += "&rpp="
-        if not num:
-            num = 3
-        url += str(num)
+            for (key, value) in optlist:
+                if key == 'num':
+                    args['num'] = value
+                if key == 'searchtype':
+                    args['searchtype'] = value
+                if key == 'lang':
+                    args['lang'] = value
+
+        url += "&rpp=" + str(args['num'])
 
         # mixed: Include both popular and real time results in the response.
         # recent: return only the most recent results in the response
         # popular: return only the most popular results in the response.
-        if searchtype:
-            url += "&result_type=" + searchtype
+        if args['searchtype']:
+            url += "&result_type=" + args['searchtype']
         
         # lang . Uses ISO-639 codes like 'en'
         # http://en.wikipedia.org/wiki/ISO_639-1
-        if lang:
-            url += "&lang=" + lang
+        if args['lang']:
+            url += "&lang=" + args['lang']
 
-        self.log.info(url)
         try:
             req = urllib2.Request(url)
             stream = urllib2.urlopen(req)
@@ -209,10 +206,13 @@ class Twitter(callbacks.Plugin):
         results = data["results"]
         outputs = 0
         if len(results) == 0:
-            irc.reply("Error: No Twitter Search results found: %s" % term)
+            if not args['lang']:
+                irc.reply("Error: No Twitter Search results found for '%s'" % term)
+            else:
+                irc.reply("Error: No Twitter Search results found for '{}' in language '{}'".format(term, args['lang']))
         else:
             for result in results:
-                if outputs >= num:
+                if outputs >= args['num']:
                     return
                 nick = result["from_user"].encode('utf-8')
                 name = result["from_user_name"].encode('utf-8')

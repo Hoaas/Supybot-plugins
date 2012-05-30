@@ -48,5 +48,7 @@ Twitter = conf.registerPlugin('Twitter')
 conf.registerChannelValue(Twitter, 'hideRealName', registry.Boolean(False, """Do not show real name when displaying tweets."""))
 conf.registerChannelValue(Twitter, 'addShortUrl', registry.Boolean(False, """Whether or not to add a short URL to the tweets."""))
 conf.registerChannelValue(Twitter, 'woeid', registry.Integer(1, """Where On Earth ID. World Wide is 1. USA is 23424977."""))
+conf.registerChannelValue(Twitter, 'defaultResults', registry.Integer(3, """Default number of results to return on searches."""))
+conf.registerChannelValue(Twitter, 'maxResults', registry.Integer(10, """Maximum number of results to return on searches and lookups."""))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
