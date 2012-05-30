@@ -114,7 +114,7 @@ class Yr(callbacks.Plugin):
         name = name.replace('</span>', '')
         name = name.replace('<strong>', '')
         name = name.replace('</strong>', '')
-
+        name = name.replace("  ", " ") # Remove double space in some names.
         return name
                 
     def _pollen(self, locations, loc):
