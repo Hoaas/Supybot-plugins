@@ -155,8 +155,11 @@ class Twitter(callbacks.Plugin):
         url = "http://search.twitter.com/search.json?include_entities=false&q=" + urllib.quote(term)
         # https://dev.twitter.com/docs/api/1/get/search
         # https://dev.twitter.com/docs/using-search
+        args = {'num': self.registryValue('defaultResults', msg.args[0]), 'searchtype': None, 'lang': None}
 
-        args = {'num': 3, 'searchtype': None, 'lang': None}
+        max = self.registryValue('maxResults', msg.args[0])
+        if args['num'] > max:
+            self.log.info("Twitter: defaultResults is set to be higher than maxResults in channel %s." % msg.args[0])
 
         if optlist:
             for (key, value) in optlist:
@@ -167,6 +170,9 @@ class Twitter(callbacks.Plugin):
                 if key == 'lang':
                     args['lang'] = value
 
+        if args['num'] > max or args['num'] <= 0:
+            irc.reply("Error: '{}' is not a valid number of tweets. Range is above 0 and max {}.".format(args['num'], max))
+            return
         url += "&rpp=" + str(args['num'])
 
         # mixed: Include both popular and real time results in the response.
@@ -223,7 +229,7 @@ class Twitter(callbacks.Plugin):
                 self._outputTweet(irc, msg, nick, name, text, relativeTime, tweetid)
                 outputs += 1
 
-    tsearch = wrap(tsearch, [getopts({'num':('int', 'number of results', lambda i: 0 < i <= 10), 'searchtype':('literal', ('popular', 'mixed', 'recent')), 'lang':('something')}), ('text')])
+    tsearch = wrap(tsearch, [getopts({'num':('int'), 'searchtype':('literal', ('popular', 'mixed', 'recent')), 'lang':('something')}), ('text')])
 
     def _outputTweet(self, irc, msg, nick, name, text, time, tweetid):
         ret = ircutils.underline(ircutils.bold("@" + nick))
@@ -255,29 +261,34 @@ class Twitter(callbacks.Plugin):
         Or returns tweet with id 'id'.
         Or returns information on user with --info. 
         """
-        id, rt, reply, num, info = False, False, False, False, False
-        if options:
-            for (type, arg) in options:
-                if type == 'id':
-                    id = True
-                if type == 'rt':
-                    rt = True
-                if type == 'reply':
-                    reply = True
-                if type == 'num':
-                    num = arg
-                if type == 'info':
-                    info = True
-        if not num:
-            num = 1
+        args = {'id': False, 'rt': False, 'reply': False, 'num': 1, 'info': False}
+        max = self.registryValue('maxResults', msg.args[0])
+        if args['num'] > max:
+            self.log.info("Twitter: defaultResults is set to be higher than maxResults in channel %s." % msg.args[0])
 
-        if id:
+        if options:
+            for (key, value) in options:
+                if key == 'id':
+                    args['id'] = True
+                if key == 'rt':
+                    args['rt'] = True
+                if key == 'reply':
+                    args['reply'] = True
+                if key == 'num':
+                    args['num'] = value
+                if key == 'info':
+                    args['info'] = True
+        if args['num'] > max or args['num'] <= 0:
+            irc.reply("Error: '{}' is not a valid number of tweets. Range is above 0 and max {}.".format(args['num'], max))
+            return
+
+        if args['id']:
             url = "http://api.twitter.com/1/statuses/show/%s.json" % urllib.quote(nick)
-        elif info:
+        elif args['info']:
             url = "https://api.twitter.com/1/users/show.json?screen_name=%s" % urllib.quote(nick)
         else:
             url = "http://api.twitter.com/1/statuses/user_timeline/%s.json" % urllib.quote(nick)
-        if rt and not id:
+        if args['rt'] and not args['id']:
             url += "?include_rts=true"
 
         try:
@@ -304,7 +315,7 @@ class Twitter(callbacks.Plugin):
             return
 
         # If an ID was given.
-        if id:
+        if args['id']:
             text = self._unescape(data["text"]).encode('utf-8')
             nick = data["user"]["screen_name"].encode('utf-8')
             name = data["user"]["name"].encode('utf-8')
@@ -315,7 +326,7 @@ class Twitter(callbacks.Plugin):
             return
 
         # If info was given
-        if info:
+        if args['info']:
             location = data['location'].encode('utf-8')
             followers = data['followers_count']
             friends = data['friends_count']
@@ -350,17 +361,16 @@ class Twitter(callbacks.Plugin):
         counter = 0
         # Loop over all tweets
         for i in range(len(data)):
-            if counter >= num:
+            if counter >= args['num']:
                 break
             # If we don't want @replies
-            if (not reply and not data[i]["in_reply_to_screen_name"]):
+            if (not args['reply'] and not data[i]["in_reply_to_screen_name"]):
                 indexlist.append(i)
                 counter += 1
             # If we want this tweet even if it is an @reply
-            elif (reply):
+            elif (args['reply']):
                 indexlist.append(i)
                 counter += 1
-
         for index in indexlist:
             text = self._unescape(data[index]["text"]).encode('utf-8')
             nick = data[index]["user"]["screen_name"].encode('utf-8')
@@ -368,13 +378,12 @@ class Twitter(callbacks.Plugin):
             date = data[index]["created_at"]
             tweetid = data[index]["id"]
             relativeTime = self._time_created_at(date)
-
             self._outputTweet(irc, msg, nick, name, text, relativeTime, tweetid)
 
         # If more tweets were requested than were found
-        if len(indexlist) < num:
-            irc.reply("You requested {} tweets but there were {} that matched your requirements.".format(num, len(indexlist)))
-    twitter = wrap(twitter, [getopts({'reply':'', 'rt': '', 'info': '', 'id': '', 'num': ('int', 'number of tweets', lambda i: 0 < i <= 10)}), ('something')])
+        if len(indexlist) < args['num']:
+            irc.reply("You requested {} tweets but there were {} that matched your requirements.".format(args['num'], len(indexlist)))
+    twitter = wrap(twitter, [getopts({'reply':'', 'rt': '', 'info': '', 'id': '', 'num': ('int')}), ('something')])
 
 
     def tagdef(self, irc, msg, args, term):
