@@ -171,7 +171,7 @@ class Twitter(callbacks.Plugin):
                     args['lang'] = value
 
         if args['num'] > max or args['num'] <= 0:
-            irc.reply("Error: '{}' is not a valid number of tweets. Range is above 0 and max {}.".format(args['num'], max))
+            irc.reply("Error: '{0}' is not a valid number of tweets. Range is above 0 and max {1}.".format(args['num'], max))
             return
         url += "&rpp=" + str(args['num'])
 
@@ -215,7 +215,7 @@ class Twitter(callbacks.Plugin):
             if not args['lang']:
                 irc.reply("Error: No Twitter Search results found for '%s'" % term)
             else:
-                irc.reply("Error: No Twitter Search results found for '{}' in language '{}'".format(term, args['lang']))
+                irc.reply("Error: No Twitter Search results found for '{0}' in language '{1}'".format(term, args['lang']))
         else:
             for result in results:
                 if outputs >= args['num']:
@@ -235,7 +235,7 @@ class Twitter(callbacks.Plugin):
         ret = ircutils.underline(ircutils.bold("@" + nick))
         hideName = self.registryValue('hideRealName', msg.args[0])
         if not hideName:
-            ret += " ({})".format(name)
+            ret += " ({0})".format(name)
         ret += ": {0} ({1})".format(text, ircutils.bold(time))
         if self.registryValue('addShortUrl', msg.args[0]):
             url = self._createShortUrl(nick, tweetid)
@@ -279,7 +279,7 @@ class Twitter(callbacks.Plugin):
                 if key == 'info':
                     args['info'] = True
         if args['num'] > max or args['num'] <= 0:
-            irc.reply("Error: '{}' is not a valid number of tweets. Range is above 0 and max {}.".format(args['num'], max))
+            irc.reply("Error: '{0}' is not a valid number of tweets. Range is above 0 and max {1}.".format(args['num'], max))
             return
 
         if args['id']:
@@ -338,13 +338,13 @@ class Twitter(callbacks.Plugin):
                 url = url.encode('utf-8')
     
             ret = ircutils.underline(ircutils.bold("@" + nick))
-            ret += " ({}):".format(name)
+            ret += " ({0}):".format(name)
             if url:
-                ret += " {}".format(ircutils.underline(url))
+                ret += " {0}".format(ircutils.underline(url))
             if description:
-                ret += " {}".format(description)
-            ret += " {} friends,".format(ircutils.bold(friends))
-            ret += " {} followers.".format(ircutils.bold(followers))
+                ret += " {0}".format(description)
+            ret += " {0} friends,".format(ircutils.bold(friends))
+            ret += " {0} followers.".format(ircutils.bold(followers))
             if location: 
                 ret += " " + location
             #irc.reply("%s %s %s %s %s %s %s" % (screen_name, name, url, description, friends, followers, location))
@@ -382,7 +382,7 @@ class Twitter(callbacks.Plugin):
 
         # If more tweets were requested than were found
         if len(indexlist) < args['num']:
-            irc.reply("You requested {} tweets but there were {} that matched your requirements.".format(args['num'], len(indexlist)))
+            irc.reply("You requested {0} tweets but there were {1} that matched your requirements.".format(args['num'], len(indexlist)))
     twitter = wrap(twitter, [getopts({'reply':'', 'rt': '', 'info': '', 'id': '', 'num': ('int')}), ('something')])
 
 
