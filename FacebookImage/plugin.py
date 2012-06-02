@@ -135,6 +135,8 @@ class FacebookImage(callbacks.Plugin):
         self.log.info(url)
         try:
             name = j["name"].encode('utf-8')
+            if albumid == -1:
+                albumid = j["link"].encode('utf-8')
         except:
             # ugly ugly. For images by Pages. But not all.
             try:
