@@ -58,6 +58,7 @@ class RottenTomatoes(callbacks.Plugin):
 
         url = "http://api.rottentomatoes.com/api/public/v1.0/movies.json?apikey="
         url += urllib.quote(apikey)
+        url += "&page_limit=1&page=1"
         url += "&q=" + urllib.quote(movie)
 
         try:
