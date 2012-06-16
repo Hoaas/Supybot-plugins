@@ -71,7 +71,7 @@ class FacebookImage(callbacks.Plugin):
         elif albumid == -1:
             irc.reply("Profile picture of {0} (https://www.facebook.com/profile.php?id={1})".format(name, uid))
             return True
-        elif not albumid.isdigit(): # Image from a Page of some sort.
+        elif albumid and not albumid.isdigit(): # Image from a Page of some sort.
             irc.reply("By {0} ({1})".format(name, albumid))
             return True
         # This might possibly happen because of a new format.
