@@ -220,17 +220,17 @@ class AtB(callbacks.Plugin):
 	    except:
 	        irc.reply("Ikke gyldig dato. Dato må være på formen YYYY-MM-DD.")
 		return
-	    if days < 7:
-	        days = 7
-	    elif days > 185:
-	        days = 185
-	    price = self._calcPrice(days, True) # False = adult, True = student.
-	    tail = ""
-	    if days >= 36 and days < 40:
-	        tail = " NB! Det blir billigere pr. dag fra og med dag 40. Du kan spare penger på å kjøpe for et par dager til."
-	    elif days >= 149 and days < 160:
-	        tail = " NB! Det blir billigere pr. dag fra og med dag 160. Du kan spare penger på å kjøpe for et par dager til."
-	    irc.reply("Studentpris for " + str(days) + " dager er " + str(price) + " kr." + tail)
+	if days < 7:
+	    days = 7
+	elif days > 185:
+	    days = 185
+	price = self._calcPrice(days, True) # False = adult, True = student.
+	tail = ""
+	if days >= 36 and days < 40:
+	    tail = " NB! Det blir billigere pr. dag fra og med dag 40. Du kan spare penger på å kjøpe for et par dager til."
+	elif days >= 149 and days < 160:
+	    tail = " NB! Det blir billigere pr. dag fra og med dag 160. Du kan spare penger på å kjøpe for et par dager til."
+	irc.reply("Studentpris for " + str(days) + " dager er " + str(price) + " kr." + tail)
     tkort = wrap(tkort, ['text'])
 	
     """
