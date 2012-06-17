@@ -112,12 +112,61 @@ class Twitter(callbacks.Plugin):
             rel_time = "less than %s second%s ago" % (d.seconds, plural(d.seconds))
         return  rel_time
 
-    def trends(self, irc, msg, args):
+    def _woeid_lookup(self, lookup):
         """
-        Returns the Top 10 Twitter trends world wide..
+        Use Yahoo's API to look-up a WOEID.
         """
 
-        woeid = self.registryValue('woeid', msg.args[0]) # Where On Earth ID
+        query = "select * from geo.places where text='%s'" % lookup
+
+        params = {
+                "q": query,
+                "format":"json",
+                "diagnostics":"false",
+                "env":"store://datatables.org/alltableswithkeys"
+        }
+
+        try:
+            response = urllib2.urlopen("http://query.yahooapis.com/v1/public/yql",urllib.urlencode(params))
+            data = json.loads(response.read())
+
+            if data['query']['count'] > 1:
+                woeid = data['query']['results']['place'][0]['woeid']
+            else:
+                woeid = data['query']['results']['place']['woeid']
+
+            self.log.info(("I found WOEID: %s from searching: %s") % (woeid, lookup))
+        except Exception, err:
+            return None
+
+        return woeid
+
+    def woeidlookup(self, irc, msg, args, lookup):
+        """[location]
+        Search Yahoo's WOEID DB for a location. Useful for the trends variable.
+        """
+
+        woeid = self._woeid_lookup(lookup)
+        if woeid:
+            irc.reply(("I found WOEID: %s while searching for: '%s'") % (ircutils.bold(woeid), lookup))
+        else:
+            irc.reply(("Something broke while looking up: '%s'") % (lookup))
+
+    woeidlookup = wrap(woeidlookup, ['text'])
+
+    def trends(self, irc, msg, args, woeid):
+        """[location]
+        Returns the Top 10 Twitter trends for a specific location. Use optional argument location for trends, otherwise will use config variable.
+        """
+
+        if woeid:
+            try:
+                woeid = self._woeid_lookup(woeid)
+            except:
+                woeid = self.registryValue('woeid', msg.args[0]) # Where On Earth ID
+        else:
+            woeid = self.registryValue('woeid', msg.args[0]) # Where On Earth ID
+
         try:
             req = urllib2.Request('https://api.twitter.com/1/trends/%s.json' % woeid)
             stream = urllib2.urlopen(req)
@@ -129,7 +178,7 @@ class Twitter(callbacks.Plugin):
             else:
                 self.log.warning("Twitter trends: API returned http error %s" % err.code)
             return
-        
+
         try:
             data = json.loads(datas)
         except:
@@ -139,9 +188,13 @@ class Twitter(callbacks.Plugin):
             return
 
         ttrends = string.join([trend['name'] for trend in data[0]['trends']], " | ")
-        # asof = data[0]['as_of'] #asof date if you want to use
-        retvalue = ircutils.bold("Current Top 10 Twitter trends: ") + ttrends
+        location = data[0]['locations'][0]['name']
+
+        retvalue = ircutils.bold(("Top 10 Twitter Trends in %s: ") % (location)) + ttrends
+
         irc.reply(retvalue)
+
+    trends = wrap(trends, [optional('text')])
 
 
     def tsearch(self, irc, msg, args, optlist, term):
