@@ -4,8 +4,6 @@ import supybot.callbacks as callbacks
 import urllib
 from xml.etree import ElementTree
 
-app_id = '62VUEW-H6XTUTU32R'
-
 class Wolfram(callbacks.Privmsg):
 
     def alpha(self, irc, msg, args, question):
@@ -13,10 +11,21 @@ class Wolfram(callbacks.Privmsg):
         Wolfram Alpha API.
         <http://products.wolframalpha.com/docs/WolframAlpha-API-Reference.pdf>
         """
+        apikey = self.registryValue('apikey')
+        if not apikey or apikey == "Not set":
+            irc.reply("API key not set. see 'config help supybot.plugins.Wolfram.apikey'.")
+            return
+
         u = "http://api.wolframalpha.com/v2/query?"
-        q = urllib.urlencode({'input': question, 'appid': app_id})
+        q = urllib.urlencode({'input': question, 'appid': apikey})
         xml = urllib.urlopen(u + q).read()
         tree = ElementTree.fromstring(xml)
+
+        if tree.attrib['success'] == "false":
+            for results in tree.findall('.//error'):
+                for err in results.findall('.//msg'):
+                    irc.reply("Error: " + err.text)
+            return
 
         found = False
 	maxoutput = 2

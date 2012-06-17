@@ -13,3 +13,4 @@ def configure(advanced):
     conf.registerPlugin('Wolfram', True)
 
 Wolfram = conf.registerPlugin('Wolfram')
+conf.registerGlobalValue(Wolfram, 'apikey', registry.String('Not set', """API key to use WolframAlpha API. A key can be requested at https://developer.wolframalpha.com/.""", private=True))

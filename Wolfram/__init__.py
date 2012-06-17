@@ -13,6 +13,7 @@ __url__ = ''
 import config
 import plugin
 reload(plugin) # In case we're being reloaded.
+reload(config)
 
 if world.testing:
     import test
