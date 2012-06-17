@@ -89,6 +89,9 @@ class AtB(callbacks.Plugin):
 	        return
 	    elif (times == -3):
 	        continue
+            elif (times == -4):
+                irc.reply("API key not set. see 'config help supybot.plugins.RottenTomatoes.apikey'.")
+                return
 	    if(towardsCity):
 	        rettowardscity = unicode(busstopname, 'utf8') + " mot sentrum: " + times
 	    else:
@@ -130,14 +133,11 @@ class AtB(callbacks.Plugin):
 	The return string do not contain the name of the busstop.
 	"""
     def _getTimes(self, id):
-        try:
-            keyfilepath = os.path.join( os.path.dirname(__file__), 'apikey.txt')
-            keyfile = open(keyfilepath, 'r')
-            apikey = keyfile.readline()
-        except IOError as err:
-            irc.reply("Could not open file with apikey. Is it present?")
-            self.log.warning("AtB error, API key missing. Check out README.txt. API key available from http://api.busbuddy.no Error message: " + str(err))
-            return
+        apikey = self.registryValue('apikey')
+
+        if not apikey or apikey == "Not set":
+            return -4, -4
+
         url = "http://api.busbuddy.norrs.no:8080/api/1.3/departures/" # <locationId>
 	url += str(id)
 

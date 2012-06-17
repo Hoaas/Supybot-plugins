@@ -45,6 +45,10 @@ AtB = conf.registerPlugin('AtB')
 # This is where your configuration variables (if any) should go.  For example:
 # conf.registerGlobalValue(AtB, 'someConfigVariableName',
 #     registry.Boolean(False, """Help for someConfigVariableName."""))
+conf.registerGlobalValue(AtB, 'apikey', registry.String('Not set',
+    """API key to use AtB API. A key can be requested at
+    http://api.busbuddy.no/.""", private=True))
+
 
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
