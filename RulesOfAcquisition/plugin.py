@@ -48,7 +48,7 @@ class RulesOfAcquisition(callbacks.Plugin):
     def rule(self, irc, msg, args, rule):
         """[number | search term]
 
-        Returns a Rule of Acuisition (aphorisms, guidelines and principles that
+        Returns a Rule of Acquisition (aphorisms, guidelines and principles that
         provides the foundation of business in Ferengi culture).
 
         No arguments return a random rule. A search term with several hits
