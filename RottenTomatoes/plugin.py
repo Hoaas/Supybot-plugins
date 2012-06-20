@@ -47,18 +47,20 @@ class RottenTomatoes(callbacks.Plugin):
     This should describe *how* to use this plugin."""
     threaded = True
 
-    def rt(self, irc, msg, args, movie):
-        """<movie>
+    def rt(self, irc, msg, args, pageid, movie):
+        """[id] <movie>
         
-        Returns info about a movie from Rotten Tomatoes."""
+        Returns info about a movie from Rotten Tomatoes. Id is a positive
+        integer and can be used in case there are several hits."""
         apikey = self.registryValue('apikey')
         if not apikey or apikey == "Not set":
             irc.reply("API key not set. see 'config help supybot.plugins.RottenTomatoes.apikey'.")
             return
-
+        if not pageid:
+            pageid = 1
         url = "http://api.rottentomatoes.com/api/public/v1.0/movies.json?apikey="
         url += urllib.quote(apikey)
-        url += "&page_limit=1&page=1"
+        url += "&page_limit=1&page=" + str(pageid)
         url += "&q=" + urllib.quote(movie)
 
         try:
@@ -78,40 +80,103 @@ class RottenTomatoes(callbacks.Plugin):
         except:
             irc.reply("Failed to load JSON from Rotten Tomatoes API.")
             return
-        #self.log.info(json.dumps(j, sort_keys=True, indent=4))
+        self._returnRatings(irc, j)
+    rt = wrap(rt, [optional('positiveInt'), 'text'])
+    
+    def _returnRatings(self, irc, json):
         try:
-            movie = j["movies"][0]
+            movie = json["movies"][0]
         except:
             irc.reply("No movie found by that name :(")
             return
-        title = movie["title"]
+        out = ""
+        try:
+            title = movie["title"]
+            out += ircutils.bold(title)
+        except:
+            irc.reply("This movie has no title. :s")
+            return
+
+        try:
+            year = movie["year"]
+            out += " ({0}) - ".format(year)
+        except:
+            pass
+      
+
+        try:
+            ratings = movie["ratings"]
+        except:
+            ratings = None
+
+        if ratings:
+            try:
+                critics_score = ratings["critics_score"]
+                if critics_score < 0:
+                    critics_score = None
+                else:
+                    critics_score = str(critics_score) + "%"
+            except:
+                critics_score = None
+            try:
+                critics_rating = ratings["critics_rating"]
+            except:
+                critics_rating = None
+    
+            try:
+                audience_score = ratings["audience_score"]
+                if audience_score < 0:
+                    audience_score = None
+                else:
+                    audience_score = str(audience_score) + "%"
+            except:
+                audience_score = None
+            try:
+                audience_rating = ratings["audience_rating"]
+            except:
+                audience_rating = None
+
+            if critics_score:
+                if critics_rating and (critics_rating == "Certified Fresh" or
+                        critics_rating == "Fresh"):
+                    critics_score = ircutils.mircColor(critics_score, "Red")
+                elif critics_rating and (critics_rating == "Rotten"):
+                    critics_score = ircutils.mircColor(critics_score, "Green")
+                else:
+                    critics_score = ircutils.bold(critics_score)
+                out += "{0}: {1}".format(ircutils.bold("Critics"), critics_score)
+                if critics_rating:
+                    out += " ({0}). ".format(critics_rating)
+                else:
+                    out += ". "
+
+            if audience_score:
+                if audience_rating and audience_rating == "Upright":
+                    audience_score = ircutils.mircColor(audience_score, "Red")
+                elif audience_rating and audience_rating == "Spilled":
+                    audience_score = ircutils.mircColor(audience_score, "Green")
+                else:
+                    audience_score = ircutils.bold(audience_score)
+                out += "{0}: {1}".format(ircutils.bold("Audience"), audience_score)
+                if audience_rating:
+                    out += " ({0}). ".format(audience_rating)
+                else:
+                    out += ". "
+
         try:
             consensus = movie["critics_consensus"]
+            out += consensus + " "
         except:
-            consensus = None
+            pass
 
-        ratings = movie["ratings"]
-        critics_score = str(ratings["critics_score"]) + "%"
-        critics_rating = ratings["critics_rating"]
-        audience_score = str(ratings["audience_score"]) + "%"
-        audience_rating = ratings["audience_rating"]
+        try:
+            total = json["total"]
+            if(total > 1):
+                out += "Total of {0} movies found.".format(ircutils.bold(total))
+        except:
+            pass
 
-        if critics_rating == "Certified Fresh" or critics_rating == "Fresh":
-            critics_score = ircutils.mircColor(critics_score, "Red")
-        elif critics_rating == "Rotten":
-            critics_score = ircutils.mircColor(critics_score, "Green")
-        if audience_rating == "Upright":
-            audience_score = ircutils.mircColor(audience_score, "Red")
-        elif audience_rating == "Spilled":
-            audience_score = ircutils.mircColor(audience_score, "Green")
-
-        if consensus:
-            irc.reply("{0} - Critics: {1}. Audience: {2}. {3}".format(ircutils.bold(title), critics_score, audience_score, consensus))
-        else:
-            irc.reply("{0} - Critics: {1}. Audience: {2}.".format(ircutils.bold(title), critics_score, audience_score))
-
-
-    rt = wrap(rt, ['text'])
+        irc.reply(out)
 
 Class = RottenTomatoes
 
