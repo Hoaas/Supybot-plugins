@@ -60,7 +60,7 @@ class DuckDuckGo(callbacks.Plugin):
             ss = "&kp=1"
         else:
             ss = "&kp=-1"
-        url = "https://api.duckduckgo.com/?format=xml" + ss + "&q="
+        url = "https://api.duckduckgo.com/?format=xml&no_redirect=1" + ss + "&q="
         query = urllib.quote(query);
         url += query
         ref = 'irc://%s/%s' % (dynamic.irc.server, dynamic.irc.nick)
@@ -71,6 +71,9 @@ class DuckDuckGo(callbacks.Plugin):
             req.add_header('Server / nick', ref)
             f = urllib2.urlopen(req)
             xml = f.read()
+        except urllib2.URLError, (err):
+            irc.reply(err)
+            return
         except:
             irc.reply("Failed to open " + url)                    
             return
@@ -86,7 +89,7 @@ class DuckDuckGo(callbacks.Plugin):
             self.log.info("DDG: Redirected from " + url+ " to " + f.geturl())
             irc.reply(f.geturl())
             return
-        
+        redirect = root.findtext("Redirect") 
         type = root.findtext("Type")
         answer = root.findtext("Answer")
         definition = root.findtext("Definition")
@@ -158,6 +161,9 @@ class DuckDuckGo(callbacks.Plugin):
             irc.reply(str((numtopics + numstopics) - repliessofar) + " other topics.")
                 # If there are only 1 topic
                 # irc.reply(topics[0].findtext("Text") + " " + topics[0].findtext("FirstURL"))
+        if redirect:
+            irc.reply(redirect)
+            repliessofar += 1
         if repliessofar == 0:
             irc.reply("No Zero-Click info from DuckDuckGo.")
               
