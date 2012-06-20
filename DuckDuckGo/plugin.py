@@ -60,7 +60,7 @@ class DuckDuckGo(callbacks.Plugin):
             ss = "&kp=1"
         else:
             ss = "&kp=-1"
-        url = "https://api.duckduckgo.com/?format=xml&no_redirect=1" + ss + "&q="
+        url = "https://api.duckduckgo.com/?format=xml&no_html=1&skip_disambig=1&no_redirect=1" + ss + "&q="
         query = urllib.quote(query);
         url += query
         ref = 'irc://%s/%s' % (dynamic.irc.server, dynamic.irc.nick)
