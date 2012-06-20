@@ -60,19 +60,19 @@ class DuckDuckGo(callbacks.Plugin):
             ss = "&kp=1"
         else:
             ss = "&kp=-1"
-        url = "https://duckduckgo.com/?o=x" + ss + "&q="
+        url = "https://api.duckduckgo.com/?format=xml" + ss + "&q="
         query = urllib.quote(query);
         url += query
         ref = 'irc://%s/%s' % (dynamic.irc.server, dynamic.irc.nick)
         try:
-            # url.encode('iso-8859-1')
             req = urllib2.Request(url)
-            req.add_header('Supybot plugin (IRC-bot) (plugin not made public yet)', 'http://sourceforge.net/projects/supybot/')
+            req.add_header('Supybot plugin (IRC-bot)',
+                    'https://github.com/Hoaas/Supybot-plugins/tree/master/DuckDuckGo')
             req.add_header('Server / nick', ref)
             f = urllib2.urlopen(req)
             xml = f.read()
         except:
-            print "Failed to open " + url
+            irc.reply("Failed to open " + url)                    
             return
 
         # Dirty dirty hack to replace '<br>' with ' - '
