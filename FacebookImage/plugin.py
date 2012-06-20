@@ -100,6 +100,7 @@ class FacebookImage(callbacks.Plugin):
 
     def _getNameAndID(self, filename):
         numbers = filename.split("_")
+
         # If it is a direct link to a profile picture
         if len(numbers) == 4:
             uid = numbers[1]
@@ -110,9 +111,11 @@ class FacebookImage(callbacks.Plugin):
             albumid = numbers[3]
         else:
             return None, None, None
+
         # If we don't have digits at this point the url was probably something different.
         if not uid.isdigit() and not albumid.isdigit():
             return None, None, None
+
         url = "http://graph.facebook.com/" + uid
         try:
             req = urllib2.Request(url)
@@ -120,7 +123,7 @@ class FacebookImage(callbacks.Plugin):
             jsonstr = f.read()
         except urllib2.HTTPError, err:
             self.log.warning("Facebook API returned " + str(err.code) + " for url " + url)
-            return
+            return None, None, None
         except urllib2.URLError, err:
             self.log.warning("Failed to load Facebook API. Possible timeout. Error: " + str(err))
             return
@@ -132,7 +135,7 @@ class FacebookImage(callbacks.Plugin):
                 return None, uid, None
             else:
                 return None, None, None
-        self.log.info(url)
+
         try:
             name = j["name"].encode('utf-8')
             if albumid == -1:
