@@ -80,9 +80,9 @@ class RulesOfAcquisition(callbacks.Plugin):
         for r in rules:
             if str(r[0]) == str(rule):
                 if str(r[0]).isdigit(): #Ohgod, the horror
-                    irc.reply("Rule #{0}: {1}".format(r[0], r[1])) # + " (" + r[2] + ")")
+                    irc.reply("Rule of Acquisition #{0}: {1}".format(r[0], r[1])) # + " (" + r[2] + ")")
                 else:
-                    irc.reply("Rule #??: {0}".format(r[1]))
+                    irc.reply("Rule of Acquisition #??: {0}".format(r[1]))
                 return
         irc.reply("404 - Rule not found.")
     rule = wrap(rule, [optional('text')])
