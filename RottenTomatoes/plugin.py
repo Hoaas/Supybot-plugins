@@ -90,51 +90,31 @@ class RottenTomatoes(callbacks.Plugin):
             irc.reply("No movie found by that name :(")
             return
         out = ""
-        try:
-            title = movie["title"]
+        title = movie.get("title", None)
+        if title:
             out += ircutils.bold(title)
-        except:
+        else:
             irc.reply("This movie has no title. :s")
             return
 
-        try:
-            year = movie["year"]
+        year = movie.get("year", None)
+        if year:
             out += " ({0}) - ".format(year)
-        except:
-            pass
-      
-
-        try:
-            ratings = movie["ratings"]
-        except:
-            ratings = None
+        
+        ratings = movie.get("ratings", None)
 
         if ratings:
-            try:
-                critics_score = ratings["critics_score"]
-                if critics_score < 0:
-                    critics_score = None
-                else:
-                    critics_score = str(critics_score) + "%"
-            except:
-                critics_score = None
-            try:
-                critics_rating = ratings["critics_rating"]
-            except:
-                critics_rating = None
+            critics_score = ratings.get("critics_score", None)
+            if critics_score and critics_score >= 0:
+                critics_score = str(critics_score) + "%"
+            
+            critics_rating = ratings.get("critics_rating", None)
     
-            try:
-                audience_score = ratings["audience_score"]
-                if audience_score < 0:
-                    audience_score = None
-                else:
-                    audience_score = str(audience_score) + "%"
-            except:
-                audience_score = None
-            try:
-                audience_rating = ratings["audience_rating"]
-            except:
-                audience_rating = None
+            audience_score = ratings.get("audience_score", None)
+            if audience_score and audience_score >= 0:
+                audience_score = str(audience_score) + "%"
+            
+            audience_rating = ratings.get("audience_rating", None)
 
             if critics_score:
                 if critics_rating and (critics_rating == "Certified Fresh" or
@@ -163,18 +143,13 @@ class RottenTomatoes(callbacks.Plugin):
                 else:
                     out += ". "
 
-        try:
-            consensus = movie["critics_consensus"]
+        consensus = movie.get("critics_consensus", None)
+        if consensus:
             out += consensus + " "
-        except:
-            pass
 
-        try:
-            total = json["total"]
-            if(total > 1):
-                out += "Total of {0} movies found.".format(ircutils.bold(total))
-        except:
-            pass
+        total = json.get("total", 0)
+        if(total > 1):
+            out += "Total of {0} movies found.".format(ircutils.bold(total))
 
         irc.reply(out)
 
