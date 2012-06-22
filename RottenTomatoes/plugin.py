@@ -67,8 +67,6 @@ class RottenTomatoes(callbacks.Plugin):
 
         movie = movie.decode('utf8') # Without this we get an Error: TypeError: must be unicode, not str
         movie = unicodedata.normalize('NFKD', movie).encode('ascii', 'ignore')
-        #movie = movie.decode('utf8')
-        irc.reply(movie)
 
         url = "http://api.rottentomatoes.com/api/public/v1.0/movies.json?apikey="
         url += urllib.quote(apikey)
