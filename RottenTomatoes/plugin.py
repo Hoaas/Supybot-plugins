@@ -31,6 +31,7 @@
 
 import json
 import urllib, urllib2
+import unicodedata
 
 import supybot.utils as utils
 from supybot.commands import *
@@ -58,6 +59,17 @@ class RottenTomatoes(callbacks.Plugin):
             return
         if not pageid:
             pageid = 1
+
+        # normalize sadly doesn't handle these
+        movie = movie.replace('æ', 'ae')
+        movie = movie.replace('ø', 'o')
+        movie = movie.replace('å', 'a')
+
+        movie = movie.decode('utf8') # Without this we get an Error: TypeError: must be unicode, not str
+        movie = unicodedata.normalize('NFKD', movie).encode('ascii', 'ignore')
+        #movie = movie.decode('utf8')
+        irc.reply(movie)
+
         url = "http://api.rottentomatoes.com/api/public/v1.0/movies.json?apikey="
         url += urllib.quote(apikey)
         url += "&page_limit=1&page=" + str(pageid)
@@ -90,31 +102,31 @@ class RottenTomatoes(callbacks.Plugin):
             irc.reply("No movie found by that name :(")
             return
         out = ""
-        title = movie.get("title", None)
+        title = movie.get("title")
         if title:
             out += ircutils.bold(title)
         else:
             irc.reply("This movie has no title. :s")
             return
 
-        year = movie.get("year", None)
+        year = movie.get("year")
         if year:
             out += " ({0}) - ".format(year)
         
-        ratings = movie.get("ratings", None)
+        ratings = movie.get("ratings")
 
         if ratings:
-            critics_score = ratings.get("critics_score", None)
+            critics_score = ratings.get("critics_score")
             if critics_score and critics_score >= 0:
                 critics_score = str(critics_score) + "%"
             
-            critics_rating = ratings.get("critics_rating", None)
+            critics_rating = ratings.get("critics_rating")
     
-            audience_score = ratings.get("audience_score", None)
+            audience_score = ratings.get("audience_score")
             if audience_score and audience_score >= 0:
                 audience_score = str(audience_score) + "%"
             
-            audience_rating = ratings.get("audience_rating", None)
+            audience_rating = ratings.get("audience_rating")
 
             if critics_score:
                 if critics_rating and (critics_rating == "Certified Fresh" or
@@ -143,7 +155,7 @@ class RottenTomatoes(callbacks.Plugin):
                 else:
                     out += ". "
 
-        consensus = movie.get("critics_consensus", None)
+        consensus = movie.get("critics_consensus")
         if consensus:
             out += consensus + " "
 
