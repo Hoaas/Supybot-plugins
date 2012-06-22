@@ -117,12 +117,16 @@ class RottenTomatoes(callbacks.Plugin):
             critics_score = ratings.get("critics_score")
             if critics_score and critics_score >= 0:
                 critics_score = str(critics_score) + "%"
+            else:
+                critics_score = None
             
             critics_rating = ratings.get("critics_rating")
     
             audience_score = ratings.get("audience_score")
             if audience_score and audience_score >= 0:
                 audience_score = str(audience_score) + "%"
+            else:
+                audience_score = None
             
             audience_rating = ratings.get("audience_rating")
 
