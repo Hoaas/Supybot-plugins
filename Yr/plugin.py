@@ -183,13 +183,13 @@ class Yr(callbacks.Plugin):
         rtoday = rtoday[:-2]
         rtomorrow = rtomorrow[:-2]
         if (len(rtoday) < 5):
-            rtoday = "I dag: Clear! "
+            rtoday = ircutils.bold("I dag") + ": Clear! "
         else:
-            rtoday = "I dag: " + rtoday + ". "
+            rtoday = ircutils.bold("I dag") + ": " + rtoday + ". "
         if (len(rtomorrow) < 5):
-            rtomorrow = "I morgen: Clear!"
+            rtomorrow = ircutils.bold("I morgen") + ": Clear!"
         else:
-            rtomorrow = "I morgen: " + rtomorrow + "."
+            rtomorrow = ircutils.bold("I morgen") + ": " + rtomorrow + "."
         
         if not rtoday and not rtomorrow:
             return "Ingen pollen varslet."
