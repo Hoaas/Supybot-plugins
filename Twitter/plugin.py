@@ -331,6 +331,8 @@ class Twitter(callbacks.Plugin):
                     args['num'] = value
                 if key == 'info':
                     args['info'] = True
+        if nick and not args['id']:
+            nick = nick.replace('@', '')
         if args['num'] > max or args['num'] <= 0:
             irc.reply("Error: '{0}' is not a valid number of tweets. Range is above 0 and max {1}.".format(args['num'], max))
             return
