@@ -92,37 +92,53 @@ class DuckDuckGo(callbacks.Plugin):
         redirect = root.findtext("Redirect") 
         type = root.findtext("Type")
         answer = root.findtext("Answer")
+        anstype = root.findtext("AnswerType")
         definition = root.findtext("Definition")
+        defsrc = root.findtext("DefinitionSource")
         abstract = root.findtext("AbstractText")
         abstracturl = root.findtext("AbstractURL")
+        abssrc = root.findtext("AbstractSource")
         results = root.findall("Results/Result")
         topics = root.findall("RelatedTopics/RelatedTopic")
         stopics = root.findall("RelatedTopics/RelatedTopicsSection/RelatedTopic")
         
+        asrc = ""
+        if abssrc:
+            asrc = " ({0})".format(abssrc)
+        dsrc = ""
+        if defsrc:
+            dsrc = " ({0})".format(defsrc)
+
         if answer and repliessofar < maxreplies:
-            irc.reply(answer.strip().encode('utf-8'))
+            # TODO: Fix this. It looks ugly.
+            if anstype:
+                irc.reply(answer.strip().encode('utf-8') + "(" + anstype + ")")
+            else:
+                irc.reply(answer.strip().encode('utf-8'))
             repliessofar += 1
         if abstract and repliessofar < maxreplies:
+            # TODO: Fix this. It looks ugly.
             if showurl:
                 output = abstract.strip() + " " + abstracturl.strip()
             else:
-                output = abstract.strip()
+                output = abstract.strip() + asrc
             irc.reply(output.encode('utf-8'))
             repliessofar += 1
             return
         if definition and repliessofar < maxreplies:
-            irc.reply(definition.strip().encode('utf-8'))
+            irc.reply(definition.strip().encode('utf-8') + dsrc)
             repliessofar += 1
             return
 
         numresults = len(results)
         counter = 0
         while (counter < numresults) and (repliessofar < maxreplies):
+            # TODO: Fix this. It looks ugly.
             if showurl:
                 output = results[counter].findtext("Text") + " " + results[counter].findtext("FirstURL")
                 output = output.strip()
             else:
-                output = results[counter].findtext("Text")
+                output = results[counter].findtext("Text") + asrc + dsrc
                 output = output.strip()
             irc.reply(output.encode('utf-8'))
             repliessofar += 1
@@ -138,7 +154,7 @@ class DuckDuckGo(callbacks.Plugin):
                 output = topics[i].findtext("Text") + " " + topics[i].findtext("FirstURL")
                 output = output.strip()
             else:
-                output = topics[i].findtext("Text")
+                output = topics[i].findtext("Text") + asrc + dsrc
                 output = output.strip()
             irc.reply(output.encode('utf-8'))
             repliessofar += 1
@@ -150,7 +166,7 @@ class DuckDuckGo(callbacks.Plugin):
                 output = stopics[i].findtext("Text") + " " + stopics[i].findtext("FirstURL")
                 output = output.strip()
             else:
-                output = stopics[i].findtext("Text")
+                output = stopics[i].findtext("Text") + asrc + dsrc
                 output = output.strip()
             irc.reply(output.encode('utf-8'))
             repliessofar += 1
