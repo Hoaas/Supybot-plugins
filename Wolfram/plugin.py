@@ -25,6 +25,8 @@ class Wolfram(callbacks.Privmsg):
             for results in tree.findall('.//error'):
                 for err in results.findall('.//msg'):
                     irc.reply("Error: " + err.text)
+                    return
+            irc.reply("huh, I dunno, I'm still a baby AI. Wait till the singularity I guess?")
             return
 
         found = False
