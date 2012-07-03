@@ -66,7 +66,7 @@ class LastFM(callbacks.Plugin):
         ref = 'irc://%s/%s' % (dynamic.irc.server, dynamic.irc.nick)
         
         charset = "utf-8"
-        
+
         try:
             # url.encode('iso-8859-1')
             req = urllib2.Request(url)
@@ -85,12 +85,18 @@ class LastFM(callbacks.Plugin):
                 irc.reply("Could not open URL. " + str(err))
             self.log.debug("Failed to open " + url + " " + str(err))
             return
+        except urllib2.URLError as err:
+            irc.reply("Error accessing API. It might be down. Please try again later.")
+            return
+        except:
+            irc.reply("Unexpected error loading the LastFM API. Contact administrator / check log etc. Or just try again later.")
+            raise
+
         try:
             root = etree.fromstring(xml)
         except:
             irc.reply("There appear to be some problems parsing the XML data.")
             return
-        
         
         for attr in root.items():
             if attr[0] == "status" and attr[1] == "failed":
