@@ -11,3 +11,11 @@ If you leave auto checking off, this alias might be helpful:
 Alias add face facestalk "[last --with .jpg]"
 
 Then you can call 'face' and the last line in the channel that contained a .jpg will be sent as argument to this plugin.
+
+Examples:
+12:18:57 <@Hoaas> https://fbcdn-sphotos-a.akamaihd.net/hphotos-ak-snc6/5210_670859554911_3671480_n.jpg
+12:19:00 <@Bunisher> In this album: https://www.facebook.com/photo.php?fbid=670859554911
+
+12:20:14 <@Hoaas> !facestalk https://fbcdn-sphotos-a.akamaihd.net/hphotos-ak-ash3/556164_10150988643356749_1494747014_n.jpg
+12:20:17 <@Bunisher> By Are you in? http://www.barackobama.com (http://www.facebook.com/photo.php?fbid=10150988643356749&set=a.428653951748.228645.6815841748&type=1)
+(actually, that is a bug, "Are you in?" is the comment, not the name. :()
