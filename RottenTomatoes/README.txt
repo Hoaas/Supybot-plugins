@@ -7,5 +7,5 @@ You might want to do this in a private message to keep it ... private.
 
 Usage example:
 00:58:20 <@Hoaas> !rt Dodgeball
-00:58:22 <@Bunisher> Dodgeball - A True Underdog Story - Critics: 70%. Audience: 75%. Proudly profane and splendidly silly, Dodgeball is a worthy spiritual successor to the goofball comedies of the 1980s.
+00:58:22 <@Bunisher> Dodgeball - A True Underdog Story - Critics: 70% (Fresh). Audience: 75% (Upright). Proudly profane and splendidly silly, Dodgeball is a worthy spiritual successor to the goofball comedies of the 1980s.
 
