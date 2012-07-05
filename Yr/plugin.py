@@ -28,7 +28,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 ###
-import codecs
+import re
 import urllib2
 import os.path
 import supybot.utils as utils
@@ -420,7 +420,6 @@ Check "pollen list" for list of locations.')
             newurl = True
         
         
-        # logfile = codecs.open(dataDir,'r','utf8')
         logfile = open(dataDir, 'r')
         # Reads the current log
         log = logfile.read()
@@ -429,6 +428,9 @@ Check "pollen list" for list of locations.')
         # For every line (in the Temperature.db file) we check if the first word 
         # is the location we are trying to set. If it is we need to replace it.
         for i in range(len(lines)):
+            # Incase file have been edited manually, switch spaces for tab
+            lines[i] = re.sub(r'\s+', '\t', lines[i])
+
             s = lines[i].split('\t')
             
             # Incase input location is found, could use 'if s[0] == loc.lower():' to be more exact.
@@ -459,7 +461,6 @@ Check "pollen list" for list of locations.')
                     
                     # Updates the url (rewrites the entire file)
                     open(dataDir, 'w')
-                    # logfile = codecs.open(dataDir,'a','utf8')
                     logfile = open(dataDir, 'a')
                     for i in range(len(lines)):
                         logfile.write(lines[i] + '\n')
@@ -468,7 +469,6 @@ Check "pollen list" for list of locations.')
             
         # If new location, append
         if newurl:
-            # logfile = codecs.open(dataDir,'a','utf8')
             logfile = open(dataDir, 'a')
             if lock and lock == '--lock':
                 logfile.write(alias.lower() + '\t' + url + '\tlock\n')
