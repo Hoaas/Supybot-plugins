@@ -1,0 +1,109 @@
+# coding=utf8
+###
+# Copyright (c) 2012, Terje Hoås
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+#   * Redistributions of source code must retain the above copyright notice,
+#     this list of conditions, and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright notice,
+#     this list of conditions, and the following disclaimer in the
+#     documentation and/or other materials provided with the distribution.
+#   * Neither the name of the author of this software nor the name of
+#     contributors to this software may be used to endorse or promote products
+#     derived from this software without specific prior written consent.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+###
+
+import json
+import urllib, urllib2
+import supybot.utils as utils
+from supybot.commands import *
+import supybot.plugins as plugins
+import supybot.ircutils as ircutils
+import supybot.callbacks as callbacks
+from supybot.i18n import PluginInternationalization, internationalizeDocstring
+
+_ = PluginInternationalization('TraktTV')
+
+@internationalizeDocstring
+class TraktTV(callbacks.Plugin):
+    """Add the help for "@plugin help TraktTV" here
+    This should describe *how* to use this plugin."""
+    threaded = True
+
+    def np(self, irc, msg, args, nick):
+        """[nick]
+
+       Show currently playing movie/show from TraktTV. Needs to be a public
+       profile. If no nick is supplied the IRC nick of the caller is attempted.""" 
+
+        if not nick:
+            nick = msg.nick
+
+        apikey = self.registryValue('apikey')
+        outurl = self.registryValue('outurl')
+        username = self.registryValue('username')
+        passwordhash = self.registryValue('passwordhash')
+        params = {'username': username, 'password': passwordhash}
+
+        if not apikey or apikey == "Not set":
+            irc.reply("API key not set. see 'config help supybot.plugins.TraktTV.apikey'.")
+            return
+
+        url = "http://api.trakt.tv/user/watching.json/%s/" % apikey
+        url += nick
+        try:
+            req = urllib2.Request(url)
+            f = urllib2.urlopen(req, json.dumps(params))
+            data = f.read()
+        except urllib2.URLError, err:
+            if err.code == 404:
+                irc.reply("User not found.")
+                return
+        try:
+            data = json.loads(data)
+        except:
+            irc.reply("Failed to parse response from trakt.tv.")
+            raise
+            return
+        if len(data) == 0:
+            irc.reply("No data available. Not a public profile? Not currently streaming?")
+            return
+
+        movie = data.get('movie')
+        show = data.get('show')
+        ep = data.get('episode')
+        output = '' 
+        if movie:
+            output = "{0} np. {1} ({2}) - {3}".format(nick.encode('utf-8'), ircutils.bold(movie.get('title')).encode('utf-8'), movie.get('year'), movie.get('overview').encode('utf-8'))
+            if outurl:
+                output += movie.get('url').encode('utf-8')
+        if show:
+            output = '{0} np. {1} - {4} (s{2:02d}e{3:02d}) - {5}'.format(nick.encode('utf-8'),
+                    ircutils.bold(show.get('title')), ep.get('season'),
+                    ep.get('number'), ep.get('title'),
+                    ep.get('overview').encode('utf-8'))
+        if output:
+            irc.reply(output)
+
+    np = wrap(np, [optional('text')])
+
+Class = TraktTV
+
+
+# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
