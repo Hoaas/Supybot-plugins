@@ -149,7 +149,7 @@ class TraktTV(callbacks.Plugin):
                     ep.get('overview').encode('utf-8'),
                     t)
         elif wtype == 'movie':
-            output += '{0} ({1}){3} - {2}'.format(
+            output += '{0} ({1}){3} - {2} '.format(
                     ircutils.bold(movie.get('title')).encode('utf-8'),
                     movie.get('year'),
                     movie.get('overview').encode('utf-8'),
