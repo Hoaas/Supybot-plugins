@@ -137,7 +137,7 @@ class FacebookImage(callbacks.Plugin):
                 return None, None, None
 
         try:
-            name = j["name"].encode('utf-8')
+            name = j['from']['name'].encode('utf-8')
             if albumid == -1:
                 albumid = j["link"].encode('utf-8')
         except:
