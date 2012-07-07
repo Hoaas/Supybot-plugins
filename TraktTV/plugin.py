@@ -30,6 +30,7 @@
 ###
 
 import json
+import datetime
 import urllib, urllib2
 import supybot.utils as utils
 from supybot.commands import *
@@ -45,6 +46,27 @@ class TraktTV(callbacks.Plugin):
     """Add the help for "@plugin help TraktTV" here
     This should describe *how* to use this plugin."""
     threaded = True
+
+    def _convert_timestamp(self, timestamp):
+        dt = datetime.datetime.fromtimestamp(timestamp)
+        age = datetime.datetime.now() - dt
+
+        plural = lambda n: 's' if n > 1 else ""
+
+        if age.days:
+            age = '%s days ago' % age.days
+        elif age.seconds > 3600:
+            hours = age.seconds / 3600
+            age = '%s hour%s ago' % (hours, plural(hours))
+        elif 60 <= age.seconds < 3600:
+            minutes = age.seconds / 60
+            age = '%s minute%s ago' % (minutes, plural(minutes))
+        elif 30 < age.seconds < 60:
+            age = 'less than a minute ago'
+        else:
+            age = 'less than %s second%s ago' % (d.seconds, plural(d.seconds))
+        # str_dt = dt.strftime('%Y-%m-%d %I:%M %p')
+        return age
 
     def np(self, irc, msg, args, nick):
         """[nick]
@@ -65,7 +87,8 @@ class TraktTV(callbacks.Plugin):
             irc.reply("API key not set. see 'config help supybot.plugins.TraktTV.apikey'.")
             return
 
-        url = "http://api.trakt.tv/user/watching.json/%s/" % apikey
+        #url = "http://api.trakt.tv/user/watching.json/%s/" % apikey
+        url = "http://api.trakt.tv/user/profile.json/%s/" % apikey
         url += nick
         try:
             req = urllib2.Request(url)
@@ -84,22 +107,55 @@ class TraktTV(callbacks.Plugin):
         if len(data) == 0:
             irc.reply("No data available. Not a public profile? Not currently streaming?")
             return
+        status = data.get('status')
+        if status and status == 'error':
+            irc.reply(data.get('message'))
+            return
 
-        movie = data.get('movie')
-        show = data.get('show')
-        ep = data.get('episode')
-        output = '' 
-        if movie:
-            output = "{0} np. {1} ({2}) - {3}".format(nick.encode('utf-8'), ircutils.bold(movie.get('title')).encode('utf-8'), movie.get('year'), movie.get('overview').encode('utf-8'))
+        watch = data.get('watching')
+        watching = False
+        if watch:
+            watching = True
+        else:
+            watch = data.get('watched')
+
+        if not watch or len(watch) < 1:
+            irc.reply("%s have not seen anything." % nick)
+            return
+
+        if not watching:
+            watch = watch[0]
+
+        wtype = watch.get('type')
+        
+        movie = watch.get('movie')
+        show = watch.get('show')
+        ep = watch.get('episode')
+
+        output = nick.encode('utf-8')
+        t = ''
+        if watching:
+            output += ' np. '
+        else:
+            output += ' played ' 
+            t = self._convert_timestamp(watch.get('watched'))
+            t = ' ' + ircutils.bold(t)
+        if wtype == 'episode':
+            output += '{0} - {3} (s{1:02d}e{2:02d}){5} - {4}'.format(
+                    ircutils.bold(show.get('title')),
+                    ep.get('season'),
+                    ep.get('number'), ep.get('title'),
+                    ep.get('overview').encode('utf-8'),
+                    t)
+        elif wtype == 'movie':
+            output += '{0} ({1}){3} - {2}'.format(
+                    ircutils.bold(movie.get('title')).encode('utf-8'),
+                    movie.get('year'),
+                    movie.get('overview').encode('utf-8'),
+                    t)
             if outurl:
                 output += movie.get('url').encode('utf-8')
-        if show:
-            output = '{0} np. {1} - {4} (s{2:02d}e{3:02d}) - {5}'.format(nick.encode('utf-8'),
-                    ircutils.bold(show.get('title')), ep.get('season'),
-                    ep.get('number'), ep.get('title'),
-                    ep.get('overview').encode('utf-8'))
-        if output:
-            irc.reply(output)
+        irc.reply(output)
 
     np = wrap(np, [optional('text')])
 
