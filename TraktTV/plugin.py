@@ -105,11 +105,12 @@ class TraktTV(callbacks.Plugin):
             raise
             return
         if len(data) == 0:
-            irc.reply("No data available. Not a public profile? Not currently streaming?")
+            irc.reply('No data available. Not a public profile?')
             return
         status = data.get('status')
         if status and status == 'error':
-            irc.reply(data.get('message'))
+            widget = 'http://trakt.tv/user/%s/widget/watched-fanart.jpg' % nick
+            irc.reply(data.get('message') + " Maybe check out " + widget)
             return
 
         watch = data.get('watching')
