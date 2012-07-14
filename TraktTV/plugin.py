@@ -102,7 +102,6 @@ class TraktTV(callbacks.Plugin):
             data = json.loads(data)
         except:
             irc.reply("Failed to parse response from trakt.tv.")
-            raise
             return
         if len(data) == 0:
             irc.reply('No data available. Not a public profile?')
