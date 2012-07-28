@@ -68,7 +68,8 @@ class ImgGet(callbacks.Plugin):
         start = "0"
         safe = "off"
         
-        values = {'v' : v,                  'safe' : safe,
+        values = {'v' : v,
+                  'safe' : safe,
                   'hl' : hl,
                   'start' : start,
                   'q' : q }
@@ -77,7 +78,8 @@ class ImgGet(callbacks.Plugin):
         url = url + "?" + data
         request = urllib2.Request(url, None, {'Referer': ref})
         
-        try: response = urllib2.urlopen(request)
+        try:
+            response = urllib2.urlopen(request)
         except urllib2.HTTPError, e:
             self.log.debug(e)
             irc.reply("Could not connect to google at this point")
@@ -197,8 +199,8 @@ class ImgGet(callbacks.Plugin):
         except:
             self.log.debug("Failed to retrieve img src from imgur.com-url.")
             url = -1
-            
         return url
+
     def _downloadImg(self, irc, url, nick, channel, connection, contenttype):
         # Try to get content-length from header
         try:
@@ -325,7 +327,6 @@ class ImgGet(callbacks.Plugin):
                 self._downloadImg(irc, url, nick, channel, connection, contenttype)
     
     # Warning. Do NOT have any check to see if an url to a big image is being spammed, or if that image is already downloaded.
-    # Warning 2. Will totally freeze up the bot if the url is to a page that require login.
     def doPrivmsg(self, irc, msg):
         channel = msg.args[0].lower()
        
