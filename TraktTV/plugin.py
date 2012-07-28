@@ -89,7 +89,8 @@ class TraktTV(callbacks.Plugin):
 
         #url = "http://api.trakt.tv/user/watching.json/%s/" % apikey
         url = "http://api.trakt.tv/user/profile.json/%s/" % apikey
-        url += nick
+        url += urllib.quote(nick)
+	self.log.info(url)
         try:
             req = urllib2.Request(url)
             f = urllib2.urlopen(req, json.dumps(params))
@@ -97,11 +98,13 @@ class TraktTV(callbacks.Plugin):
         except urllib2.URLError, err:
             if err.code == 404:
                 irc.reply("User not found.")
-                return
+            self.log.info("TraktTV: HTTP Error " + str(err.code))
+            return
         try:
             data = json.loads(data)
         except:
             irc.reply("Failed to parse response from trakt.tv.")
+            raise
             return
         if len(data) == 0:
             irc.reply('No data available. Not a public profile?')
@@ -162,4 +165,4 @@ class TraktTV(callbacks.Plugin):
 Class = TraktTV
 
 
-# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
+# virrset shiftwidth=4 softtabstop=4 expandtab textwidth=79:
