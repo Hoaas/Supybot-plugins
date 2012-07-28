@@ -90,7 +90,7 @@ class TraktTV(callbacks.Plugin):
         #url = "http://api.trakt.tv/user/watching.json/%s/" % apikey
         url = "http://api.trakt.tv/user/profile.json/%s/" % apikey
         url += urllib.quote(nick)
-	self.log.info(url)
+
         try:
             req = urllib2.Request(url)
             f = urllib2.urlopen(req, json.dumps(params))
