@@ -243,7 +243,7 @@ class Twitter(callbacks.Plugin):
             req = urllib2.Request(url)
             stream = urllib2.urlopen(req)
             datas = stream.read()
-        except urllib2.URLError, (err):
+        except urllib2.HTTPError, (err):
             if (err.code and err.code == 406):
                 irc.reply("Invalid format is specified in the request.")
             elif (err.code and err.code == 420):
@@ -350,7 +350,7 @@ class Twitter(callbacks.Plugin):
             req = urllib2.Request(url)
             stream = urllib2.urlopen(req)
             datas = stream.read()
-        except urllib2.URLError, (err):
+        except urllib2.HTTPError, (err):
             if (err.code and err.code == 404):
                 irc.reply("User or tweet not found.")
             elif (err.code and err.code == 401):
