@@ -1,6 +1,3 @@
-FacebookImage
--------------
-
 Images from Facebook contains a user ID and an album ID in the URL.
 This plugin uses those IDs to construct an URL directly to the user and album.
 This can happen automaticly when someone posts an URL, or only when called manually.

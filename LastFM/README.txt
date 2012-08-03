@@ -1,6 +1,3 @@
-LastFM
-------
-
 Simply outputs the currently playing or last played track for a LastFM user.
 
 API Key must be present on the first line in the file apikey.txt in the same directory.

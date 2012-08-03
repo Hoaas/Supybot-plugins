@@ -1,11 +1,4 @@
-DuckDuckGo
-----------
-
-This plugin uses the duckduckgo.com API.
-For more on DDGs features see:
-https://duckduckgo.com/bang.html
-https://duckduckgo.com/goodies.html
-https://duckduckgo.com/tech.html
+This plugin uses the duckduckgo.com API. For DDGs features see: https://duckduckgo.com/bang.html https://duckduckgo.com/goodies.html https://duckduckgo.com/tech.html
 Not everything is available through the API though, like results from WolframAlpha.
 
 It replies max 3 results, to reduce spam.

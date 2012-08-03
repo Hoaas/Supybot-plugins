@@ -1,6 +1,3 @@
-Series
-------
-
 This plugin uses returns data on tv shows.
 It got two commands, tv and ep. ep uses episodeworld.com and tv uses tvrage.com.
 
