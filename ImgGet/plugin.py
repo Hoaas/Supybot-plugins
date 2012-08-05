@@ -81,11 +81,11 @@ class ImgGet(callbacks.Plugin):
         try:
             response = urllib2.urlopen(request)
         except urllib2.HTTPError, e:
-            self.log.debug(e)
+            self.log.debug(str(e))
             irc.reply("Could not connect to google at this point")
             return
         except urllib2.URLError, e:
-            self.log.debug(e)
+            self.log.debug(str(e))
             irc.reply("Could not connect to google at this point")
             return
         except:
@@ -96,7 +96,7 @@ class ImgGet(callbacks.Plugin):
         try:
             data = simplejson.load(response)
         except simplejson.JSONDecodeError, e:
-            self.log.debug(e)
+            self.log.debug(str(e))
             irc.reply("Got a strange response from Google. *confused*")
             return
         
