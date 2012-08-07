@@ -59,5 +59,9 @@ conf.registerChannelValue(ImgGet, 'mirror',
     registry.Boolean(True, """If the bot should respond with a mirror url at all."""))
 conf.registerChannelValue(ImgGet, 'mirrorurl',
     registry.String("Not set", """URL to the location of the mirror images."""))
+conf.registerChannelValue(ImgGet, 'outputInfo',
+    registry.Boolean(True, """Outputs resolution and size of the image."""))
+conf.registerChannelValue(ImgGet, 'numUrls', 
+    registry.Integer(3, """Number of urls the 'gis' command should output."""))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

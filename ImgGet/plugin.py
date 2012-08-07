@@ -33,6 +33,8 @@ import datetime
 import os.path
 import simplejson
 import base64
+import PIL.Image as Image
+
 import urllib, urllib2
 import supybot.conf as conf
 import supybot.utils as utils
@@ -52,8 +54,8 @@ class ImgGet(callbacks.Plugin):
         self.__parent = super(ImgGet, self)
         self.__parent.__init__(irc)
     
-    def gis(self, irc, msg, args, search):
-        """<search>
+    def gis(self, irc, msg, args, options, search):
+        """[--num number] <search>
 
         I'm Feeling Lucky function for Google image search. 
         """
@@ -105,9 +107,33 @@ class ImgGet(callbacks.Plugin):
             raise callbacks.Error, 'We broke The Google!'
         
         if(len(data["responseData"]["results"]) > 0):
-            imgurl = data["responseData"]["results"][0]["unescapedUrl"]
-            irc.reply(imgurl)
-            
+            num = self.registryValue('numUrls', msg.args[0])
+            if num < 1:
+                num = 1
+            elif num > 10:
+                num = 10
+
+            hits = []
+            for key in range(len(data['responseData']['results'])):
+                urldict = {}
+                urldict['name'] = data['responseData']['results'][key]['content'].replace('<b>', '').replace('</b>', '')
+                urldict['url'] = data['responseData']['results'][key]['unescapedUrl']
+                hits.append(urldict)
+
+            if num > len(hits):
+                num = len(hits)
+            added = 0
+            output = ''
+            for d in hits:
+                output +=  '%s - %s, ' % (ircutils.bold(d['name']), d['url'])
+                added += 1
+                if added >= num:
+                    break
+            output = output[:-2]
+            irc.reply(output)
+            return
+            # Disabled until I figure out how to handle this while outputting image info
+
             # Force checkurl, so we can download this image aswell.
             channel = msg.args[0].lower()
             if irc.isChannel(channel):
@@ -119,7 +145,7 @@ class ImgGet(callbacks.Plugin):
                 self._checkUrl(irc, imgurl, irc.nick, channel)
         else:
             irc.reply("Your search did not match any documents.")
-    gis = wrap(gis, ['text'])
+    gis = wrap(gis, [getopts({'num':'int'}), 'text'])
     
     def _apina(self, url):
         _, _, dotornot = url.partition("apina.biz/")
@@ -201,33 +227,46 @@ class ImgGet(callbacks.Plugin):
             url = -1
         return url
 
+    def sizeof_fmt(self, num):
+        if num is None:
+            return 'Unknown size'
+        num = int(num)
+        for x in ['bytes','KiB','MiB','GiB']:
+            if num < 1024.0:
+                return "%3.1f %s" % (num, x)
+            num /= 1024.0
+        return "%3.1f %s" % (num, 'TiB')
+
+
     def _downloadImg(self, irc, url, nick, channel, connection, contenttype):
         # Try to get content-length from header
+        contentlength = None
+        size = None
         try:
             contentlength = int(connection.info().getheader("Content-Length"))
+            size = self.sizeof_fmt(contentlength)
         except:
-            contentlength = None
             self.log.debug('Could not retrieve contentlength from header; ' + url)
                                 
         # We don't download if the contentlength is above 1 MiB * sizelimit. Download anyway if it doesn't say.
         sizelimit = self.registryValue('sizelimit', channel)
         if contentlength and contentlength > (1024*1024*sizelimit):
-            self.log.debug('Image too big: ' + str(contentlength/1048576) + " MiB. Url: " + url)
+            self.log.debug('Image too big: %s. Url: %s' % (size, url))
             return
         
         # Create the image directory etc.
         filedir, filename = self._filename(nick, channel, url, contenttype)
 
         try: 
-            contentlength = contentlength / 1024
-            self.log.info("Downloading " + str(contentlength) + " KiB: " + url)
+            self.log.info('Downloading %s: %s' % (size, url))
         except:
             self.log.debug("Downloading ??? KiB: " + url)
         
         
         # Starting the timer
         starttime = datetime.datetime.now()
-        try: location, header = urllib.urlretrieve(url, filedir)
+        try:
+            location, header = urllib.urlretrieve(url, filedir)
         except:
             self.log.debug('Could not download file from ' + url)
             return
@@ -237,16 +276,13 @@ class ImgGet(callbacks.Plugin):
         secondsfloat =  float((endtime - starttime).seconds)\
          + float((endtime - starttime).microseconds) / float(1000000)
         speed = None
+        
         if(contentlength):
             contentlength = float(contentlength)
             speed = (contentlength / secondsfloat)
-            self.log.info("Downloaded in " + "%.2f" % secondsfloat + " seconds at " + "%.2f" % speed + " KiB/s.")
+            self.log.info("Downloaded in %.2f seconds at %.2f KiB/s." % (secondsfloat, speed/1024))
         else:
-            self.log.info("Downloaded in " + "%.2f" % secondsfloat + " seconds.")
-            
-        # Do we mirror in this channel?
-        if not self.registryValue('mirror', channel):
-            return
+            self.log.info("Downloaded in %.2f %s seconds." % secondsfloat)
             
         # If download took over timelimit seconds we link a mirror.
         timelimit = self.registryValue('timelimit', channel)
@@ -271,12 +307,15 @@ class ImgGet(callbacks.Plugin):
         			mirror = True
         		else:
         			mirror = False
-       
+        if not self.registryValue('mirror', channel):
+            mirror = False
+
+        mirroroutput = ''
         if(mirror):
             filename = urllib.quote(filename)
             mirrorurl = self.registryValue('mirrorurl', channel)
             if mirrorurl == "Not set":
-                irc.reply("Attempted to link to mirror, but mirror url for this channel is not set.")
+                mirroroutput = "Attempted to link to mirror, but mirror url for this channel is not set."
                 return
             if mirrorurl[-1] != "/":
                mirrorurl += "/"
@@ -290,9 +329,21 @@ class ImgGet(callbacks.Plugin):
                 self.log.warning("Failed to shorten url: " + url)
                 return
             self.log.info("Alt. source: " + isgdurl + " Org. url took " + "%.2f" % secondsfloat + " seconds to download.")
-            irc.reply("Alt. source: " + isgdurl + " Org. url took " + "%.2f" % secondsfloat + " seconds to download.")
+            mirroroutput = "Alt. source: " + isgdurl + " Org. url took " + "%.2f" % secondsfloat + " seconds to download."
             #if not os.path.isfile(dataDir):
             #    open(dataDir, 'w')
+ 
+        image = Image.open(location)
+        width, height = image.size
+        imageinfo = '%s × %s (%s)' % (width, height, size)
+        
+        outputInfo = self.registryValue('outputInfo', channel)
+        if outputInfo and not mirror:
+            irc.reply(imageinfo)
+        elif outputInfo and mirror:
+            irc.reply(imageinfo + ' (' + mirroroutput + ')')
+        elif not outputInfo and mirror:
+            irc.reply(mirroroutput)
 
         
     def _checkUrl(self, irc, text, nick, channel):
