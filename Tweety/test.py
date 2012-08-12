@@ -31,8 +31,8 @@
 
 from supybot.test import *
 
-class TwitterTestCase(PluginTestCase):
-    plugins = ('Twitter',)
+class TweetyTestCase(PluginTestCase):
+    plugins = ('Tweety',)
 
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

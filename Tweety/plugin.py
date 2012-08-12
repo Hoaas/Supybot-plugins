@@ -47,7 +47,7 @@ from datetime import tzinfo, datetime, timedelta
 import re, htmlentitydefs
 
 
-class Twitter(callbacks.Plugin):
+class Tweety(callbacks.Plugin):
     """Simply use the commands available in this plugin. Allows fetching of the
     latest tween from a specified twitter handle, and listing of top ten
     trending tweets."""
@@ -482,7 +482,7 @@ class Twitter(callbacks.Plugin):
         irc.reply(retvalue)
     tagdef = wrap(tagdef, ['text'])
 
-Class = Twitter
+Class = Tweety
 
 
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=279:

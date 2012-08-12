@@ -38,17 +38,17 @@ def configure(advanced):
     # user or not.  You should effect your configuration by manipulating the
     # registry as appropriate.
     from supybot.questions import expect, anything, something, yn
-    conf.registerPlugin('Twitter', True)
+    conf.registerPlugin('Tweety', True)
 
 
-Twitter = conf.registerPlugin('Twitter')
+Tweety = conf.registerPlugin('Tweety')
 # This is where your configuration variables (if any) should go.  For example:
-# conf.registerGlobalValue(Twitter, 'someConfigVariableName',
+# conf.registerGlobalValue(Tweety, 'someConfigVariableName',
 #     registry.Boolean(False, """Help for someConfigVariableName."""))
-conf.registerChannelValue(Twitter, 'hideRealName', registry.Boolean(False, """Do not show real name when displaying tweets."""))
-conf.registerChannelValue(Twitter, 'addShortUrl', registry.Boolean(False, """Whether or not to add a short URL to the tweets."""))
-conf.registerChannelValue(Twitter, 'woeid', registry.Integer(1, """Where On Earth ID. World Wide is 1. USA is 23424977."""))
-conf.registerChannelValue(Twitter, 'defaultResults', registry.Integer(3, """Default number of results to return on searches."""))
-conf.registerChannelValue(Twitter, 'maxResults', registry.Integer(10, """Maximum number of results to return on searches and lookups."""))
+conf.registerChannelValue(Tweety, 'hideRealName', registry.Boolean(False, """Do not show real name when displaying tweets."""))
+conf.registerChannelValue(Tweety, 'addShortUrl', registry.Boolean(False, """Whether or not to add a short URL to the tweets."""))
+conf.registerChannelValue(Tweety, 'woeid', registry.Integer(1, """Where On Earth ID. World Wide is 1. USA is 23424977."""))
+conf.registerChannelValue(Tweety, 'defaultResults', registry.Integer(3, """Default number of results to return on searches."""))
+conf.registerChannelValue(Tweety, 'maxResults', registry.Integer(10, """Maximum number of results to return on searches and lookups."""))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
