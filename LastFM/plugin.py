@@ -29,6 +29,11 @@
 
 ###
 import os
+
+#libraries for time_created_at
+import time
+from datetime import tzinfo, datetime, timedelta
+
 from lxml import etree
 import urllib2, urllib
 
@@ -120,19 +125,55 @@ class LastFM(callbacks.Plugin):
                     now = True
         if not now:
             when = track.findtext("date")
-        
+            when = self._time_created_at(when) # Remove this line to output
+                                               # date in UTC instead.
+
         artist = track.findtext("artist")
         name = track.findtext("name")
         if not artist or not name or not user:
             irc.reply("Did not find artist, name or username.")
             return
         if now:
-            reply = user + " np. " + artist + " - " + name
+            reply = "%s np. %s - %s" % (user, artist, name)
         else:
-            reply = user + " last played " + artist + " - " + name + " (" + when + ")"
+            reply = "%s last played %s - %s (%s)" % (user, artist, name, ircutils.bold(when))
         irc.reply(reply.encode('utf-8'))
 
     lastfm = wrap(lastfm, [optional('text')])
+
+
+
+    def _time_created_at(self, s):
+        """
+        recieving text element of 'created_at' in the response of LastFM API,
+        returns relative time string from now.
+        """
+
+        plural = lambda n: n > 1 and "s" or ""
+
+        # LastFM returns dates in this format: 12 Aug 2012, 17:09
+        # and it is in GMT
+        try:
+            ddate = time.strptime(s, "%d %b %Y, %H:%M")[:-2]
+        except ValueError:
+            return "", ""
+
+        created_at = datetime(*ddate, tzinfo=None)
+        d = datetime.utcnow() - created_at
+
+        if d.days:
+            rel_time = "%s days ago" % d.days
+        elif d.seconds > 3600:
+            hours = d.seconds / 3600
+            rel_time = "%s hour%s ago" % (hours, plural(hours))
+        elif 60 <= d.seconds < 3600:
+            minutes = d.seconds / 60
+            rel_time = "%s minute%s ago" % (minutes, plural(minutes))
+        elif 30 < d.seconds < 60:
+            rel_time = "less than a minute ago"
+        else:
+            rel_time = "less than %s second%s ago" % (d.seconds, plural(d.seconds))
+        return  rel_time
 
 Class = LastFM
 
