@@ -95,7 +95,7 @@ class TraktTV(callbacks.Plugin):
             req = urllib2.Request(url)
             f = urllib2.urlopen(req, json.dumps(params))
             data = f.read()
-        except urllib2.URLError, err:
+        except urllib2.HTTPError, err:
             if err.code == 404:
                 irc.reply("User not found.")
             self.log.info("TraktTV: HTTP Error " + str(err.code))
