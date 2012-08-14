@@ -69,12 +69,6 @@ class AtB(callbacks.Plugin):
                 irc.reply('Failed to parse response from %s' % url)
                 return
             data = j['answer']
-        #try:
-        #    req = urllib2.Request(url)
-        #    f = urllib2.urlopen(req)
-        #    data = f.read()
-        #except:
-        #    raise
         irc.reply(data)
 
     buss = wrap(buss, ['text'])
