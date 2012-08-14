@@ -30,6 +30,7 @@
 ###
 
 import os
+import urllib
 import urllib2
 import json
 import datetime
@@ -46,6 +47,37 @@ class AtB(callbacks.Plugin):
     Also calculate it the price for a season card."""
     threaded = True
     
+    def buss(self, irc, msg, args, text):
+        """<tekst>
+
+        """
+        url = 'http://busstuc-atb.lingit.no/json.php?callback=bussOrakel&question='
+        #url = 'https://www.atb.no/xmlhttprequest.php?service=routeplannerOracle.getOracleAnswer&question='
+        url += urllib.quote(text)
+        data = utils.web.getUrl(url)
+        if True:
+            data = data.replace('bussOrakel(', '')
+            data = data.replace(');', '')
+            data = data.replace('\\n', ' ')
+            data = data.replace('  ', ' ')
+            data = data.replace(' ,', ',')
+            data = data.replace(' .', '.')
+
+            try:
+                j = json.loads(data)
+            except:
+                irc.reply('Failed to parse response from %s' % url)
+                return
+            data = j['answer']
+        #try:
+        #    req = urllib2.Request(url)
+        #    f = urllib2.urlopen(req)
+        #    data = f.read()
+        #except:
+        #    raise
+        irc.reply(data)
+
+    buss = wrap(buss, ['text'])
     def atb(self, irc, msg, args, name):
         """<bus stop>
         Returns time until passing of the next busses for the spesified bus stop. 
