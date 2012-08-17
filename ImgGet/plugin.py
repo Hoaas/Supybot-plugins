@@ -282,7 +282,7 @@ class ImgGet(callbacks.Plugin):
             speed = (contentlength / secondsfloat)
             self.log.info("Downloaded in %.2f seconds at %.2f KiB/s." % (secondsfloat, speed/1024))
         else:
-            self.log.info("Downloaded in %.2f %s seconds." % secondsfloat)
+            self.log.info("Downloaded in %.2f seconds." % secondsfloat)
             
         # If download took over timelimit seconds we link a mirror.
         timelimit = self.registryValue('timelimit', channel)

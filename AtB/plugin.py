@@ -49,7 +49,7 @@ class AtB(callbacks.Plugin):
     
     def buss(self, irc, msg, args, text):
         """<tekst>
-
+        Returnerer tekst fra bussorakelet i Trondheim.
         """
         url = 'http://busstuc-atb.lingit.no/json.php?callback=bussOrakel&question='
         #url = 'https://www.atb.no/xmlhttprequest.php?service=routeplannerOracle.getOracleAnswer&question='
