@@ -125,11 +125,11 @@ class ImgGet(callbacks.Plugin):
             added = 0
             output = ''
             for d in hits:
-                output +=  '%s - %s, ' % (ircutils.bold(d['name']), d['url'])
+                output +=  '%s: %s , ' % (ircutils.bold(d['name']), d['url'])
                 added += 1
                 if added >= num:
                     break
-            output = output[:-2]
+            output = output[:-3]
             irc.reply(output)
             return
             # Disabled until I figure out how to handle this while outputting image info
