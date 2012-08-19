@@ -105,9 +105,13 @@ class ImgGet(callbacks.Plugin):
         if data['responseStatus'] != 200:
             self.log.debug(data['responseStatus'])
             raise callbacks.Error, 'We broke The Google!'
-        
-        if(len(data["responseData"]["results"]) > 0):
+
+        if options:
+            num = options[0][1]
+        else:
             num = self.registryValue('numUrls', msg.args[0])
+
+        if(len(data["responseData"]["results"]) > 0):
             if num < 1:
                 num = 1
             elif num > 10:
@@ -335,7 +339,10 @@ class ImgGet(callbacks.Plugin):
  
         image = Image.open(location)
         width, height = image.size
-        imageinfo = '%s × %s (%s)' % (width, height, size)
+        if size:
+            imageinfo = '%s × %s (%s)' % (width, height, size)
+        else:
+            imageinfo = '%s × %s' % (width, height)
         
         outputInfo = self.registryValue('outputInfo', channel)
         if outputInfo and not mirror:
