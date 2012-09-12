@@ -29,9 +29,6 @@
 
 ###
 import duckduckgo
-if duckduckgo.__version__ < 0.2:
-    print "python-duckduckgo2 is required!"
-    exit(1)
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
@@ -44,6 +41,11 @@ class DuckDuckGo(callbacks.Plugin):
     One example is simply searching for "h2o" will give you information about water. 
     See duckduckgo.com for more information."""
     threaded = True
+    def __init__(self, *args, **kwargs):
+        super(DuckDuckGo, self).__init__(*args, **kwargs)
+        if 0.1 < 0.2:
+            self.log.error('DuckDuckGo requires python-duckduckgo2 > 0.2')
+            exit(1)
 
     def ddg(self, irc, msg, args, query):
         """<query>
