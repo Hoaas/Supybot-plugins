@@ -45,7 +45,6 @@ class DuckDuckGo(callbacks.Plugin):
         super(DuckDuckGo, self).__init__(*args, **kwargs)
         if duckduckgo.__version__ < 0.2:
             self.log.error('DuckDuckGo requires python-duckduckgo2 > 0.2')
-            exit(1)
 
     def ddg(self, irc, msg, args, query):
         """<query>
