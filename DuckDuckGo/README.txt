@@ -1,10 +1,9 @@
 This plugin uses the duckduckgo.com API. For DDGs features see: https://duckduckgo.com/bang.html https://duckduckgo.com/goodies.html https://duckduckgo.com/tech.html
 Not everything is available through the API though, like results from WolframAlpha.
 
-It replies max 3 results, to reduce spam.
+Now dependant on python-duckduckgo. (https://github.com/crazedpsyc/python-duckduckgo)
 
 Examples:
-
 12:00:10 <@Hoaas> !ddg Audi A4
 12:00:11 <@Bunisher> The Audi A4 is a line of compact executive cars produced since late 1994 by the German car manufacturer Audi, a subsidiary of the Volkswagen Group. (Wikipedia)
 
