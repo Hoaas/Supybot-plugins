@@ -94,7 +94,6 @@ class LastFM(callbacks.Plugin):
             irc.reply("Error accessing API. It might be down. Please try again later.")
             return
         except:
-            irc.reply("Unexpected error loading the LastFM API. Contact administrator / check log etc. Or just try again later.")
             raise
 
         try:
