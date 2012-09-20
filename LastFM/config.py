@@ -45,6 +45,6 @@ LastFM = conf.registerPlugin('LastFM')
 # This is where your configuration variables (if any) should go.  For example:
 # conf.registerGlobalValue(hoaas-LastFM, 'someConfigVariableName',
 #     registry.Boolean(False, """Help for someConfigVariableName."""))
-
+conf.registerGlobalValue(LastFM, 'apikey', registry.String('Not set', """API key to use LastFM API. See http://last.fm/api.""", private=True))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
