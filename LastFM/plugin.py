@@ -146,7 +146,7 @@ class LastFM(callbacks.Plugin):
             'format': 'json',
             'method': 'track.getInfo'}
         )
-        self.log.info(url + data) #TOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
         try:
             text = utils.web.getUrl(url, data=data)
         except:
