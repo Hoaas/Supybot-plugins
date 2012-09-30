@@ -50,6 +50,33 @@ class LastFM(callbacks.Plugin):
     """Simply returns current playing track for a LastFM user. If no track is
     currently playing the last played track will be displayed."""
     threaded = True
+
+    def whosplaying(self, irc, msg, args):
+        """
+
+        Returns last played tracks for all nicks in channel, if any."""
+        self.set_apikey()
+        playing = []
+        for nick in irc.state.channels[msg.args[0]].users:
+            lp = self.last_played(nick)
+            if lp.find(' np. ') != -1:
+                playing.append(lp)
+
+        if len(playing) == 0:
+            irc.reply('No users in the channel currently scrobbling.')
+            return
+
+        for status in playing:
+            irc.reply(status)
+    whosplaying = wrap(whosplaying)
+
+    def set_apikey(self):
+        self.apikey = self.registryValue('apikey')
+        if not self.apikey or self.apikey == "Not set":
+            irc.reply("API key not set. see 'config help supybot.plugins.LastFM.apikey'.")
+            return
+
+
     def lastfm(self, irc, msg, args, user):
         """<user>
 
@@ -59,15 +86,13 @@ class LastFM(callbacks.Plugin):
         if not user:
             user = msg.nick
 
-        self.apikey = self.registryValue('apikey')
-        if not self.apikey or self.apikey == "Not set":
-            irc.reply("API key not set. see 'config help supybot.plugins.LastFM.apikey'.")
-            return
-
-        self.last_played(irc, user)
+        reply = self.last_played(user)
+        if reply:
+            irc.reply(reply.encode('utf-8'))
     lastfm = wrap(lastfm, [optional('text')])
 
-    def last_played(self, irc, user):
+    def last_played(self, user):
+        self.set_apikey()
         data = urllib.urlencode(
             {'user': user,
             'limit' : 1,
@@ -80,16 +105,15 @@ class LastFM(callbacks.Plugin):
             text = utils.web.getUrl(url, data=data)
         except urllib2.HTTPError as err:
             if err.code == 403:
-                irc.reply(str(err) + " API key not valid?")
+                return str(err) + ' API key not valid?'
             elif err.code == 400:
-                irc.reply("No such user.")
+                return 'No such user.'
             else:
-                irc.reply("Could not open URL. " + str(err))
-            self.log.debug("Failed to open " + url + " " + str(err))
-            return
+                return 'Could not open URL. ' + str(err)
         except urllib2.URLError as err:
-            irc.reply("Error accessing API. It might be down. Please try again later.")
-            return
+            return 'Error accessing API. It might be down. Please try again later.'
+        except TIMED_OUT as err:
+            return 'Connection timed out.'
         except:
             raise
 
@@ -97,15 +121,13 @@ class LastFM(callbacks.Plugin):
 
         try:
             js['error']
-            irc.reply(js['message'])
-            return
+            return js['message']
         except: pass
 
         try:
             last_track = js['recenttracks']['track']
         except:
-            irc.reply('%s has no recent tracks.' % js['recenttracks']['user'])
-            return
+            return js['recenttracks']['user'] + ' has no recent tracks.'
 
         user = js['recenttracks']['@attr']['user']
         # Incase there is a list of tracks
@@ -133,7 +155,7 @@ class LastFM(callbacks.Plugin):
             reply = "%s np. %s - %s%s" % (user, artist, track, plays)
         else:
             reply = "%s last played %s - %s%s(%s)" % (user, artist, track, plays, ircutils.bold(when))
-        irc.reply(reply.encode('utf-8'))
+        return reply
 
     def num_of_plays(self, mbid, track, artist, user):
         data = urllib.urlencode(
