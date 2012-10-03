@@ -37,11 +37,45 @@ from datetime import tzinfo, datetime, timedelta
 import json
 import urllib2, urllib
 
+import supybot.dbi as dbi
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
+
+class LastFMNickRecord(dbi.Record):
+    __fields__ = [
+        ('nick', eval),
+        ('username', eval),
+        ]
+
+class DbiLastFMNickDB(plugins.DbiChannelDB):
+    class DB(dbi.DB):
+        Record = LastFMNickRecord
+
+        def add(self, nick, username):
+            record = self.Record(nick=nick, username=username)
+            super(self.__class__, self).add(record)
+
+        def remove(self, nick):
+            size = self.size()
+            for i in range(1, size+1):
+                u = self.get(i)
+                if u.nick == nick:
+                    self.remove(i)
+                    return True
+            return False
+
+        def getusername(self, nick):
+            size = self.size()
+            for i in range(1, size+1):
+                u = self.get(i)
+                if u.nick == nick:  return u.username
+            return nick
+
+LASTFMNICKDB = plugins.DB('LastFM', {'flat': DbiLastFMNickDB})
+
 
 apikey = 'Not set'
 url ='http://ws.audioscrobbler.com/2.0/?'
@@ -51,14 +85,40 @@ class LastFM(callbacks.Plugin):
     currently playing the last played track will be displayed."""
     threaded = True
 
-    def whosplaying(self, irc, msg, args):
-        """
+    def __init__(self, irc):
+        self.__parent = super(LastFM, self)
+        self.__parent.__init__(irc)
+        self.db = LASTFMNICKDB()
 
-        Returns last played tracks for all nicks in channel, if any."""
+    def add(self, irc, msg, args, username, nick):
+        """<username> [nick]
+
+        Links the callers nick to <username> on LastFM. If [nick] is given that is linked to <username> instead."""
+        if not nick:
+            nick = msg.nick
+        channel = msg.args[0]
+
+        oldname = self.db.getusername(channel, nick)
+        if oldname != username:
+            if self.db.remove(channel, nick):
+                irc.reply('Naw, sorry. Changing username is temp. disabled.')
+                return
+                irc.reply('Updating LastFM nick for user %s from %s to %s.' % (nick, oldname, username))
+        else:
+            irc.reply('Storing LastFM nick %s for user %s.' % (username, nick))
+        self.db.add(channel, nick, username)
+    add = wrap(add, ['anything', optional('anything')])
+
+    def whosplaying(self, irc, msg, args):
+        """takes no arguments
+
+        Currently playing track for all nicks in channel, if any."""
         self.set_apikey()
+        channel = msg.args[0]
         playing = []
         for nick in irc.state.channels[msg.args[0]].users:
-            lp = self.last_played(nick)
+            nick = self.db.getusername(channel, nick)
+            lp = self.last_played(nick, plays = False)
             if lp.find(' np. ') != -1:
                 playing.append(lp)
 
@@ -78,20 +138,22 @@ class LastFM(callbacks.Plugin):
 
 
     def lastfm(self, irc, msg, args, user):
-        """<user>
+        """[user]
 
         Returns last played track for user. If no username is supplies, the
         nick of the one calling the command will be attempted."""
         
         if not user:
             user = msg.nick
+        channel = msg.args[0]
+        user = self.db.getusername(channel, user)
 
         reply = self.last_played(user)
         if reply:
             irc.reply(reply.encode('utf-8'))
     lastfm = wrap(lastfm, [optional('text')])
 
-    def last_played(self, user):
+    def last_played(self, user, plays = True):
         self.set_apikey()
         data = urllib.urlencode(
             {'user': user,
@@ -112,7 +174,7 @@ class LastFM(callbacks.Plugin):
                 return 'Could not open URL. ' + str(err)
         except urllib2.URLError as err:
             return 'Error accessing API. It might be down. Please try again later.'
-        except TIMED_OUT as err:
+        except urllib2.TIMED_OUT as err:
             return 'Connection timed out.'
         except:
             raise
@@ -145,7 +207,8 @@ class LastFM(callbacks.Plugin):
             when = last_track['date']['#text']
             when = self._time_created_at(when) # Remove this line to output
                                                # date in UTC instead.
-        plays = self.num_of_plays(last_track['mbid'], track, artist, user)
+        if plays:
+            plays = self.num_of_plays(last_track['mbid'], track, artist, user)
         if not plays:
             plays = ''
 
@@ -154,7 +217,7 @@ class LastFM(callbacks.Plugin):
         if np:
             reply = "%s np. %s - %s%s" % (user, artist, track, plays)
         else:
-            reply = "%s last played %s - %s%s(%s)" % (user, artist, track, plays, ircutils.bold(when))
+            reply = "%s last played %s - %s%s (%s)" % (user, artist, track, plays, ircutils.bold(when))
         return reply
 
     def num_of_plays(self, mbid, track, artist, user):
@@ -190,13 +253,13 @@ class LastFM(callbacks.Plugin):
         plural = lambda n: 's' if int(n) > 1 else ''
 
         if loved == '0':
-            return ' [%s play%s] ' % (play_count, plural(play_count))
+            return ' [%s play%s]' % (play_count, plural(play_count))
         elif loved == '1':
-            return ' [%s play%s %s] ' % (play_count, plural(play_count), ircutils.bold('<3'))
+            return ' [%s play%s %s]' % (play_count, plural(play_count), ircutils.bold('<3'))
         else:
             # This is pretty much for debugging. Not quite sure if this can
             # ever happen or not. And I have no loved tracks D:
-            return ' [%s play%s %s] ' % (play_count, plural(play_count), ircutils.bold(loved))
+            return ' [%s play%s %s]' % (play_count, plural(play_count), ircutils.bold(loved))
 
 
     def _time_created_at(self, s):
