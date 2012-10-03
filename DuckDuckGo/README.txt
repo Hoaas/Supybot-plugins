@@ -1,7 +1,8 @@
+Dependencies: python-duckduckgo2
 This plugin uses the duckduckgo.com API. For DDGs features see: https://duckduckgo.com/bang.html https://duckduckgo.com/goodies.html https://duckduckgo.com/tech.html
 Not everything is available through the API though, like results from WolframAlpha.
 
-Now dependant on python-duckduckgo. (https://github.com/crazedpsyc/python-duckduckgo)
+python-duckduckgo2 can be found here: https://github.com/crazedpsyc/python-duckduckgo
 
 Examples:
 12:00:10 <@Hoaas> !ddg Audi A4

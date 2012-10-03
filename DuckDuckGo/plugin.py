@@ -43,72 +43,49 @@ class DuckDuckGo(callbacks.Plugin):
     threaded = True
     def __init__(self, *args, **kwargs):
         super(DuckDuckGo, self).__init__(*args, **kwargs)
-        if duckduckgo.__version__ < 0.2:
-            self.log.error('DuckDuckGo requires python-duckduckgo2 > 0.2')
+        if duckduckgo.__version__ < 0.24:
+            self.log.error('DuckDuckGo requires python-duckduckgo2 >= 0.24')
 
-    def ddg(self, irc, msg, args, query):
-        """<query>
+    def ddg(self, irc, msg, args, options, query):
+        """[--answer | --abstract | --related | --define] <query>
 
         Searches duckduckgo.com and returns any zero-click information or a web
-        result, if any."""
+        result, if any. Using options overrides normal priority."""
         
         showurl = self.registryValue('showURL')
         safesearch = self.registryValue('safeSearch')
         maxreplies = self.registryValue('maxReplies')
         weblink = self.registryValue('webLink')
-        PRIORITY = ['answer', 'abstract', 'related.0', 'definition', 'related']
         showaddionalhits = False
         
-        repliessofar = 0
+        PRIORITY = ['answer', 'abstract', 'related.0', 'definition', 'related']
         
-        res = duckduckgo.query(
+        if options:
+            weblink = False
+            for (key, value) in options:
+                if key == 'answer':
+                    PRIORITY = ['answer']
+                    break
+                if key == 'abstract':
+                    PRIORITY = ['abstract']
+                    break
+                if key == 'related':
+                    PRIORITY = ['related.0']
+                    break
+                if key == 'define':
+                    PRIORITY = ['definition']
+                    break
+
+        res = duckduckgo.get_zci(
                 query,
+                web_fallback=weblink,
                 safesearch=safesearch,
+                priority=PRIORITY,
+                urls=showurl,
                 useragent='Supybot plugin (IRC-bot) https://github.com/Hoaas/Supybot-plugins/tree/master/DuckDuckGo'
         )
-
-        
-        response = []
-
-        for p in PRIORITY:
-            ps = p.split('.')
-            ptype = ps[0]
-            index = int(ps[1]) if len(ps) > 1 else None
-
-            result = getattr(res, ptype)
-            if index is not None and len(result) >= index+1: result = result[index]
-
-            if type(result) != list: result = [result]
-
-            for r in result:
-                if len(response) >= maxreplies: break
-                rline = ''
-                if r.text: rline = r.text
-                if r.text and hasattr(r,'url') and showurl: 
-                    if r.url: rline += ' (%s)' % r.url
-                if rline: response.append(rline)
-
-            if response: break
-
-        # if there still isn't anything, try to get the first web result
-        if not response and weblink:
-            ddgr = duckduckgo.query(
-                    '! '+query,
-                    safesearch=safesearch,
-                    useragent='Supybot plugin (IRC-bot) https://github.com/Hoaas/Supybot-plugins/tree/master/DuckDuckGo'
-            ).redirect.url
-            if ddgr:
-                response = [ddgr]
-
-        # final fallback
-        if not response: 
-            response = ['Sorry, no results.']
-
-        for resp in response:
-            irc.reply(unicode(resp).encode('utf-8'))
-              
-    ddg = wrap(ddg, ['text'])
-        
+        irc.reply(res)
+    ddg = wrap(ddg, [getopts({'answer':'', 'abstract':'','related':'', 'define':''}), 'text'])
 
 Class = DuckDuckGo
 
