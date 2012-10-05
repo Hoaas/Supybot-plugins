@@ -47,22 +47,27 @@ class DuckDuckGo(callbacks.Plugin):
             self.log.error('DuckDuckGo requires python-duckduckgo2 >= 0.24')
 
     def ddg(self, irc, msg, args, options, query):
-        """[--answer | --abstract | --related | --define] <query>
+        """[--answer | --abstract | --related | --define | --nourl] <query>
 
         Searches duckduckgo.com and returns any zero-click information or a web
-        result, if any. Using options overrides normal priority."""
+        result, if any. Using options overrides normal priority. --nourl
+        overrides the webLink config."""
         
         showurl = self.registryValue('showURL')
         safesearch = self.registryValue('safeSearch')
         maxreplies = self.registryValue('maxReplies')
         weblink = self.registryValue('webLink')
         showaddionalhits = False
+        nourloverride = False
         
         PRIORITY = ['answer', 'abstract', 'related.0', 'definition', 'related']
         
         if options:
             weblink = False
             for (key, value) in options:
+                if key == 'nourl':
+                    nourloverride = True
+                    continue
                 if key == 'answer':
                     PRIORITY = ['answer']
                     break
@@ -75,7 +80,8 @@ class DuckDuckGo(callbacks.Plugin):
                 if key == 'define':
                     PRIORITY = ['definition']
                     break
-
+        if nourloverride:
+            web_fallback = False
         res = duckduckgo.get_zci(
                 query,
                 web_fallback=weblink,
@@ -85,7 +91,7 @@ class DuckDuckGo(callbacks.Plugin):
                 useragent='Supybot plugin (IRC-bot) https://github.com/Hoaas/Supybot-plugins/tree/master/DuckDuckGo'
         )
         irc.reply(res)
-    ddg = wrap(ddg, [getopts({'answer':'', 'abstract':'','related':'', 'define':''}), 'text'])
+    ddg = wrap(ddg, [getopts({'answer':'', 'abstract':'','related':'', 'define':'', 'nourl':''}), 'text'])
 
 Class = DuckDuckGo
 
