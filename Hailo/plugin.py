@@ -39,7 +39,8 @@ class Hailo(callbacks.Plugin):
     like human."""
 
     threaded = True
-    noIgnore = True
+
+    magicnick = 'MAGICNICK'
 
     def __init__(self, irc):
         self.__parent = super(Hailo, self)
@@ -59,7 +60,7 @@ class Hailo(callbacks.Plugin):
         (channel, text) = msg.args
 
         if ircmsgs.isAction(msg):
-            text = ircmsgs.unAction(msg)
+            text = ircmsgs.unAction(text)
 
         learn = self.registryValue('learn', channel)
         reply = self.registryValue('reply', channel)
@@ -71,6 +72,8 @@ class Hailo(callbacks.Plugin):
 
         if replyWhenSpokenTo and spokenTo:
             reply = 100
+            text = text.replace(irc.nick + ': ', '')
+            text = text.replace(irc.nick, '')
 
         if replyOnMention and mention:
             if not replyWhenSpokenTo and spokenTo:
@@ -94,9 +97,6 @@ class Hailo(callbacks.Plugin):
             return
 
         reply = self.registryValue('reply', channel)
-        if not reply:
-            irc.reply('Sorry, not allowed to reply here.')
-            return
         self.reply(irc, msg, message)
         #if learn:
         #    self.learn(irc, text)
@@ -117,12 +117,14 @@ class Hailo(callbacks.Plugin):
         t = t.replace('"', '')
         return t
 
+    # Remove nicks when adding to DB.
     def strip_nick(self, irc, msg, text):
         users = []
         for user in irc.state.channels[msg.args[0]].users:
-            text = text.replace(user, 'MAGICNICK')
+            text = text.replace(user, self.magicnick)
         return text
 
+    # Add nicks in the channel when getting 'MAGICNICK' from the DB
     def add_nick(self, irc, msg, text):
         users = []
         for u in irc.state.channels[msg.args[0]].users:
@@ -130,12 +132,13 @@ class Hailo(callbacks.Plugin):
                 # We don't want the bot talking about itself in third person
                 # that is just creepy.
                 continue
+                irc.error('Dette skulle ikke skjedd.')
             users.append(u)
 
         randuser = lambda u: u[randint(0, len(u)-1)]
 
-        for i in range(text.count('MAGICNICK')):
-            text = text.replace('MAGICNICK', randuser(users), 1)
+        for i in range(text.count(self.magicnick)):
+            text = text.replace(self.magicnick, randuser(users), 1)
         for i in range(text.lower().count('nick')):
             text = text.replace('nick', randuser(users), 1) # for old DBs
             text = text.replace('Nick', randuser(users), 1) # for old DBs
@@ -153,6 +156,7 @@ class Hailo(callbacks.Plugin):
         out = commands.getoutput('%s %s' % (self.cmd,'-r "%s"' % text))
         if out and out != text and out != nick and not out.startswith('DBD::SQLite::db'):
             out = out.replace('\n','').replace('\t','')
+            out = out.replace(irc.nick, self.magicnick)
             out = self.add_nick(irc, msg, out)
             out = out.strip()
             if out != nick:
