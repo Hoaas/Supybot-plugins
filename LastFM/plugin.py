@@ -101,11 +101,10 @@ class LastFM(callbacks.Plugin):
         oldname = self.db.getusername(channel, nick)
         if oldname != username:
             if self.db.remove(channel, nick):
-                irc.reply('Naw, sorry. Changing username is temp. disabled.')
+                #irc.reply('Naw, sorry. Changing username is temp. disabled.')
                 return
-                irc.reply('Updating LastFM nick for user %s from %s to %s.' % (nick, oldname, username))
-        else:
-            irc.reply('Storing LastFM nick %s for user %s.' % (username, nick))
+                #irc.reply('Updating LastFM nick for user %s from %s to %s.' % (nick, oldname, username))
+        irc.reply('Storing LastFM nick %s for user %s.' % (username, nick))
         self.db.add(channel, nick, username)
     add = wrap(add, ['anything', optional('anything')])
 
@@ -174,8 +173,6 @@ class LastFM(callbacks.Plugin):
                 return 'Could not open URL. ' + str(err)
         except urllib2.URLError as err:
             return 'Error accessing API. It might be down. Please try again later.'
-        except urllib2.TIMED_OUT as err:
-            return 'Connection timed out.'
         except:
             raise
 
@@ -250,16 +247,32 @@ class LastFM(callbacks.Plugin):
             return
         loved = js['track']['userloved']
 
-        plural = lambda n: 's' if int(n) > 1 else ''
+        tags = []
+        try:
+            toptags = js['track']['toptags']['tag']
+            for t in toptags:
+                tags.append(t['name'])
+            tags = ', '.join(tags)
+        except:
+            tags = None
 
+        duration = int(js['track']['duration']) / 1000
+        minutes = int(duration / 60)
+        seconds = int(duration % 60)
+
+        plural = lambda n: 's' if int(n) > 1 else ''
+        retvalue = ' [%s play%s' % (play_count, plural(play_count))
         if loved == '0':
-            return ' [%s play%s]' % (play_count, plural(play_count))
+            retvalue += ']'
         elif loved == '1':
-            return ' [%s play%s %s]' % (play_count, plural(play_count), ircutils.bold('<3'))
+            retvalue += ' %s]' % (ircutils.bold('<3'))
         else:
             # This is pretty much for debugging. Not quite sure if this can
             # ever happen or not. And I have no loved tracks D:
-            return ' [%s play%s %s]' % (play_count, plural(play_count), ircutils.bold(loved))
+            retvalue += ' %s]' % (ircutils.bold(loved))
+        if tags: retvalue += ' (%s)' % tags
+        retvalue += ' [%d:%02d]' % (minutes, seconds)
+        return retvalue
 
 
     def _time_created_at(self, s):
