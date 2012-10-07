@@ -159,7 +159,7 @@ class LastFM(callbacks.Plugin):
             'limit' : 1,
             'api_key': self.apikey,
             'format': 'json',
-            'method': 'user.getrecenttracks'}
+            'method': 'user.getRecentTracks'}
         )
 
         try:
@@ -193,33 +193,69 @@ class LastFM(callbacks.Plugin):
         if type(last_track) == list: last_track = last_track[0]
 
         artist = last_track['artist']['#text']
+        album = last_track['album']['#text']
         track = last_track['name']
 
         try:
             np = last_track['@attr']['nowplaying']
         except:
             np = False
+            when = False
 
         if not np:
             when = last_track['date']['#text']
             when = self._time_created_at(when) # Remove this line to output
                                                # date in UTC instead.
         if plays:
-            plays = self.num_of_plays(last_track['mbid'], track, artist, user)
+            plays = self.num_of_plays(last_track['mbid'], artist, track, album, user)
         if not plays:
             plays = ''
 
         if not artist or not track or not user:
             return
-        if np:
-            reply = "%s np. %s - %s%s" % (user, artist, track, plays)
-        else:
-            reply = "%s last played %s - %s%s (%s)" % (user, artist, track, plays, ircutils.bold(when))
+
+        now = lambda n: 'np.' if n else 'last played'
+        when = lambda w: ' (%s)' % ircutils.bold(w) if w else ''
+
+        reply = str.format('{0} {1} {2} - {3}{4}', user, now(np), artist, track, plays)
+
         return reply
 
-    def num_of_plays(self, mbid, track, artist, user):
+    def get_tags(self, artist='', album='', mbid=''):
+        # Need either mbid or both artist and album.
+        if mbid == '' and  (artist == '' or album == ''):
+            return
         data = urllib.urlencode(
-            {'mdib': mbid,
+            {'artist': artist.encode('utf8'),
+            'album': album.encode('utf8'),
+            'mbid': mbid, # Album mbid not working
+            'api_key': self.apikey,
+            'format': 'json',
+            'method': 'artist.getTopTags'
+            }
+        )
+        try:
+            text = utils.web.getUrl(url, data=data)
+        except:
+            self.log.info('get_tags failed.')
+            return
+        js = json.loads(text)
+        tags = []
+        toptags = js['toptags']['tag']
+
+        maxtags = 4
+        i = 0
+        for tag in toptags:
+            tags.append(tag['name'])
+            i = i + 1
+            if i >= maxtags:
+                break
+        tags = ', '.join(tags)
+        return tags
+
+    def num_of_plays(self, mbid, artist, track, album, user):
+        data = urllib.urlencode(
+            {'mbid': mbid,
             'track': track.encode('utf8'),
             'artist': artist.encode('utf8'),
             'username': user,
@@ -247,30 +283,19 @@ class LastFM(callbacks.Plugin):
             return
         loved = js['track']['userloved']
 
-        tags = []
-        try:
-            toptags = js['track']['toptags']['tag']
-            for t in toptags:
-                tags.append(t['name'])
-            tags = ', '.join(tags)
-        except:
-            tags = None
-
         duration = int(js['track']['duration']) / 1000
         minutes = int(duration / 60)
         seconds = int(duration % 60)
 
         plural = lambda n: 's' if int(n) > 1 else ''
-        retvalue = ' [%s play%s' % (play_count, plural(play_count))
-        if loved == '0':
-            retvalue += ']'
-        elif loved == '1':
-            retvalue += ' %s]' % (ircutils.bold('<3'))
-        else:
-            # This is pretty much for debugging. Not quite sure if this can
-            # ever happen or not. And I have no loved tracks D:
-            retvalue += ' %s]' % (ircutils.bold(loved))
-        if tags: retvalue += ' (%s)' % tags
+
+        # If l is 1, reply <3.
+        heart = lambda h: ircutils.bold(' <3') if h == '1' else ''
+        tags = lambda t: ' [%s]' % t if t else ''
+
+        t = self.get_tags(artist=artist, album=album)
+
+        retvalue = ' [%s play%s%s]%s' % (play_count, plural(play_count), heart(loved), tags(t))
         retvalue += ' [%d:%02d]' % (minutes, seconds)
         return retvalue
 
