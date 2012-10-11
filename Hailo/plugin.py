@@ -20,6 +20,7 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 
+import supybot.conf as conf
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
@@ -45,10 +46,16 @@ class Hailo(callbacks.Plugin):
     def __init__(self, irc):
         self.__parent = super(Hailo, self)
         self.__parent.__init__(irc)
-        self.cmd = "hailo -b /home/hoaas/.supybot/hailo.sqlite"
+
+    def cmd(self, channel):
+        dataDir = conf.supybot.directories.data
+        channel = channel.lower()
+        chandir = dataDir.dirize(channel)
+        dataDir = dataDir.dirize(channel + "/hailo.sqlite")
+        return 'hailo -b %s' % dataDir
 
     def brainstats (self,irc,msg,args):
-        out = commands.getoutput('%s %s' % (self.cmd,'-s'))
+        out = commands.getoutput('%s %s' % (self.cmd(msg.args[0]),'-s'))
         out = out.replace ('\n',', ')
         irc.reply(out)
     brainstats = wrap(brainstats)
@@ -60,7 +67,7 @@ class Hailo(callbacks.Plugin):
         (channel, text) = msg.args
 
         if ircmsgs.isAction(msg):
-            text = ircmsgs.unAction(text)
+            text = ircmsgs.unAction(msg)
 
         learn = self.registryValue('learn', channel)
         reply = self.registryValue('reply', channel)
@@ -105,17 +112,22 @@ class Hailo(callbacks.Plugin):
     hailo = wrap(hailo, ['text'])
 
     def sanitize(self, t):
-        t = unicode(t, 'utf-8')
-        t = t.encode("utf-8")
-        t = t.replace ('`','')
-        t = t.replace('`','')
-        t = t.replace('|','')
-        t = t.replace('&','')
-        t = t.replace('>', '')
-        t = t.replace('<', '')
-        t = t.replace(';', '')
-        t = t.replace('"', '')
-        return t
+        b = t
+        try:
+            t = unicode(t, 'utf-8')
+            t = t.encode("utf-8")
+            t = t.replace ('`','')
+            t = t.replace('`','')
+            t = t.replace('|','')
+            t = t.replace('&','')
+            t = t.replace('>', '')
+            t = t.replace('<', '')
+            t = t.replace(';', '')
+            t = t.replace('"', '')
+            return t
+        except:
+            self.log.error('Hailo crashed on this message: ' + str(b))
+        return
 
     # Remove nicks when adding to DB.
     def strip_nick(self, irc, msg, text):
@@ -147,13 +159,13 @@ class Hailo(callbacks.Plugin):
     def learn(self, irc, msg, text):
         text = self.sanitize(text)
         text = self.strip_nick(irc, msg, text)
-        commands.getoutput('%s %s' % (self.cmd, '-l "%s"' % text))
+        commands.getoutput('%s %s' % (self.cmd(msg.args[0]), '-l "%s"' % text))
 
     def reply(self, irc, msg, text):
         nick = msg.nick
         channel = msg.args[0]
         text = self.sanitize(text)
-        out = commands.getoutput('%s %s' % (self.cmd,'-r "%s"' % text))
+        out = commands.getoutput('%s %s' % (self.cmd(msg.args[0]),'-r "%s"' % text))
         if out and out != text and out != nick and not out.startswith('DBD::SQLite::db'):
             out = out.replace('\n','').replace('\t','')
             out = out.replace(irc.nick, self.magicnick)
