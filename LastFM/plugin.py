@@ -217,27 +217,26 @@ class LastFM(callbacks.Plugin):
         now = lambda n: 'np.' if n else 'last played'
         when = lambda w: ' (%s)' % ircutils.bold(w) if w else ''
 
-        reply = str.format('{0} {1} {2} - {3}{4}', user, now(np), artist, track, plays)
+        reply = '%s %s %s - %s%s' % (user, now(np), artist, track, plays)
 
         return reply
 
-    def get_tags(self, artist='', album='', mbid=''):
+    def get_tags(self, artist, mbid):
         # Need either mbid or both artist and album.
-        if mbid == '' and  (artist == '' or album == ''):
+        if mbid == '' and artist == '':
             return
         data = urllib.urlencode(
             {'artist': artist.encode('utf8'),
-            'album': album.encode('utf8'),
-            'mbid': mbid, # Album mbid not working
+            'mbid': mbid,
             'api_key': self.apikey,
             'format': 'json',
             'method': 'artist.getTopTags'
             }
         )
+
         try:
             text = utils.web.getUrl(url, data=data)
         except:
-            self.log.info('get_tags failed.')
             return
         js = json.loads(text)
         tags = []
@@ -293,7 +292,7 @@ class LastFM(callbacks.Plugin):
         heart = lambda h: ircutils.bold(' <3') if h == '1' else ''
         tags = lambda t: ' [%s]' % t if t else ''
 
-        t = self.get_tags(artist=artist, album=album)
+        t = self.get_tags(artist, mbid)
 
         retvalue = ' [%s play%s%s]%s' % (play_count, plural(play_count), heart(loved), tags(t))
         retvalue += ' [%d:%02d]' % (minutes, seconds)
