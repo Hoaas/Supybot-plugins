@@ -114,9 +114,7 @@ class Hailo(callbacks.Plugin):
     def sanitize(self, t):
         b = t
         try:
-            t = unicode(t, 'utf-8')
-            t = t.encode("utf-8")
-            t = t.replace ('`','')
+            t = t.replace('`','')
             t = t.replace('`','')
             t = t.replace('|','')
             t = t.replace('&','')
