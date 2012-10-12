@@ -55,6 +55,9 @@ class Hailo(callbacks.Plugin):
         return 'hailo -b %s' % dataDir
 
     def brainstats (self,irc,msg,args):
+        if not irc.isChannel(msg.args[0]):
+            irc.reply("No brains in private! (each channel have a different brain)")
+            return
         out = commands.getoutput('%s %s' % (self.cmd(msg.args[0]),'-s'))
         out = out.replace ('\n',', ')
         irc.reply(out)
@@ -75,12 +78,12 @@ class Hailo(callbacks.Plugin):
         replyWhenSpokenTo = self.registryValue('replyWhenSpokenTo', channel)
 
         mention = irc.nick.lower() in text.lower()
-        spokenTo = msg.args[1].lower().startswith(irc.nick.lower())
+        spokenTo = msg.args[1].lower().startswith('%s: ' % irc.nick.lower())
 
         if replyWhenSpokenTo and spokenTo:
             reply = 100
-            text = text.replace(irc.nick + ': ', '')
-            text = text.replace(irc.nick, '')
+            text = text.replace('%s: ' % irc.nick, '')
+            text = text.replace('%s: ' % irc.nick.lower(), '')
 
         if replyOnMention and mention:
             if not replyWhenSpokenTo and spokenTo:
@@ -105,10 +108,6 @@ class Hailo(callbacks.Plugin):
 
         reply = self.registryValue('reply', channel)
         self.reply(irc, msg, message)
-        #if learn:
-        #    self.learn(irc, text)
-        #    if randint(1,99) < reply:
-        #        pass
     hailo = wrap(hailo, ['text'])
 
     def sanitize(self, t):
@@ -129,26 +128,31 @@ class Hailo(callbacks.Plugin):
 
     # Remove nicks when adding to DB.
     def strip_nick(self, irc, msg, text):
-        users = []
         for user in irc.state.channels[msg.args[0]].users:
             text = text.replace(user, self.magicnick)
+            text = text.replace(user.lower(), self.magicnick)
         return text
 
     # Add nicks in the channel when getting 'MAGICNICK' from the DB
     def add_nick(self, irc, msg, text):
+
+        # Copy the current users in the channel
         users = []
         for u in irc.state.channels[msg.args[0]].users:
             if irc.nick == u:
                 # We don't want the bot talking about itself in third person
                 # that is just creepy.
                 continue
-                irc.error('Dette skulle ikke skjedd.')
             users.append(u)
 
+        # Get a random user from the given list of users
         randuser = lambda u: u[randint(0, len(u)-1)]
 
+        # For each occurance of magicnick, replace with a random nick.
         for i in range(text.count(self.magicnick)):
             text = text.replace(self.magicnick, randuser(users), 1)
+
+        # Do the same with 'nick' (used in older versions of the plugin)
         for i in range(text.lower().count('nick')):
             text = text.replace('nick', randuser(users), 1) # for old DBs
             text = text.replace('Nick', randuser(users), 1) # for old DBs
