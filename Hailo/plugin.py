@@ -149,8 +149,12 @@ class Hailo(callbacks.Plugin):
         randuser = lambda u: u[randint(0, len(u)-1)]
 
         # For each occurance of magicnick, replace with a random nick.
-        for i in range(text.count(self.magicnick)):
+        # Also check for lowercased versions or capitalize, even though this
+        # might finish catch all the occurances before the loop is done
+        for i in range(text.lower().count(self.magicnick.lower())):
             text = text.replace(self.magicnick, randuser(users), 1)
+            text = text.replace(self.magicnick.lower(), randuser(users), 1)
+            text = text.replace(self.magicnick.capitalize(), randuser(users), 1)
 
         # Do the same with 'nick' (used in older versions of the plugin)
         for i in range(text.lower().count('nick')):
