@@ -267,6 +267,7 @@ class LastFM(callbacks.Plugin):
         try:
             text = utils.web.getUrl(url, data=data)
         except:
+            self.log.info('LastFM failed to access API in num_of_plays.')
             return
 
         js = json.loads(text)
@@ -276,15 +277,16 @@ class LastFM(callbacks.Plugin):
             return
         except: pass
 
-        try:
-            play_count = js['track']['userplaycount']
-        except:
+        track = js.get('track')
+        if not track:
             return
-        loved = js['track']['userloved']
-
-        duration = int(js['track']['duration']) / 1000
-        minutes = int(duration / 60)
-        seconds = int(duration % 60)
+        play_count = track.get('userplaycount')
+        loved = track.get('userloved')
+        duration = track.get('duration')
+        if duration:
+            duration = int(duration) / 1000
+            minutes = int(duration / 60)
+            seconds = int(duration % 60)
 
         plural = lambda n: 's' if int(n) > 1 else ''
 
@@ -294,9 +296,23 @@ class LastFM(callbacks.Plugin):
 
         t = self.get_tags(artist, mbid)
 
-        retvalue = ' [%s play%s%s]%s' % (play_count, plural(play_count), heart(loved), tags(t))
-        retvalue += ' [%d:%02d]' % (minutes, seconds)
-        return retvalue
+        retvalue = ''
+
+        # Things to output:
+        # Play count, loved, tags and duration
+        if play_count or loved:
+            retvalue += ' ['
+            if play_count:
+                retvalue += '%s play%s' % (play_count, plural(play_count))
+            if loved:
+                retvalue += '%s' % heart(loved)
+            retvalue += ']'
+        if t:
+            retvalue += tags(t)
+        if duration:
+            retvalue += ' [%d:%02d]' % (minutes, seconds)
+        if retvalue != '':
+            return retvalue
 
 
     def _time_created_at(self, s):
