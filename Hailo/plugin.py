@@ -129,8 +129,8 @@ class Hailo(callbacks.Plugin):
     # Remove nicks when adding to DB.
     def strip_nick(self, irc, msg, text):
         for user in irc.state.channels[msg.args[0]].users:
-            text = text.replace(user, self.magicnick)
-            text = text.replace(user.lower(), self.magicnick)
+            text = text.replace(' %s ' % user, ' %s ' % self.magicnick)
+            text = text.replace(' %s ' % user.lower(), ' %s ' % self.magicnick)
         return text
 
     # Add nicks in the channel when getting 'MAGICNICK' from the DB
@@ -144,6 +144,20 @@ class Hailo(callbacks.Plugin):
                 # that is just creepy.
                 continue
             users.append(u)
+
+        # If first word is nick, switch with the callers nick.
+        if text.startswith(self.magicnick):
+            text = text.replace(self.magicnick, msg.nick, 1)
+        if text.startswith(self.magicnick.lower()):
+            text = text.replace(self.magicnick.lower(), msg.nick, 1)
+        if text.startswith(self.magicnick.capitalize()):
+            text = text.replace(self.magicnick.capitalize(), msg.nick, 1)
+        # Bit of backwards compability.
+        if text.startswith('nick'):
+            text = text.replace('nick', msg.nick, 1)
+        if text.startswith('Nick'):
+            text = text.replace('Nick', msg.nick, 1)
+
 
         # Get a random user from the given list of users
         randuser = lambda u: u[randint(0, len(u)-1)]
@@ -160,9 +174,17 @@ class Hailo(callbacks.Plugin):
         for i in range(text.lower().count('nick')):
             text = text.replace('nick', randuser(users), 1) # for old DBs
             text = text.replace('Nick', randuser(users), 1) # for old DBs
+
+        for i in range(text.lower().count(irc.nick.lower())):
+            text = text.replace(irc.nick, randuser(users), 1) # for old DBs
+            text = text.replace(irc.nick.lower(), randuser(users), 1) # for old DBs
+            text = text.replace(irc.nick.capitalize(), randuser(users), 1) # for old DBs
         return text
 
     def learn(self, irc, msg, text):
+        if text.startswith(irc.nick):
+            self.log.info("Hailo tried to output " + text)
+            return
         text = self.sanitize(text)
         text = self.strip_nick(irc, msg, text)
         commands.getoutput('%s %s' % (self.cmd(msg.args[0]), '-l "%s"' % text))
