@@ -115,9 +115,16 @@ class LastFM(callbacks.Plugin):
         self.set_apikey()
         channel = msg.args[0]
         playing = []
-        for nick in irc.state.channels[msg.args[0]].users:
+
+        # Copy the current users in the channel to avoid
+        # RuntimeError: Set changed size during iteration
+        users = []
+        for u in irc.state.channels[msg.args[0]].users:
+            users.append(u)
+
+        for nick in users:
             nick = self.db.getusername(channel, nick)
-            lp = self.last_played(nick, plays = False)
+            lp = self.last_played(nick, plays = True)
             if lp.find(' np. ') != -1:
                 playing.append(lp)
 
@@ -200,8 +207,8 @@ class LastFM(callbacks.Plugin):
             np = last_track['@attr']['nowplaying']
         except:
             np = False
-            when = False
 
+        when = False
         if not np:
             when = last_track['date']['#text']
             when = self._time_created_at(when) # Remove this line to output
@@ -215,9 +222,9 @@ class LastFM(callbacks.Plugin):
             return
 
         now = lambda n: 'np.' if n else 'last played'
-        when = lambda w: ' (%s)' % ircutils.bold(w) if w else ''
+        time_since = lambda w: ' (%s)' % ircutils.bold(w) if w else ''
 
-        reply = '%s %s %s - %s%s' % (user, now(np), artist, track, plays)
+        reply = '%s %s %s - %s%s%s' % (user, now(np), artist, track, plays, time_since(when))
 
         return reply
 
@@ -240,12 +247,20 @@ class LastFM(callbacks.Plugin):
             return
         js = json.loads(text)
         tags = []
-        toptags = js['toptags']['tag']
+        toptags = js.get('toptags', '').get('tag')
+        if not toptags:
+            self.log.info('Failed on url: ' + url + data)
+            return
 
         maxtags = 4
         i = 0
+
+        if type(toptags) == dict:
+            tags = toptags.get('name')
+            return tags
+
         for tag in toptags:
-            tags.append(tag['name'])
+            tags.append(tag.get('name'))
             i = i + 1
             if i >= maxtags:
                 break
@@ -300,7 +315,7 @@ class LastFM(callbacks.Plugin):
 
         # Things to output:
         # Play count, loved, tags and duration
-        if play_count or loved:
+        if play_count or loved == '1':
             retvalue += ' ['
             if play_count:
                 retvalue += '%s play%s' % (play_count, plural(play_count))
