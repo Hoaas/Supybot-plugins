@@ -129,8 +129,11 @@ class Hailo(callbacks.Plugin):
     # Remove nicks when adding to DB.
     def strip_nick(self, irc, msg, text):
         for user in irc.state.channels[msg.args[0]].users:
-            text = text.replace(' %s ' % user, ' %s ' % self.magicnick)
-            text = text.replace(' %s ' % user.lower(), ' %s ' % self.magicnick)
+            if len(user) <= 2: # Do not replace short nicks, as they might very
+                               # well be part of a word
+                continue
+            text = text.replace('%s' % user, '%s' % self.magicnick)
+            text = text.replace('%s' % user.lower(), '%s' % self.magicnick)
         return text
 
     # Add nicks in the channel when getting 'MAGICNICK' from the DB
@@ -145,18 +148,6 @@ class Hailo(callbacks.Plugin):
                 continue
             users.append(u)
 
-        # If first word is nick, switch with the callers nick.
-        if text.startswith(self.magicnick):
-            text = text.replace(self.magicnick, msg.nick, 1)
-        if text.startswith(self.magicnick.lower()):
-            text = text.replace(self.magicnick.lower(), msg.nick, 1)
-        if text.startswith(self.magicnick.capitalize()):
-            text = text.replace(self.magicnick.capitalize(), msg.nick, 1)
-        # Bit of backwards compability.
-        if text.startswith('nick'):
-            text = text.replace('nick', msg.nick, 1)
-        if text.startswith('Nick'):
-            text = text.replace('Nick', msg.nick, 1)
 
 
         # Get a random user from the given list of users
@@ -166,11 +157,19 @@ class Hailo(callbacks.Plugin):
         # Also check for lowercased versions or capitalize, even though this
         # might finish catch all the occurances before the loop is done
         for i in range(text.lower().count(self.magicnick.lower())):
+            # If first word is nick, switch with the callers nick.
+            if self.magicnick in text:
+                text = text.replace(self.magicnick, msg.nick, 1)
+            if self.magicnick.lower() in text:
+                text = text.replace(self.magicnick.lower(), msg.nick, 1)
+            if self.magicnick.capitalize() in text:
+                text = text.replace(self.magicnick.capitalize(), msg.nick, 1)
+
             text = text.replace(self.magicnick, randuser(users), 1)
             text = text.replace(self.magicnick.lower(), randuser(users), 1)
             text = text.replace(self.magicnick.capitalize(), randuser(users), 1)
 
-        # Do the same with 'nick' (used in older versions of the plugin)
+        # Bit of backwards compability.
         for i in range(text.lower().count('nick')):
             text = text.replace('nick', randuser(users), 1) # for old DBs
             text = text.replace('Nick', randuser(users), 1) # for old DBs
@@ -182,9 +181,6 @@ class Hailo(callbacks.Plugin):
         return text
 
     def learn(self, irc, msg, text):
-        if text.startswith(irc.nick):
-            self.log.info("Hailo tried to output " + text)
-            return
         text = self.sanitize(text)
         text = self.strip_nick(irc, msg, text)
         commands.getoutput('%s %s' % (self.cmd(msg.args[0]), '-l "%s"' % text))
@@ -193,12 +189,16 @@ class Hailo(callbacks.Plugin):
         nick = msg.nick
         channel = msg.args[0]
         text = self.sanitize(text)
+        text = self.strip_nick(irc, msg, text)
         out = commands.getoutput('%s %s' % (self.cmd(msg.args[0]),'-r "%s"' % text))
         if out and out != text and out != nick and not out.startswith('DBD::SQLite::db'):
             out = out.replace('\n','').replace('\t','')
             out = out.replace(irc.nick, self.magicnick)
             out = self.add_nick(irc, msg, out)
             out = out.strip()
+            if out.startswith(irc.nick):
+                self.log.info("Hailo tried to output " + str(out))
+                return
             if out != nick:
                 irc.reply(out)
             return
