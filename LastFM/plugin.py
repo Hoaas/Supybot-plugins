@@ -108,14 +108,22 @@ class LastFM(callbacks.Plugin):
         self.db.add(channel, nick, username)
     add = wrap(add, ['anything', optional('anything')])
 
-    def whosplaying(self, irc, msg, args):
-        """takes no arguments
+    def whosplaying(self, irc, msg, args,  opts):
+        """[--allatonce] [--skipplays]
 
         Currently playing track for all nicks in channel, if any."""
         self.set_apikey()
         channel = msg.args[0]
-        playing = []
 
+        atonce = True
+        play_now = True
+        for key, value in opts:
+            if key == 'allatonce':
+                atonce = False
+            if key == 'skipplays':
+                play_now = False
+
+        playing = []
         # Copy the current users in the channel to avoid
         # RuntimeError: Set changed size during iteration
         users = []
@@ -124,17 +132,19 @@ class LastFM(callbacks.Plugin):
 
         for nick in users:
             nick = self.db.getusername(channel, nick)
-            lp = self.last_played(nick, plays = True)
+            lp = self.last_played(nick, plays = play_now)
             if lp.find(' np. ') != -1:
                 playing.append(lp)
+                if atonce:
+                    irc.reply(lp)
 
         if len(playing) == 0:
             irc.reply('No users in the channel currently scrobbling.')
             return
-
-        for status in playing:
-            irc.reply(status)
-    whosplaying = wrap(whosplaying)
+        if not atonce:
+            for output in playing:
+                irc.reply(output)
+    whosplaying = wrap(whosplaying, [getopts({'allatonce':'', 'skipplays':''})])
 
     def set_apikey(self):
         self.apikey = self.registryValue('apikey')
