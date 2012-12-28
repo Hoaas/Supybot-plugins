@@ -132,8 +132,9 @@ class Hailo(callbacks.Plugin):
             if len(user) <= 2: # Do not replace short nicks, as they might very
                                # well be part of a word
                 continue
-            text = text.replace('%s' % user, '%s' % self.magicnick)
-            text = text.replace('%s' % user.lower(), '%s' % self.magicnick)
+            text = text.replace(user, self.magicnick)
+            text = text.replace(user.lower(), self.magicnick)
+            text = text.replace(user.capitalize(), self.magicnick)
         return text
 
     # Add nicks in the channel when getting 'MAGICNICK' from the DB
