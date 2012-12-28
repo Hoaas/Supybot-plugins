@@ -28,6 +28,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 ###
+import re
+import json
+import urllib
+import datetime
 
 import supybot.utils as utils
 from supybot.commands import *
@@ -44,9 +48,39 @@ class Ruter(callbacks.Plugin):
     This should describe *how* to use this plugin."""
     threaded = True
 
-    def ruter(self, irc, msg, args):
-        irc.reply('test')
-    ruter = wrap(ruter)
+    baseurl = 'http://api-test.trafikanten.no/'
+
+    def search(self, place):
+        url = self.baseurl + 'RealTime/FindMatches/' + urllib.quote(place)
+        data = utils.web.getUrl(url)
+        j = json.loads(data)
+
+        return j[0].get('ID')
+
+    def get_real_time_data(self, loc):
+        url = self.baseurl + 'RealTime/GetRealTimeData/' + urllib.quote(str(loc))
+        data = utils.web.getUrl(url)
+        j = json.loads(data)
+        date1 = j[0].get('ExpectedArrivalTime')
+        direction1 = j[0].get('DestinationName')
+        date2 = j[1].get('ExpectedArrivalTime')
+        direction2 = j[1].get('DestinationName')
+        pattern = r'\d+'
+        epoch1 = re.search(pattern, date1).group()
+        epoch2 = re.search(pattern, date2).group()
+        return int(str(epoch1)[:-3]), direction1, int(str(epoch2)[:-3]), direction2, 
+
+    def ruter(self, irc, msg, args, place):
+        """<boop>
+        
+        :D"""
+        loc = self.search(place)
+        time1, dir1, time2, dir2 = self.get_real_time_data(loc)
+        t1 = datetime.datetime.fromtimestamp(time1)
+        t2 = datetime.datetime.fromtimestamp(time2)
+        irc.reply('Retning ' + str(dir1) + ': ' + str(t1))
+        irc.reply('Retning ' + str(dir2) + ': ' + str(t2))
+    ruter = wrap(ruter, ['text'])
 
 Class = Ruter
 
