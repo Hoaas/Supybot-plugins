@@ -51,6 +51,6 @@ conf.registerChannelValue(Spotify, 'prefix',
 conf.registerChannelValue(Spotify, 'titlewhenhttp',
     registry.Boolean(False, """Respond on Spotify HTTP-urls aswell"""))
 conf.registerChannelValue(Spotify, 'outputurl',
-    registry.Boolean(True, """Reply with url to HTTP-version aswell"""))
+    registry.Boolean(True, """Output HTTP url on Spotify uri"""))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

@@ -137,7 +137,7 @@ class Spotify(callbacks.Plugin):
                                     irc.reply("Spotify API says NO. You have to wait 10 seconds. (or more, see https://developer.spotify.com/technologies/web-api/#rate-limiting)")
                                 elif err.code == 404:
                                     # Not Found
-                                    irc.reply("Spotify API not found, error 404 etc.")
+                                    irc.reply("Spotify API says: That's not a valid Spotify uri, stupid.")
                                 elif err.code == 406:
                                     # Not Acceptable
                                     irc.reply('Spotify API says "No! Not Acceptable.". Probably a bug in the plugin.')
