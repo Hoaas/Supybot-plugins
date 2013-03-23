@@ -55,10 +55,24 @@ class ImgGet(callbacks.Plugin):
         self.__parent.__init__(irc)
     
     def gis(self, irc, msg, args, options, search):
-        """[--num int] [--urlonly] <search>
+        """[--num int] [--urlonly] [--safe off|medium|high] <search>
 
         I'm Feeling Lucky function for Google image search. 
         """
+
+        num = False
+        urlonly = False
+        safe = 'off'
+        if options:
+            for (key, value) in options:
+                if key == 'num':
+                    num = value
+                if key == 'urlonly':
+                    urlonly = True
+                if key == 'safe':
+                    safe = value
+        if not num:
+            num = self.registryValue('numUrls', msg.args[0])
 
         ref = 'irc://%s/%s' % (dynamic.irc.server, dynamic.irc.nick)
         
@@ -68,7 +82,6 @@ class ImgGet(callbacks.Plugin):
         userip = irc.state.nickToHostmask(msg.nick)
         hl = "en"
         start = "0"
-        safe = "off"
         
         values = {'v' : v,
                   'safe' : safe,
@@ -105,16 +118,6 @@ class ImgGet(callbacks.Plugin):
         if data['responseStatus'] != 200:
             self.log.debug(data['responseStatus'])
             raise callbacks.Error, 'We broke The Google!'
-        num = False
-        urlonly = False
-        if options:
-            for (key, value) in options:
-                if key == 'num':
-                    num = value
-                if key == 'urlonly':
-                    urlonly = True
-        if not num:
-            num = self.registryValue('numUrls', msg.args[0])
 
         if(len(data["responseData"]["results"]) > 0):
             if num < 1:
@@ -159,7 +162,7 @@ class ImgGet(callbacks.Plugin):
                 self._checkUrl(irc, imgurl, irc.nick, channel)
         else:
             irc.reply("Your search did not match any documents.")
-    gis = wrap(gis, [getopts({'num':'int', 'urlonly':''}), 'text'])
+    gis = wrap(gis, [getopts({'num':'int', 'urlonly':'', 'safe':'text'}), 'text'])
     
     def _apina(self, url):
         _, _, dotornot = url.partition("apina.biz/")
