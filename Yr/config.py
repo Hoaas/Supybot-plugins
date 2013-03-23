@@ -41,10 +41,13 @@ def configure(advanced):
     conf.registerPlugin('Yr', True)
 
 
-Temperature = conf.registerPlugin('Yr')
+Yr = conf.registerPlugin('Yr')
 # This is where your configuration variables (if any) should go.  For example:
 # conf.registerGlobalValue(Temperature, 'someConfigVariableName',
 #     registry.Boolean(False, """Help for someConfigVariableName."""))
-
+conf.registerChannelValue(Yr, 'lang', registry.String('en', """Default language
+    to use."""))
+conf.registerChannelValue(Yr, 'location', registry.String('Oslo', """Default
+    location to use."""))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
