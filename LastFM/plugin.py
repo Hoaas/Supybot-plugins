@@ -108,7 +108,7 @@ class LastFM(callbacks.Plugin):
         self.db.add(channel, nick, username)
     add = wrap(add, ['anything', optional('anything')])
 
-    def whosplaying(self, irc, msg, args,  opts):
+    def whosplaying(self, irc, msg, args, opts):
         """[--allatonce] [--skipplays]
 
         Currently playing track for all nicks in channel, if any."""
@@ -153,7 +153,7 @@ class LastFM(callbacks.Plugin):
             return
 
 
-    def lastfm(self, irc, msg, args, user):
+    def lastfm(self, irc, msg, args, options, user):
         """[user]
 
         Returns last played track for user. If no username is supplies, the
@@ -164,10 +164,16 @@ class LastFM(callbacks.Plugin):
         channel = msg.args[0]
         user = self.db.getusername(channel, user)
 
-        reply = self.last_played(user)
+        notags = True
+        if options:
+            for (key, value) in options:
+                if key == 'notags':
+                   notags = False
+
+        reply = self.last_played(user, plays=notags)
         if reply:
             irc.reply(reply.encode('utf-8'))
-    lastfm = wrap(lastfm, [optional('text')])
+    lastfm = wrap(lastfm, [getopts({'notags':''}), optional('text')])
 
     def last_played(self, user, plays = True):
         self.set_apikey()
