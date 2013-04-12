@@ -216,6 +216,132 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
                 ret += ' {0}.'.format(winddesc.encode('utf8'))
             ret += ' ({0})'.format(name.encode('utf8'))
             return ret
+    def _pollen(self, locations, loc):
+        # locations is the dictionary, loc is the integer
+        url = "http://www.yr.no/pollen/"
+        
+        plants = {0: "Or",
+            1: "Hassel",
+            2: "Salix",
+            3: "Bjørk",
+            4: "Gress",
+            5: "Burot"
+        }
+        
+        html = utils.web.getUrl(url)
+
+        first = locations[loc]
+        # Dropping everything before our first find
+        html = html[html.find(first):]
+        html = html[:html.find('</tr>')]
+        name = html[:html.find('<')]
+        
+        html = html[html.find('<td'):]
+        html = html.splitlines()
+        
+        plantcounter = 0
+        today = {}
+        tomorrow = {}
+        for i in range(len(html)):
+            if ((i % 2) == 0):
+                if(html[i].find('class') != -1):
+                    today[plantcounter] = html[i][html[i].find('title="')+7:html[i].find('" />')]
+            else:
+                if(html[i].find('class') != -1):
+                    tomorrow[plantcounter] = html[i][html[i].find('title="')+7:html[i].find('" />')]
+                plantcounter += 1
+        rtoday = ""
+        rtomorrow = ""
+        for i in today:
+            if "Beskjeden" in today[i]:
+                today[i] = ircutils.mircColor(today[i], "Light green")
+            elif "Moderat" in today[i]:
+                today[i] = ircutils.mircColor(today[i], "Orange")
+            elif "Kraftig" in today[i]:
+                today[i] = ircutils.mircColor(today[i], "Red")
+            elif "Ekstrem" in today[i]:
+                today[i] = ircutils.mircColor(today[i], "Brown")
+
+            rtoday += plants[i] + " (" + today[i] + "), "
+        for i in tomorrow:
+            if "Beskjeden" in tomorrow[i]:
+                tomorrow[i] = ircutils.mircColor(tomorrow[i], "Light green")
+            elif "Moderat" in tomorrow[i]:
+                tomorrow[i] = ircutils.mircColor(tomorrow[i], "Orange")
+            elif "Kraftig" in tomorrow[i]:
+                tomorrow[i] = ircutils.mircColor(tomorrow[i], "Red")
+            elif "Ekstrem" in tomorrow[i]:
+                tomorrow[i] = ircutils.mircColor(tomorrow[i], "Brown")
+            rtomorrow += plants[i] + " (" + tomorrow[i] + "), "
+        rtoday = rtoday[:-2]
+        rtomorrow = rtomorrow[:-2]
+        if (len(rtoday) < 5):
+            rtoday = ircutils.bold("I dag") + ": Clear! "
+        else:
+            rtoday = ircutils.bold("I dag") + ": " + rtoday + ". "
+        if (len(rtomorrow) < 5):
+            rtomorrow = ircutils.bold("I morgen") + ": Clear!"
+        else:
+            rtomorrow = ircutils.bold("I morgen") + ": " + rtomorrow + "."
+        
+        if not rtoday and not rtomorrow:
+            return "Ingen pollen varslet."
+        if not rtoday:
+            return rtomorrow
+        if not rtomorrow:
+            return rtoday
+        return locations[loc] + ": " + rtoday + rtomorrow
+        
+    def pollen(self, irc, msg, args, loc):
+        """[<location>]
+        Norwegian only. See "pollen list" for list of locations.
+        """
+        
+        if (loc == "list"):
+            irc.reply("1 Østlandet med Oslo, 2 Sørlandet, 3 Rogaland, 4 Hordaland, \
+5 Sogn og Fjordane, 6 Møre og Romsdal, 7 Sentrale fjellstrøk i Sør-Norge, 8 Indre Østlandet, \
+9 Trøndelag, 10 Nordland, 11 Troms, 12 Finnmark")
+            return
+        
+        # Dictionary with locations
+        locations = {1: "Østlandet med Oslo",
+                2: "Sørlandet",
+                3: "Rogaland",
+                4: "Hordaland",
+                5: "Sogn og Fjordane",
+                6: "Møre og Romsdal",
+                7: "Sentrale fjellstrøk i Sør-Norge",
+                8: "Indre Østlandet",
+                9: "Trøndelag",
+                10: "Nordland",
+                11: "Troms",
+                12: "Finnmark"}
+        if not loc:
+            loc = self.registryValue('pollen', msg.args[0]) # Default value is 1.
+        try:
+            loc = int(loc)
+            # If the parsing fails we jump to the except.
+        # if location is not an integer
+        except:
+            for l in locations:
+                # If we have location that containt the string
+                # Using lower() to ignore case.
+                if(locations[l].lower().find(loc.lower()) != -1):
+                    loc = l
+                    break
+            # If we have gone through the loop and loc still isn't an integer the location is not found
+        
+        # If number is outside the accepted range.
+        if(loc < 1 or loc > 12):
+            irc.reply('Sorry, ' + str(loc) + ' is not a valid location. Check "pollen list" for list of locations.')
+            return
+        # At this point loc is an integer from 1 to 12
+        retstr = self._pollen(locations, loc)
+        if (retstr == -1):
+            irc.reply('Sorry, failed to retrieve pollentriks.')
+        else:
+            irc.reply(retstr)
+    pollen = wrap(pollen, [additional('text')]) 
 
     def getUrl(self, location, lang):
         url = self.getLocalUrl(location, lang)

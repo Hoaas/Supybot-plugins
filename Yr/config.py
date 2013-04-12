@@ -49,5 +49,7 @@ conf.registerChannelValue(Yr, 'lang', registry.String('en', """Default language
     to use."""))
 conf.registerChannelValue(Yr, 'location', registry.String('Oslo', """Default
     location to use."""))
+conf.registerChannelValue(Yr, 'pollen', registry.Integer(1, """Default
+    ID to use on the command 'pollen'."""))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
