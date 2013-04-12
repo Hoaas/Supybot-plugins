@@ -129,7 +129,7 @@ class Hailo(callbacks.Plugin):
     # Remove nicks when adding to DB.
     def strip_nick(self, irc, msg, text):
         for user in irc.state.channels[msg.args[0]].users:
-            if len(user) <= 2: # Do not replace short nicks, as they might very
+            if len(user) <= 4: # Do not replace short nicks, as they might very
                                # well be part of a word
                 continue
             text = text.replace(user, self.magicnick)
