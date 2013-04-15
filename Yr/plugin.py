@@ -55,6 +55,8 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
 
     """Takes a string. Returns a float or None"""
     def parse_num(self, numstr):
+        if not numstr:
+            return
         numstr = numstr.replace(',', '.')
         pattern = r'(-)?\d+(\.\d)?'
         numstr = re.search(pattern, numstr)
