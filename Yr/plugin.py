@@ -30,6 +30,7 @@
 ###
 import os
 import re
+import time
 import sqlite3
 from xml.etree import ElementTree
 from bs4 import BeautifulSoup as BS
@@ -134,6 +135,28 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
         irc.reply(ret)
         # TODO: Output. Sun. Moon.
     temp = wrap(temp, ['channel', optional('text')])
+
+    def sun(self, irc, msg, args, channel, location):
+        """<location>
+
+        Checks first if there are any local aliases added, then if they exist
+        in the world db. If language is set to norwegian (bm or nn)
+        norwegian db is checked first along with db for postal numbers."""
+        if location is None:
+            location = self.registryValue('location', channel)
+        lang = self.registryValue('lang', channel)
+        if lang != 'en' and lang != 'bm' and lang != 'nn':
+            irc.reply('Language is not valid. Please fix. Defaulting to english.')
+            lang = 'en'
+        channel = msg.args[0].lower()
+        url = self.getUrl(location, lang)
+        if url is None:
+            irc.reply("No hits on '%s'." % (location))
+            return
+        xml = self.getXml(url)
+        ret = self.parseXmlSun(xml, lang)
+        irc.reply(ret)
+    sun = wrap(sun, ['channel', optional('text')])
     
     def getHtml(self, url):
         url = url.replace('/varsel.xml', '')
@@ -144,6 +167,33 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
     def getXml(self, url):
         xml = utils.web.getUrl(url)
         return xml
+
+    def parseXmlSun(self, xml, lang):
+        tree = ElementTree.fromstring(xml)
+        location = tree.find('.//location')
+        name = location.find('.//name').text
+        country = location.find('.//country').text
+        loctype = location.find('.//type').text
+
+        sunriseLoc = 'Sunrise'
+        sunsetLoc = 'Sunset'
+        if lang == 'bm' or lang == 'nn':
+            sunriseLoc = 'Soloppgang'
+            sunsetLoc = 'Solnedgang'
+
+        sun = tree.find('.//sun')
+        sunrise = sun.attrib['rise']
+        sunset = sun.attrib['set']
+
+        sunrise = time.strptime(sunrise, '%Y-%m-%dT%H:%M:%S')
+        sunset = time.strptime(sunset, '%Y-%m-%dT%H:%M:%S')
+
+        sunrise = time.strftime('%H:%M', sunrise)
+        sunset = time.strftime('%H:%M', sunset)
+    
+        ret = '{0}: {2}. {1}: {3}'.format(sunriseLoc, sunsetLoc, sunrise, sunset)
+        ret += ' ({0}, {1})'.format(name.encode('utf8'), country.encode('utf8'))
+        return ret
 
     def parseXml(self, xml, lang):
         tree = ElementTree.fromstring(xml)
