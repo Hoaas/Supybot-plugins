@@ -46,18 +46,5 @@ DuckDuckGo = conf.registerPlugin('DuckDuckGo')
 # conf.registerGlobalValue(DuckDuckGo, 'someConfigVariableName',
 #     registry.Boolean(False, """Help for someConfigVariableName."""))
 
-conf.registerGlobalValue(DuckDuckGo, 'showURL',
-    registry.Boolean(True, """Show the URL given for ZCI results?"""))
-
-conf.registerGlobalValue(DuckDuckGo, 'safeSearch',
-    registry.Boolean(True, """Enable or disable safe-search?"""))
-
-conf.registerGlobalValue(DuckDuckGo, 'maxReplies',
-    registry.Integer(1, """Maximum number of lines to reply with (beware
-        of flooding)"""))
-
-conf.registerGlobalValue(DuckDuckGo, 'webLink',
-    registry.Boolean(True, """Get the first web link, if there is no ZCI?
-        NOTE: This will require a second request."""))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

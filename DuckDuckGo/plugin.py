@@ -28,7 +28,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 ###
-import duckduckgo
+from lxml import etree
+import urllib2, urllib
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
@@ -36,62 +37,154 @@ import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 
 class DuckDuckGo(callbacks.Plugin):
-    """This addon uses the search engine DuckDuckGo's (@ duckduckgo.com) Zero-Click info.
+    """This addon uses the search engine DuckDuckGos (@ duckduckgo.com) Zero-Click info.
     It extract info from a long range of sources, like wikipedia, IMDB and so forth.
     One example is simply searching for "h2o" will give you information about water. 
     See duckduckgo.com for more information."""
     threaded = True
-    def __init__(self, *args, **kwargs):
-        super(DuckDuckGo, self).__init__(*args, **kwargs)
-        if duckduckgo.__version__ < 0.24:
-            self.log.error('DuckDuckGo requires python-duckduckgo2 >= 0.24')
 
-    def ddg(self, irc, msg, args, options, query):
-        """[--answer | --abstract | --related | --define | --nourl] <query>
+    def ddg(self, irc, msg, args, query):
+        """<query>
 
-        Searches duckduckgo.com and returns any zero-click information or a web
-        result, if any. Using options overrides normal priority. --nourl
-        overrides the webLink config."""
+        Searches duckduckgo.com and returns any zero-click information, if any."""
         
-        showurl = self.registryValue('showURL')
-        safesearch = self.registryValue('safeSearch')
-        maxreplies = self.registryValue('maxReplies')
-        weblink = self.registryValue('webLink')
+        showurl = False
+        safesearch = False
+        maxreplies = 3
         showaddionalhits = False
-        nourloverride = False
         
-        PRIORITY = ['answer', 'abstract', 'related.0', 'definition', 'related']
+        repliessofar = 0
         
-        if options:
-            weblink = False
-            for (key, value) in options:
-                if key == 'nourl':
-                    nourloverride = True
-                    continue
-                if key == 'answer':
-                    PRIORITY = ['answer']
-                    break
-                if key == 'abstract':
-                    PRIORITY = ['abstract']
-                    break
-                if key == 'related':
-                    PRIORITY = ['related.0']
-                    break
-                if key == 'define':
-                    PRIORITY = ['definition']
-                    break
-        if nourloverride:
-            web_fallback = False
-        res = duckduckgo.get_zci(
-                query,
-                web_fallback=weblink,
-                safesearch=safesearch,
-                priority=PRIORITY,
-                urls=showurl,
-                useragent='Supybot plugin (IRC-bot) https://github.com/Hoaas/Supybot-plugins/tree/master/DuckDuckGo'
-        )
-        irc.reply(res)
-    ddg = wrap(ddg, [getopts({'answer':'', 'abstract':'','related':'', 'define':'', 'nourl':''}), 'text'])
+        
+        if safesearch:
+            ss = "&kp=1"
+        else:
+            ss = "&kp=-1"
+        url = "https://api.duckduckgo.com/?format=xml&no_html=1&skip_disambig=1&no_redirect=1" + ss + "&q="
+        query = urllib.quote(query);
+        url += query
+        ref = 'irc://%s/%s' % (dynamic.irc.server, dynamic.irc.nick)
+        try:
+            req = urllib2.Request(url)
+            req.add_header('Supybot plugin (IRC-bot)',
+                    'https://github.com/Hoaas/Supybot-plugins/tree/master/DuckDuckGo')
+            req.add_header('Server / nick', ref)
+            f = urllib2.urlopen(req)
+            xml = f.read()
+        except urllib2.URLError, (err):
+            irc.reply(err)
+            return
+        except:
+            irc.reply("Failed to open " + url)                    
+            return
+
+        # Dirty dirty hack to replace '<br>' with ' - '
+        xml = xml.replace("&lt;br&gt;", " - ")
+
+        # Attempt to remove Unicode characters, or else python might crash like a drunk driver.
+        # xml = xml.encode('ascii', 'ignore')
+        try:
+            root = etree.fromstring(xml)
+        except:
+            self.log.info("DDG: Redirected from " + url+ " to " + f.geturl())
+            irc.reply(f.geturl())
+            return
+        redirect = root.findtext("Redirect") 
+        type = root.findtext("Type")
+        answer = root.findtext("Answer")
+        anstype = root.findtext("AnswerType")
+        definition = root.findtext("Definition")
+        defsrc = root.findtext("DefinitionSource")
+        abstract = root.findtext("AbstractText")
+        abstracturl = root.findtext("AbstractURL")
+        abssrc = root.findtext("AbstractSource")
+        results = root.findall("Results/Result")
+        topics = root.findall("RelatedTopics/RelatedTopic")
+        stopics = root.findall("RelatedTopics/RelatedTopicsSection/RelatedTopic")
+        
+        asrc = ""
+        if abssrc:
+            asrc = " ({0})".format(abssrc)
+        dsrc = ""
+        if defsrc:
+            dsrc = " ({0})".format(defsrc)
+
+        if answer and repliessofar < maxreplies:
+            # TODO: Fix this. It looks ugly.
+            if anstype:
+                irc.reply(answer.strip().encode('utf-8') + "(" + anstype + ")")
+            else:
+                irc.reply(answer.strip().encode('utf-8'))
+            repliessofar += 1
+        if abstract and repliessofar < maxreplies:
+            # TODO: Fix this. It looks ugly.
+            if showurl:
+                output = abstract.strip() + " " + abstracturl.strip()
+            else:
+                output = abstract.strip() + asrc
+            irc.reply(output.encode('utf-8'))
+            repliessofar += 1
+            return
+        if definition and repliessofar < maxreplies:
+            irc.reply(definition.strip().encode('utf-8') + dsrc)
+            repliessofar += 1
+            return
+
+        numresults = len(results)
+        counter = 0
+        while (counter < numresults) and (repliessofar < maxreplies):
+            # TODO: Fix this. It looks ugly.
+            if showurl:
+                output = results[counter].findtext("Text") + " " + results[counter].findtext("FirstURL")
+                output = output.strip()
+            else:
+                output = results[counter].findtext("Text") + asrc + dsrc
+                output = output.strip()
+            irc.reply(output.encode('utf-8'))
+            repliessofar += 1
+            counter += 1
+
+        topicsleft = len(topics)
+        stopicsleft = len(stopics)
+        totaltopics = topicsleft + stopicsleft
+        
+        i = 0
+        while topicsleft > 0 and (repliessofar < maxreplies):
+            if showurl:
+                output = topics[i].findtext("Text") + " " + topics[i].findtext("FirstURL")
+                output = output.strip()
+            else:
+                output = topics[i].findtext("Text") + asrc + dsrc
+                output = output.strip()
+            irc.reply(output.encode('utf-8'))
+            repliessofar += 1
+            topicsleft -= 1
+            i += 1
+        i = 0
+        while stopicsleft > 0 and (repliessofar < maxreplies):
+            if showurl:
+                output = stopics[i].findtext("Text") + " " + stopics[i].findtext("FirstURL")
+                output = output.strip()
+            else:
+                output = stopics[i].findtext("Text") + asrc + dsrc
+                output = output.strip()
+            irc.reply(output.encode('utf-8'))
+            repliessofar += 1
+            stopicsleft -= 1
+            i += 1
+    
+        if repliessofar == maxreplies and totaltopics > repliessofar and showaddionalhits:
+            irc.reply(str((numtopics + numstopics) - repliessofar) + " other topics.")
+                # If there are only 1 topic
+                # irc.reply(topics[0].findtext("Text") + " " + topics[0].findtext("FirstURL"))
+        if redirect:
+            irc.reply(redirect)
+            repliessofar += 1
+        if repliessofar == 0:
+            irc.reply("No Zero-Click info from DuckDuckGo.")
+              
+    ddg = wrap(ddg, ['text'])
+        
 
 Class = DuckDuckGo
 
