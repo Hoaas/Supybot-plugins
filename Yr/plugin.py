@@ -191,7 +191,7 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
         sunrise = time.strftime('%H:%M', sunrise)
         sunset = time.strftime('%H:%M', sunset)
     
-        ret = '{0}: {2}. {1}: {3}'.format(sunriseLoc, sunsetLoc, sunrise, sunset)
+        ret = '{0} {2}. {1} {3}'.format(sunriseLoc, sunsetLoc, sunrise, sunset)
         ret += ' ({0}, {1})'.format(name.encode('utf8'), country.encode('utf8'))
         return ret
 
@@ -464,12 +464,15 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
         world = os.path.join(path, 'verda.txt')
         norge = os.path.join(path, 'noreg.txt')
         postnr = os.path.join(path, 'postnummer.txt')
+        dbsFilled = 0
         db = self.getDb('')
         cursor = db.cursor()
 
         cursor.execute("SELECT COUNT(*) FROM norge")
         results = cursor.fetchall()
         if (results[0][0] == 0):
+            dbsFilled += 1
+            cursor.execute("""BEGIN""")
             f = open(norge)
             for line in f.readlines():
                 w = line.split('\t')
@@ -477,10 +480,13 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
                         locationtypenn, locationtypebn, locationtypeen,
                         municipality, county, lat, lon, amsl, urlnn, urlbm, urlen)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", (w[0], w[1], w[2], w[3], w[4], w[5], w[6], w[7], w[8], w[9], w[10], w[11], w[12], w[13],))
+            cursor.execute("""COMMIT""")
 
         cursor.execute("SELECT COUNT(*) FROM world")
         results = cursor.fetchall()
         if (results[0][0] == 0):
+            dbsFilled += 1
+            cursor.execute("""BEGIN""")
             f = open(world)
             for line in f.readlines():
                 w = line.split('\t')
@@ -492,10 +498,13 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
                         ?, ?, ?, ?, ?)""", (w[0], w[1], w[2], w[3], w[4],
                             w[5], w[6], w[7], w[8], w[9], w[10], w[11], w[12],
                             w[13], w[14], w[15], w[16], w[17],))
+            cursor.execute("""COMMIT""")
 
         cursor.execute("SELECT COUNT(*) FROM postal")
         results = cursor.fetchall()
         if (results[0][0] == 0):
+            dbsFilled += 1
+            cursor.execute("""BEGIN""")
             f = open(postnr)
             for line in f.readlines():
                 w = line.split('\t')
@@ -503,8 +512,10 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
                         kommunenr, lat, lon, note, urlnn, urlbm, urlen) VALUES
                         (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", (w[0], w[1], w[2], w[3], w[4],
                             w[5], w[6], w[7], w[8], w[9],))
-
+            cursor.execute("""COMMIT""")
         db.commit()
+        plural = lambda n: 's' if int(n) > 1 else ''
+        irc.reply("%s database%s filled." % (dbsFilled, plural(dbsFilled)))
 
     filldb= wrap(filldb, [('checkCapability', 'owner'), ('literal',
         'yes')])

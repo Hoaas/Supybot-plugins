@@ -48,7 +48,8 @@ Yr = conf.registerPlugin('Yr')
 conf.registerChannelValue(Yr, 'lang', registry.String('en', """Default language
     to use."""))
 conf.registerChannelValue(Yr, 'location', registry.String('Oslo', """Default
-    location to use."""))
+    location to use. 'en' (English), 'bm' (Norwegian (Bokmål)) or 'nn'
+    (Norwegian (Nynorsk))."""))
 conf.registerChannelValue(Yr, 'pollen', registry.Integer(1, """Default
     ID to use on the command 'pollen'."""))
 
