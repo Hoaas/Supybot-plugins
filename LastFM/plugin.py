@@ -154,7 +154,7 @@ class LastFM(callbacks.Plugin):
 
 
     def lastfm(self, irc, msg, args, options, user):
-        """[user]
+        """[--notags][user]
 
         Returns last played track for user. If no username is supplies, the
         nick of the one calling the command will be attempted."""
