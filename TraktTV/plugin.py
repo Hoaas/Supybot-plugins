@@ -158,6 +158,7 @@ class TraktTV(callbacks.Plugin):
                     t)
             if outurl:
                 output += movie.get('url').encode('utf-8')
+        output = output.replace('\n',' ')
         irc.reply(output)
 
     np = wrap(np, [optional('text')])
