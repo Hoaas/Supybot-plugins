@@ -55,6 +55,9 @@ class Hailo(callbacks.Plugin):
         return 'hailo -b %s' % dataDir
 
     def brainstats (self,irc,msg,args):
+        """Information about the current brain.
+
+        """
         if not irc.isChannel(msg.args[0]):
             irc.reply("No brains in private! (each channel have a different brain)")
             return
@@ -81,7 +84,7 @@ class Hailo(callbacks.Plugin):
         spokenTo = msg.args[1].lower().startswith('%s: ' % irc.nick.lower())
 
         if replyWhenSpokenTo and spokenTo:
-            reply = 100
+            reply = 1000
             text = text.replace('%s: ' % irc.nick, '')
             text = text.replace('%s: ' % irc.nick.lower(), '')
 
@@ -89,9 +92,9 @@ class Hailo(callbacks.Plugin):
             if not replyWhenSpokenTo and spokenTo:
                 reply = 0
             else:
-                reply = 100
+                reply = 1000
 
-        if randint(0, 99) < reply:
+        if randint(0, 999) < reply:
             self.reply(irc, msg, text)
 
         if learn:

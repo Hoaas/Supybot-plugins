@@ -1,3 +1,4 @@
+#-*- coding: utf8 -*-
 ###
 # Copyright (c) 2010, Nicolas Coevoet
 # All rights reserved.
@@ -41,7 +42,7 @@ conf.registerChannelValue(Hailo, 'learn',
     registry.Boolean(True, """Learn on each message in a channel."""))
 
 conf.registerChannelValue(Hailo, 'reply',
-    registry.NonNegativeInteger(0,"""Percent of chance of auto reply."""))
+    registry.NonNegativeInteger(0,"""permille (‰ (1/1000)) of chance of auto reply."""))
 
 conf.registerChannelValue(Hailo, 'replyOnMention', registry.Boolean(True,
     """Reply when the bots nick is mentioned in a sentence."""))
