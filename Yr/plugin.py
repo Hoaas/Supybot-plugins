@@ -98,14 +98,11 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
         return '{0}{1}.'.format(tempdesc, chill)
 
     def temp(self, irc, msg, args, channel, location):
-        """<location>
+        """[#channel] <location>
 
         Checks first if there are any local aliases added, then if they exist
         in the world db. If language is set to norwegian (bm or nn)
         norwegian db is checked first along with db for postal numbers."""
-
-        if location is None:
-            location = self.registryValue('location', channel)
 
         lang = self.registryValue('lang', channel)
         if lang != 'en' and lang != 'bm' and lang != 'nn':
@@ -113,27 +110,27 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
             lang = 'en'
 
         channel = msg.args[0].lower()
-        url = self.getUrl(location, lang)
+        url = self.getUrl(location, lang, channel, msg.nick)
         if url is None:
+            if location is None:
+                 location = self.registryValue('location', channel)
             irc.reply("No hits on '%s'." % (location))
             return
         ret = None
         html = self.getHtml(url)
         try:
-           ret = self.parseHtml(html, lang)
+            ret = self.parseHtml(html, lang)
         except:
             pass
         if ret is None:
             xml = self.getXml(url)
-            ret = self.parseXml(xml, lang)
             try:
-                pass
+                ret = self.parseXml(xml, lang)
             except:
                 pass
         if ret is None:
             ret = 'Failed to parse :('
         irc.reply(ret)
-        # TODO: Output. Sun. Moon.
     temp = wrap(temp, ['channel', optional('text')])
 
     def sun(self, irc, msg, args, channel, location):
@@ -142,15 +139,15 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
         Checks first if there are any local aliases added, then if they exist
         in the world db. If language is set to norwegian (bm or nn)
         norwegian db is checked first along with db for postal numbers."""
-        if location is None:
-            location = self.registryValue('location', channel)
         lang = self.registryValue('lang', channel)
         if lang != 'en' and lang != 'bm' and lang != 'nn':
             irc.reply('Language is not valid. Please fix. Defaulting to english.')
             lang = 'en'
         channel = msg.args[0].lower()
-        url = self.getUrl(location, lang)
+        url = self.getUrl(location, lang, channel, msg.nick)
         if url is None:
+            if location is None:
+                 location = self.registryValue('location', channel)
             irc.reply("No hits on '%s'." % (location))
             return
         xml = self.getXml(url)
@@ -160,7 +157,7 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
     
     def getHtml(self, url):
         url = url.replace('/varsel.xml', '')
-        url = url.replace('/forecastl.xml', '')
+        url = url.replace('/forecast.xml', '')
         html = utils.web.getUrl(url)
         return html
 
@@ -202,9 +199,9 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
         country = location.find('.//country').text
         loctype = location.find('.//type').text
 
-        forecast = tree.find('.//forecast')[0][0]
-
+        forecast = tree.find('.//forecast').find('.//tabular').find('.//time')
         symbol = forecast[0].attrib['name']
+
         # precipitation = forecast[1].attrib['value']
         windDirection = forecast[2].attrib['name']
         windSpeedName = forecast[3].attrib['name']
@@ -395,8 +392,12 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
             irc.reply(retstr)
     pollen = wrap(pollen, [additional('text')]) 
 
-    def getUrl(self, location, lang):
-        url = self.getLocalUrl(location, lang)
+    def getUrl(self, location, lang, channel, nick):
+        locSet = True
+        if location is None:
+            location = self.registryValue('location', channel)
+            locSet = False
+        url = self.getLocalUrl(location, locSet, channel, nick)
         if url is not None:
             return url
 
@@ -414,24 +415,24 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
     def dbQuery(self, query, parameter):
         db = self.getDb('')
         cursor = db.cursor()
-        cursor.execute(query, (parameter,))
+        cursor.execute(query, parameter)
         results = cursor.fetchall()
         return results
 
     def getPostalUrl(self, num, lang):
         sql = "SELECT url%s FROM postal WHERE postnr=?" % (lang)
-        results = self.dbQuery(sql, num)
+        results = self.dbQuery(sql, (num,))
         if len(results) != 0:
             return results[0][0]
         return None
 
     def getNorgeUrl(self, loc, lang):
         sql = "SELECT url%s, priority FROM norge WHERE name = ? COLLATE NOCASE" % (lang)
-        results = self.dbQuery(sql, loc)
+        results = self.dbQuery(sql, (loc,))
         if len(results) == 0:
             sql = "SELECT url%s, priority FROM norge WHERE name LIKE ? COLLATE NOCASE" % (lang)
             loc += '%'
-            results = self.dbQuery(sql, loc)
+            results = self.dbQuery(sql, (loc,))
 
         if len(results) != 0:
             results = sorted(results, key=lambda x: x[1], reverse=False)
@@ -441,19 +442,54 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
     def getWorldUrl(self, loc, lang):
         sql = "SELECT url%s, population FROM world WHERE name%s = ? COLLATE NOCASE" % (lang,
                 lang)
-        results = self.dbQuery(sql, loc)
+        results = self.dbQuery(sql, (loc,))
         if len(results) == 0:
             sql = "SELECT url%s, population FROM world WHERE name%s LIKE ? COLLATE NOCASE" % (lang,
                     lang)
             loc += '%'
-            results = self.dbQuery(sql, loc)
+            results = self.dbQuery(sql, (loc,))
         if len(results) != 0:
-            results = sorted(results, key=lambda x: x[1], reverse=True) #TODO: Check way or sorting.
+            results = sorted(results, key=lambda x: x[1], reverse=True)
             return results[0][0]
         return None
 
-    def getLocalUrl(self, alias, lang):
+    def getLocalUrl(self, alias, locSet, channel, nick):
+        sql = 'SELECT url FROM local WHERE '
+        # sql += 'channel = ?
+        if not locSet:
+            sql += 'alias = ?'
+            results = self.dbQuery(sql, (nick,))
+        else:
+            # sql += 'channel = ? AND '
+            sql += 'alias LIKE ? COLLATE NOCASE'
+            results = self.dbQuery(sql, (alias,))
+
+        if len(results) != 0:
+            return results[0][0]
         return None
+
+    def addurl(self, irc, msg, args, alias, url):
+        """<alias> <yr.no url to location>
+        Adds the url to the database so that you can use the alias as a
+        location name. If the alias is 'nick' the url will be the default for
+        your nick.
+        """
+        if alias == 'nick':
+            alias = msg.nick
+        if url[-4:] != '.xml':
+            if url[-1:] != '/':
+                url += '/'
+            url += 'forecast.xml'
+
+        db = self.getDb('')
+        cursor = db.cursor()
+
+        cursor.execute("""BEGIN""")
+        cursor.execute("""INSERT OR REPLACE INTO local (alias, url, channel)
+                VALUES (?, ?, ?)""", (alias, url, msg.args[0]))
+        cursor.execute("""COMMIT""")
+        irc.reply('Done. URL added for ' + alias + '.')
+    addurl = wrap(addurl, ['somethingWithoutSpaces', 'url'])
 
     def filldb(self, irc, msg, args, verification):
         """<yes>
@@ -520,7 +556,7 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
     filldb= wrap(filldb, [('checkCapability', 'owner'), ('literal',
         'yes')])
 
-
+    """ This function is called by magic. """
     def makeDb(self, _):
         # Second argument is not used
         globaldb = conf.supybot.directories.data.dirize('Yr.db')
@@ -586,7 +622,8 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
                           id INTEGER PRIMARY KEY,
                           alias TEXT,
                           url TEXT,
-                          channel TEXT
+                          channel TEXT,
+                          CONSTRAINT unq UNIQUE (alias, channel)
                           )""")
         db.commit()
         return db
