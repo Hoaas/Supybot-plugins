@@ -1,4 +1,4 @@
-import plugin
+from . import plugin
 
 import supybot.conf as conf
 import supybot.utils as utils

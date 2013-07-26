@@ -35,7 +35,8 @@ import simplejson
 import base64
 import PIL.Image as Image
 
-import urllib, urllib2
+import http
+import urllib
 import supybot.conf as conf
 import supybot.utils as utils
 from supybot.commands import *
@@ -88,18 +89,18 @@ class ImgGet(callbacks.Plugin):
                   'hl' : hl,
                   'start' : start,
                   'q' : q }
-        data = urllib.urlencode(values)
+        data = urllib.parse.urlencode(values)
         url = "http://ajax.googleapis.com/ajax/services/search/images"
         url = url + "?" + data
-        request = urllib2.Request(url, None, {'Referer': ref})
+        request = urllib.request.Request(url, None, {'Referer': ref})
         
         try:
-            response = urllib2.urlopen(request)
-        except urllib2.HTTPError, e:
+            response = urllib.request.urlopen(request)
+        except urllib.error.HTTPError as e:
             self.log.debug(str(e))
             irc.reply("Could not connect to google at this point")
             return
-        except urllib2.URLError, e:
+        except urllib.error.URLError as e:
             self.log.debug(str(e))
             irc.reply("Could not connect to google at this point")
             return
@@ -110,14 +111,14 @@ class ImgGet(callbacks.Plugin):
         
         try:
             data = simplejson.load(response)
-        except simplejson.JSONDecodeError, e:
+        except simplejson.JSONDecodeError as e:
             self.log.debug(str(e))
             irc.reply("Got a strange response from Google. *confused*")
             return
         
         if data['responseStatus'] != 200:
             self.log.debug(data['responseStatus'])
-            raise callbacks.Error, 'We broke The Google!'
+            raise callbacks.Error('We broke The Google!')
 
         if(len(data["responseData"]["results"]) > 0):
             if num < 1:
@@ -172,8 +173,8 @@ class ImgGet(callbacks.Plugin):
             return -1
             
         try:
-            req = urllib2.Request(url)
-            f = urllib2.urlopen(req)
+            req = urllib.request.Request(url)
+            f = urllib.request.urlopen(req)
             apinahtml = f.read()
             
             apinahtml = apinahtml.partition('<img src="')[2]
@@ -199,7 +200,8 @@ class ImgGet(callbacks.Plugin):
         # Splits on the last /
         # example:
         # http://www.altenergystocks.com/assets/Nanotubes.jpg
-        orgfilenamelist = url.rsplit('/', 1)
+        # Even more ugly since py3 upgrade.
+        orgfilenamelist = urllib.parse.urlparse(url).path.rsplit('/', 1)
         # ['http://www.altenergystocks.com/assets', 'Nanotubes.jpg']
         orgfilenamelist = orgfilenamelist[-1].rsplit(".", 1)
         # ['Nanotubes', 'jpg']
@@ -209,7 +211,7 @@ class ImgGet(callbacks.Plugin):
         # There are lots of %-encodings.
         # Ok, decided to use base64-encoding instead. Should fix all the
         # XSS-holes and problems with filenames ending with %-stuff.
-        orgfilename = base64.b64encode(orgfilename)
+        orgfilename = base64.b64encode(orgfilename.encode('ascii')).decode()
         
         # base64 adds some =s at the end.
         orgfilename = orgfilename[:orgfilename.find("=")]
@@ -233,8 +235,8 @@ class ImgGet(callbacks.Plugin):
     
     def _imgur(self, url):
         try:
-            req = urllib2.Request(url)
-            f = urllib2.urlopen(req)
+            req = urllib.request.Request(url)
+            f = urllib.request.urlopen(req)
             imgurhtml = f.read()
             imgurhtml = imgurhtml.partition('<table><tr><td align="center"><a href="')[2]
             imgurhtml = imgurhtml.partition('"')[0]
@@ -255,12 +257,12 @@ class ImgGet(callbacks.Plugin):
         return "%3.1f %s" % (num, 'TiB')
 
 
-    def _downloadImg(self, irc, url, nick, channel, connection, contenttype):
+    def _downloadImg(self, irc, url, nick, channel, connection, contenttype, headers):
         # Try to get content-length from header
         contentlength = None
         size = None
         try:
-            contentlength = int(connection.info().getheader("Content-Length"))
+            contentlength = int([tup for tup in headers if tup[0] == "Content-Length"][0][1])
             size = self.sizeof_fmt(contentlength)
         except:
             self.log.debug('Could not retrieve contentlength from header; ' + url)
@@ -283,7 +285,7 @@ class ImgGet(callbacks.Plugin):
         # Starting the timer
         starttime = datetime.datetime.now()
         try:
-            location, header = urllib.urlretrieve(url, filedir)
+            location, header = urllib.request.urlretrieve(url, filedir)
         except:
             self.log.debug('Could not download file from ' + url)
             return
@@ -329,7 +331,7 @@ class ImgGet(callbacks.Plugin):
 
         mirroroutput = ''
         if(mirror):
-            filename = urllib.quote(filename)
+            filename = urllib.parse.quote(filename)
             mirrorurl = self.registryValue('mirrorurl', channel)
             if mirrorurl == "Not set":
                 mirroroutput = "Attempted to link to mirror, but mirror url for this channel is not set."
@@ -339,8 +341,8 @@ class ImgGet(callbacks.Plugin):
             url = "http://is.gd/api.php?longurl=" + mirrorurl + filename
             self.log.debug("Trying to shorten url using " + url)
             try:
-                requrl = urllib2.Request(url)
-                urlf = urllib2.urlopen(requrl)
+                requrl = urllib.request.Request(url)
+                urlf = urllib.request.urlopen(requrl)
                 isgdurl = urlf.read()
             except:
                 self.log.warning("Failed to shorten url: " + url)
@@ -373,29 +375,28 @@ class ImgGet(callbacks.Plugin):
                 url = self._apina(url)
             elif(url.startswith("http://imgur.com/")):
                 url = self._imgur(url)
-            
             # If url was apina.biz or imgur.com, but not a picture we jump to next url.
             if(url == -1):
                 continue
-            
+
+            o = urllib.parse.urlparse(url)
             # Try to open connection
-            try:
-                connection = urllib.urlopen(url)
-            except:
-                self.log.debug("Could not open connection to " + url)
-                continue
-            
+            conn = http.client.HTTPConnection(o.netloc)
             # Try to get content-type from header
             try:
-                contenttype = connection.info().getheader("Content-Type")
+                conn.request("HEAD", o.path)
+                res = conn.getresponse()
+                headers = res.getheaders()
+                contenttype = [tup for tup in headers if tup[0] == "Content-Type"][0][1]
             except:
-                self.log.debug('Could not get header from ' + url)
+                self.log.warning('Could not get header from ' + url)
                 # Without a header we can't know if it is an image or not
                 continue
     
+            conn.request("GET", o.path)
             # If we actually have a type, and it claims to be an image, we continue.
             if contenttype and contenttype.startswith('image'):
-                self._downloadImg(irc, url, nick, channel, connection, contenttype)
+                self._downloadImg(irc, url, nick, channel, conn, contenttype, headers)
     
     # Warning. Do NOT have any check to see if an url to a big image is being spammed, or if that image is already downloaded.
     def doPrivmsg(self, irc, msg):

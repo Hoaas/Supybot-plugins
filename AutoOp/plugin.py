@@ -121,7 +121,7 @@ class AutoOp(callbacks.Plugin):
         # For all nicks in channel
         for u in irc.state.channels[channel].users:
             hostname = irc.state.nickToHostmask(u)
-            for regex in hostdict.iteritems():
+            for regex in hostdict.items():
                 match = re.search(regex[0], hostname)
                 if match:
                     if regex[1] == "op":
@@ -201,7 +201,7 @@ class AutoOp(callbacks.Plugin):
         try:
             hostdict = simplejson.load(logfile)
             # self.log.info("DEBUG: " + str(json))
-        except simplejson.JSONDecodeError, j:
+        except simplejson.JSONDecodeError as j:
             pass # Happens when the file doesn't exist.
         logfile.close()
         return hostdict, dataDir
@@ -239,16 +239,16 @@ class AutoOp(callbacks.Plugin):
         lines = log.splitlines()
         
         for l in lines:
-	        # Incase of extra whitespace at input
-    	    l = l.strip()
+            # Incase of extra whitespace at input
+            l = l.strip()
             regexline = l.split("#")
-    	    # Split up the hostmask and v/h/o, ignore whatever comment might be present
-    	    maskandmode = regexline[0].split()
+            # Split up the hostmask and v/h/o, ignore whatever comment might be present
+            maskandmode = regexline[0].split()
             regexmask = maskandmode[0]
-    	    mode = maskandmode[1]
-    	    
-    	    # The first mode that matches the regex is always retured. 
-    	    # So if you want to ignore a host add it first with an invalid mode.
+            mode = maskandmode[1]
+            
+            # The first mode that matches the regex is always retured. 
+            # So if you want to ignore a host add it first with an invalid mode.
             if(re.match(regexmask, hostmask) is not None):
                 return mode
         return False

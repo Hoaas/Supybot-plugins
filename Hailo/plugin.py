@@ -30,7 +30,7 @@ import supybot.ircmsgs as ircmsgs
 import supybot.ircdb as ircdb
 import supybot.schedule as schedule
 from random import *
-import commands
+import subprocess
 import re
 import time
 
@@ -61,7 +61,7 @@ class Hailo(callbacks.Plugin):
         if not irc.isChannel(msg.args[0]):
             irc.reply("No brains in private! (each channel have a different brain)")
             return
-        out = commands.getoutput('%s %s' % (self.cmd(msg.args[0]),'-s'))
+        out = subprocess.getoutput('%s %s' % (self.cmd(msg.args[0]),'-s'))
         out = out.replace ('\n',', ')
         irc.reply(out)
     brainstats = wrap(brainstats)
@@ -187,14 +187,14 @@ class Hailo(callbacks.Plugin):
     def learn(self, irc, msg, text):
         text = self.sanitize(text)
         text = self.strip_nick(irc, msg, text)
-        commands.getoutput('%s %s' % (self.cmd(msg.args[0]), '-l "%s"' % text))
+        subprocess.getoutput('%s %s' % (self.cmd(msg.args[0]), '-l "%s"' % text))
 
     def reply(self, irc, msg, text):
         nick = msg.nick
         channel = msg.args[0]
         text = self.sanitize(text)
         text = self.strip_nick(irc, msg, text)
-        out = commands.getoutput('%s %s' % (self.cmd(msg.args[0]),'-r "%s"' % text))
+        out = subprocess.getoutput('%s %s' % (self.cmd(msg.args[0]),'-r "%s"' % text))
         if out and out != text and out != nick and not out.startswith('DBD::SQLite::db'):
             out = out.replace('\n','').replace('\t','')
             out = out.replace(irc.nick, self.magicnick)

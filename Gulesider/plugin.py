@@ -29,7 +29,7 @@
 
 ###
 
-import urllib
+import urllib.request, urllib.parse, urllib.error
 from xml.etree import ElementTree
 from bs4 import BeautifulSoup as BS
 
@@ -56,7 +56,7 @@ class Gulesider(callbacks.Plugin):
 
     def fetch(self, text):
         url = 'http://www.gulesider.no/person/resultat/'
-        url += urllib.quote(text)
+        url += urllib.parse.quote(text)
         html = utils.web.getUrl(url)
         return html
 
@@ -124,8 +124,8 @@ class Gulesider(callbacks.Plugin):
         by = person.find_all(class_='locality')
         if by and len(by) > 0:
             by = by[0].text.strip()
-        by = ' '.join(filter(None, (postnr, by)))
-        return ', '.join(filter(None, (gate, by)))
+        by = ' '.join([_f for _f in (postnr, by) if _f])
+        return ', '.join([_f for _f in (gate, by) if _f])
 
     def formatperson(self, p, num):
         navn = self.getnavn(p)
@@ -133,10 +133,10 @@ class Gulesider(callbacks.Plugin):
         tlf = ircutils.bold(self.gettlf(p))
         formatedperson = ''
         if num:
-            formatedperson = ', '.join(filter(None, (ircutils.bold(navn), adresse)))
+            formatedperson = ', '.join([_f for _f in (ircutils.bold(navn), adresse) if _f])
         else:
-            navn_og_adresse = ', '.join(filter(None, (navn, adresse)))
-            formatedperson = ' - '.join(filter(None, (tlf, navn_og_adresse)))
+            navn_og_adresse = ', '.join([_f for _f in (navn, adresse) if _f])
+            formatedperson = ' - '.join([_f for _f in (tlf, navn_og_adresse) if _f])
         return formatedperson
 
 
@@ -163,7 +163,7 @@ class Gulesider(callbacks.Plugin):
             ret = self.formatperson(persons, num)
         else:
             for p in persons:
-                ret = '; '.join(filter(None, (ret, self.formatperson(p, num))))
+                ret = '; '.join([_f for _f in (ret, self.formatperson(p, num)) if _f])
         irc.reply(ret)
     tlf = wrap(tlf, ['text'])
 

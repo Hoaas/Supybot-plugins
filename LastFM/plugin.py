@@ -35,7 +35,7 @@ import time
 from datetime import tzinfo, datetime, timedelta
 
 import json
-import urllib2, urllib
+import urllib.request, urllib.error, urllib.parse, urllib.request, urllib.parse, urllib.error
 
 import supybot.dbi as dbi
 import supybot.utils as utils
@@ -149,9 +149,7 @@ class LastFM(callbacks.Plugin):
     def set_apikey(self):
         self.apikey = self.registryValue('apikey')
         if not self.apikey or self.apikey == "Not set":
-            irc.reply("API key not set. see 'config help supybot.plugins.LastFM.apikey'.")
-            return
-
+            raise Exception('Apikey not set. Check out config help supybot.plugins.LastFM.apikey')
 
     def lastfm(self, irc, msg, args, options, user):
         """[--notags][user]
@@ -172,34 +170,34 @@ class LastFM(callbacks.Plugin):
 
         reply = self.last_played(user, plays=notags)
         if reply:
-            irc.reply(reply.encode('utf-8'))
+            irc.reply(reply)
     lastfm = wrap(lastfm, [getopts({'notags':''}), optional('text')])
 
     def last_played(self, user, plays = True):
         self.set_apikey()
-        data = urllib.urlencode(
+        data = urllib.parse.urlencode(
             {'user': user,
             'limit' : 1,
             'api_key': self.apikey,
             'format': 'json',
             'method': 'user.getRecentTracks'}
-        )
-
+        ).encode('utf-8')
+        self.log.info(str(data))
         try:
             text = utils.web.getUrl(url, data=data)
-        except urllib2.HTTPError as err:
+        except urllib.error.HTTPError as err:
             if err.code == 403:
                 return str(err) + ' API key not valid?'
             elif err.code == 400:
                 return 'No such user.'
             else:
                 return 'Could not open URL. ' + str(err)
-        except urllib2.URLError as err:
+        except urllib.error.URLError as err:
             return 'Error accessing API. It might be down. Please try again later.'
         except:
             raise
 
-        js = json.loads(text)
+        js = json.loads(text.decode('utf8'))
 
         try:
             js['error']
@@ -248,8 +246,8 @@ class LastFM(callbacks.Plugin):
         # Need either mbid or both artist and album.
         if mbid == '' and artist == '':
             return
-        data = urllib.urlencode(
-            {'artist': artist.encode('utf8'),
+        data = urllib.parse.urlencode(
+            {'artist': artist,
             'mbid': mbid,
             'api_key': self.apikey,
             'format': 'json',
@@ -284,10 +282,10 @@ class LastFM(callbacks.Plugin):
         return tags
 
     def num_of_plays(self, mbid, artist, track, album, user):
-        data = urllib.urlencode(
+        data = urllib.parse.urlencode(
             {'mbid': mbid,
-            'track': track.encode('utf8'),
-            'artist': artist.encode('utf8'),
+            'track': track,
+            'artist': artist,
             'username': user,
             'autocorrect': 0,
             'api_key': self.apikey,
@@ -368,14 +366,14 @@ class LastFM(callbacks.Plugin):
             rel_time = "%s days ago" % d.days
         elif d.seconds > 3600:
             hours = d.seconds / 3600
-            rel_time = "%s hour%s ago" % (hours, plural(hours))
+            rel_time = "%s hour%s ago" % (int(hours), plural(hours))
         elif 60 <= d.seconds < 3600:
             minutes = d.seconds / 60
-            rel_time = "%s minute%s ago" % (minutes, plural(minutes))
+            rel_time = "%s minute%s ago" % (int(minutes), plural(minutes))
         elif 30 < d.seconds < 60:
             rel_time = "less than a minute ago"
         else:
-            rel_time = "less than %s second%s ago" % (d.seconds, plural(d.seconds))
+            rel_time = "less than %s second%s ago" % (int(d.seconds), plural(d.seconds))
         return  rel_time
 
 Class = LastFM

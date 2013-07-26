@@ -31,7 +31,7 @@
 
 import json
 import datetime
-import urllib, urllib2
+import urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
@@ -81,7 +81,8 @@ class TraktTV(callbacks.Plugin):
         outurl = self.registryValue('outurl')
         username = self.registryValue('username')
         passwordhash = self.registryValue('passwordhash')
-        params = {'username': username, 'password': passwordhash}
+        params = urllib.parse.urlencode({'username': username, 'password': passwordhash}).encode('utf-8')
+
 
         if not apikey or apikey == "Not set":
             irc.reply("API key not set. see 'config help supybot.plugins.TraktTV.apikey'.")
@@ -89,16 +90,17 @@ class TraktTV(callbacks.Plugin):
 
         #url = "http://api.trakt.tv/user/watching.json/%s/" % apikey
         url = "http://api.trakt.tv/user/profile.json/%s/" % apikey
-        url += urllib.quote(nick)
+        url += urllib.parse.quote(nick)
 
         try:
-            req = urllib2.Request(url)
-            f = urllib2.urlopen(req, json.dumps(params))
-            data = f.read()
-        except urllib2.HTTPError, err:
+            data = utils.web.getUrl(url, data=params).decode()
+        except urllib.error.HTTPError as err:
             if err.code == 404:
                 irc.reply("User not found.")
             self.log.info("TraktTV: HTTP Error " + str(err.code))
+            return
+        except:
+            irc.reply("Failed. :(")
             return
         try:
             data = json.loads(data)
@@ -135,7 +137,7 @@ class TraktTV(callbacks.Plugin):
         show = watch.get('show')
         ep = watch.get('episode')
 
-        output = nick.encode('utf-8')
+        output = nick
         t = ''
         if watching:
             output += ' np. '
@@ -148,16 +150,16 @@ class TraktTV(callbacks.Plugin):
                     ircutils.bold(show.get('title')),
                     ep.get('season'),
                     ep.get('number'), ep.get('title'),
-                    ep.get('overview').encode('utf-8'),
+                    ep.get('overview'),
                     t)
         elif wtype == 'movie':
             output += '{0} ({1}){3} - {2} '.format(
-                    ircutils.bold(movie.get('title')).encode('utf-8'),
+                    ircutils.bold(movie.get('title')),
                     movie.get('year'),
-                    movie.get('overview').encode('utf-8'),
+                    movie.get('overview'),
                     t)
             if outurl:
-                output += movie.get('url').encode('utf-8')
+                output += movie.get('url')
         output = output.replace('\n',' ')
         irc.reply(output)
 

@@ -32,6 +32,7 @@ import os
 import re
 import time
 import sqlite3
+import urllib
 from xml.etree import ElementTree
 from bs4 import BeautifulSoup as BS
 
@@ -87,11 +88,10 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
                 chill = ircutils.mircColor(str(chill), 12)
             chill = ' ({0})'.format(chill)
         tempdesc = str(temp) + '°'
-        tempdesc = tempdesc.decode('utf8')
         if temp > 0:
-            tempdesc = ircutils.mircColor(tempdesc, 'Red').encode('utf8')
+            tempdesc = ircutils.mircColor(tempdesc, 'Red')
         else:
-            tempdesc = ircutils.mircColor(tempdesc, 12).encode('utf8')
+            tempdesc = ircutils.mircColor(tempdesc, 12)
         if lang != 'en':
             tempdesc = tempdesc.replace('.', ',')
             chill = chill.replace('.', ',')
@@ -158,11 +158,11 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
     def getHtml(self, url):
         url = url.replace('/varsel.xml', '')
         url = url.replace('/forecast.xml', '')
-        html = utils.web.getUrl(url)
+        html = utils.web.getUrl(url).decode()
         return html
 
     def getXml(self, url):
-        xml = utils.web.getUrl(url)
+        xml = utils.web.getUrl(url).decode()
         return xml
 
     def parseXmlSun(self, xml, lang):
@@ -189,7 +189,7 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
         sunset = time.strftime('%H:%M', sunset)
     
         ret = '{0} {2}. {1} {3}'.format(sunriseLoc, sunsetLoc, sunrise, sunset)
-        ret += ' ({0}, {1})'.format(name.encode('utf8'), country.encode('utf8'))
+        ret += ' ({0}, {1})'.format(name, country)
         return ret
 
     def parseXml(self, xml, lang):
@@ -217,11 +217,11 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
         ret = self.temp_format(temp, wind, lang)
         lang_from = lambda x: 'from' if x == 'en' else 'fra'
         if symbol:
-            ret += ' {0}.'.format(symbol.encode('utf8'))
+            ret += ' {0}.'.format(symbol)
         if wind:
-            ret += ' {0}, {1} m/s {2} {3}.'.format(windSpeedName.encode('utf8'),
-                    windSpeedValue, lang_from(lang), windDirection.lower().encode('utf8'))
-        ret += ' ({0}, {1})'.format(name.encode('utf8'), country.encode('utf8'))
+            ret += ' {0}, {1} m/s {2} {3}.'.format(windSpeedName,
+                    windSpeedValue, lang_from(lang), windDirection.lower())
+        ret += ' ({0}, {1})'.format(name, country)
         return ret
 
     def parseHtml(self, html, lang):
@@ -260,10 +260,10 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
             wind = self.parse_num(winddesc)
             ret = self.temp_format(temp, wind, lang)
             if desc:
-                ret += ' {0}.'.format(desc.encode('utf8'))
+                ret += ' {0}.'.format(desc)
             if wind:
-                ret += ' {0}.'.format(winddesc.encode('utf8'))
-            ret += ' ({0})'.format(name.encode('utf8'))
+                ret += ' {0}.'.format(winddesc)
+            ret += ' ({0})'.format(name)
             return ret
     def _pollen(self, locations, loc):
         # locations is the dictionary, loc is the integer
@@ -277,7 +277,7 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
             5: "Burot"
         }
         
-        html = utils.web.getUrl(url)
+        html = utils.web.getUrl(url).decode()
 
         first = locations[loc]
         # Dropping everything before our first find
@@ -398,18 +398,16 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
             location = self.registryValue('location', channel)
             locSet = False
         url = self.getLocalUrl(location, locSet, channel, nick)
-        if url is not None:
-            return url
-
-        if lang == 'bm' or lang == 'nn':
-            if len(location) == 4 and location.isdigit():
-                url = self.getPostalUrl(location, lang)
-            else:
-                url = self.getNorgeUrl(location, lang)
-        if url is not None:
-            return url
-
-        url = self.getWorldUrl(location, lang)
+        if url is None:
+            if lang == 'bm' or lang == 'nn':
+                if len(location) == 4 and location.isdigit():
+                    url = self.getPostalUrl(location, lang)
+                else:
+                    url = self.getNorgeUrl(location, lang)
+        if url is None:
+            url = self.getWorldUrl(location, lang)
+        o = urllib.parse.urlparse(url)
+        url = o.scheme + '://' + o.netloc + urllib.parse.quote(o.path)
         return url
 
     def dbQuery(self, query, parameter):
@@ -463,7 +461,6 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
             # sql += 'channel = ? AND '
             sql += 'alias LIKE ? COLLATE NOCASE'
             results = self.dbQuery(sql, (alias,))
-
         if len(results) != 0:
             return results[0][0]
         return None

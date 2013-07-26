@@ -29,7 +29,7 @@
 
 ###
 from lxml import etree
-import urllib2, urllib
+import urllib.request, urllib.error, urllib.parse, urllib.request, urllib.parse, urllib.error
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
@@ -61,17 +61,18 @@ class DuckDuckGo(callbacks.Plugin):
         else:
             ss = "&kp=-1"
         url = "https://api.duckduckgo.com/?format=xml&no_html=1&skip_disambig=1&no_redirect=1" + ss + "&q="
-        query = urllib.quote(query);
+        query = urllib.parse.quote(query);
         url += query
         ref = 'irc://%s/%s' % (dynamic.irc.server, dynamic.irc.nick)
         try:
-            req = urllib2.Request(url)
+            req = urllib.request.Request(url)
             req.add_header('Supybot plugin (IRC-bot)',
                     'https://github.com/Hoaas/Supybot-plugins/tree/master/DuckDuckGo')
             req.add_header('Server / nick', ref)
-            f = urllib2.urlopen(req)
+            f = urllib.request.urlopen(req)
             xml = f.read()
-        except urllib2.URLError, (err):
+        except urllib.error.URLError as xxx_todo_changeme:
+            (err) = xxx_todo_changeme
             irc.reply(err)
             return
         except:

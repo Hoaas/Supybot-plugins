@@ -1,7 +1,7 @@
 from supybot.commands import *
 import supybot.callbacks as callbacks
 
-import urllib
+import urllib.request, urllib.parse, urllib.error
 from xml.etree import ElementTree
 
 class Wolfram(callbacks.Privmsg):
@@ -17,14 +17,14 @@ class Wolfram(callbacks.Privmsg):
             irc.reply("API key not set. see 'config help supybot.plugins.Wolfram.apikey'.")
             return
 
-	maxoutput = 2
+        maxoutput = 2
         for (key, value) in options:
             if key == 'lines':
                 maxoutput = value
 
         u = "http://api.wolframalpha.com/v2/query?"
-        q = urllib.urlencode({'input': question, 'appid': apikey})
-        xml = urllib.urlopen(u + q).read()
+        q = urllib.parse.urlencode({'input': question, 'appid': apikey})
+        xml = urllib.request.urlopen(u + q).read()
         tree = ElementTree.fromstring(xml)
 
         if tree.attrib['success'] == "false":
@@ -36,7 +36,7 @@ class Wolfram(callbacks.Privmsg):
             return
 
         found = False
-	outputcount = 0
+        outputcount = 0
         for pod in tree.findall('.//pod'):
             title = pod.attrib['title']
             for plaintext in pod.findall('.//plaintext'):
@@ -57,7 +57,7 @@ class Wolfram(callbacks.Privmsg):
                             maxoutput = 2 # hack :D
                             outputcount += 1
                             continue
-                        irc.reply(("%s: %s" % (title, output.encode('utf-8'))))
+                        irc.reply(("%s: %s" % (title, output)))
                         outputcount += 1
         if not found:
             irc.reply("huh, I dunno, I'm still a baby AI. Wait till the singularity I guess?")

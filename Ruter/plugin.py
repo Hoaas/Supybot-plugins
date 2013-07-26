@@ -30,7 +30,7 @@
 ###
 import re
 import json
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import datetime
 
 import supybot.utils as utils
@@ -51,15 +51,15 @@ class Ruter(callbacks.Plugin):
     baseurl = 'http://api-test.trafikanten.no/'
 
     def search(self, place):
-        url = self.baseurl + 'RealTime/FindMatches/' + urllib.quote(place)
-        data = utils.web.getUrl(url)
+        url = self.baseurl + 'RealTime/FindMatches/' + urllib.parse.quote(place)
+        data = utils.web.getUrl(url).decode()
         j = json.loads(data)
 
         return j[0].get('ID')
 
     def get_real_time_data(self, loc):
-        url = self.baseurl + 'RealTime/GetRealTimeData/' + urllib.quote(str(loc))
-        data = utils.web.getUrl(url)
+        url = self.baseurl + 'RealTime/GetRealTimeData/' + urllib.parse.quote(str(loc))
+        data = utils.web.getUrl(url).decode()
         j = json.loads(data)
         date1 = j[0].get('ExpectedArrivalTime')
         direction1 = j[0].get('DestinationName')

@@ -10,8 +10,9 @@ __author__ = "Ed Summers"
 __contributors__ = {}
 __url__ = '' 
 
-import config
-import plugin
+from . import config
+from . import plugin
+from imp import reload
 reload(plugin) # In case we're being reloaded.
 reload(config)
 

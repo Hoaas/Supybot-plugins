@@ -28,7 +28,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 ###
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
@@ -55,13 +55,7 @@ class Diablo(callbacks.Plugin):
                           # default to 'eu'
 
         url = "http://eu.battle.net/d3/en/status"
-        try:
-            req = urllib2.Request(url)
-            f = urllib2.urlopen(req)
-            html = f.read()
-        except:
-            irc.reply("Failed to open " + url)
-            return
+        html = utils.web.getUrl(url).decode()
         if server == "am":
             needle = '<div class="column column-1">'
         elif server == "eu":

@@ -29,7 +29,7 @@
 
 ###
 import re
-import urllib, urllib2
+import urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
@@ -142,7 +142,7 @@ class SSB(callbacks.Plugin):
             params['fornavn'] = firstname.decode('utf8').encode('latin1')
         if lastname:
             params['etternavn'] = lastname.decode('utf8').encode('latin1')
-        url += urllib.urlencode(params)
+        url += urllib.parse.urlencode(params)
         url2 = None
         if firstname:
             url2 = url
@@ -152,9 +152,9 @@ class SSB(callbacks.Plugin):
 
     def _fetch_and_strip(self, url):
         try:
-           req = urllib2.Request(url)
+           req = urllib.request.Request(url)
            req.add_header('Supybot plugin (IRC-bot)', 'https://github.com/Hoaas/Supybot-plugins/tree/master/SSB')
-           f = urllib2.urlopen(req)
+           f = urllib.request.urlopen(req)
            html = f.read()           
         except:
             return None

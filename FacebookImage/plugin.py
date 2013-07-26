@@ -29,7 +29,7 @@
 
 ###
 
-import urllib2, json
+import urllib.request, urllib.error, urllib.parse, json
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
@@ -118,13 +118,13 @@ class FacebookImage(callbacks.Plugin):
 
         url = "http://graph.facebook.com/" + uid
         try:
-            req = urllib2.Request(url)
-            f = urllib2.urlopen(req)
+            req = urllib.request.Request(url)
+            f = urllib.request.urlopen(req)
             jsonstr = f.read()
-        except urllib2.HTTPError, err:
+        except urllib.error.HTTPError as err:
             self.log.warning("Facebook API returned " + str(err.code) + " for url " + url)
             return None, None, None
-        except urllib2.URLError, err:
+        except urllib.error.URLError as err:
             self.log.warning("Failed to load Facebook API. Possible timeout. Error: " + str(err))
             return
         j = json.loads(jsonstr)

@@ -30,7 +30,7 @@
 ###
 
 import json
-import urllib, urllib2
+import urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse
 import unicodedata
 
 import supybot.utils as utils
@@ -65,19 +65,16 @@ class RottenTomatoes(callbacks.Plugin):
         movie = movie.replace('ø', 'o')
         movie = movie.replace('å', 'a')
 
-        movie = movie.decode('utf8') # Without this we get an Error: TypeError: must be unicode, not str
         movie = unicodedata.normalize('NFKD', movie).encode('ascii', 'ignore')
 
         url = "http://api.rottentomatoes.com/api/public/v1.0/movies.json?apikey="
-        url += urllib.quote(apikey)
+        url += urllib.parse.quote(apikey)
         url += "&page_limit=1&page=" + str(pageid)
-        url += "&q=" + urllib.quote(movie)
+        url += "&q=" + urllib.parse.quote(movie)
 
         try:
-            req = urllib2.Request(url)
-            f = urllib2.urlopen(req)
-            jsonstr = f.read()
-        except urllib2.HTTPError as err:
+            jsonstr = utils.web.getUrl(url).decode()
+        except urllib.error.HTTPError as err:
             if err.code == 404:
                 irc.reply("404 etc.")
             elif err.code == 403:

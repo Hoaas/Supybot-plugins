@@ -29,7 +29,7 @@
 
 ###
 
-import urllib2
+import urllib
 import json
 
 import supybot.utils as utils
@@ -56,17 +56,9 @@ class NTNUCourses(callbacks.Plugin):
             url = 'http://www.ime.ntnu.no/api/course/no/'    # URL for Norwegian names
         else:
             url = 'http://www.ime.ntnu.no/api/course/en/'    # URL for English names
-        url = url + course
-
-        ref = 'irc://%s/%s' % (dynamic.irc.server, dynamic.irc.nick)
-        try:
-            req = urllib2.Request(url)
-            req.add_header(ref, 'https://github.com/Hoaas/Supybot-plugins/')
-            f = urllib2.urlopen(req)
-            html = f.read()
-        except:
-            irc.reply("No information. Possibly not a valid course code, or API is offline.")
-            return
+        url = url + urllib.parse.quote(course)
+        
+        html = utils.web.getUrl(url).decode()
 
         try:
             j = json.loads(html)
@@ -83,7 +75,7 @@ class NTNUCourses(callbacks.Plugin):
             reply = j["course"]["code"] + " - " + j["course"]["name"]
         except:
             reply = "404 - course not found."
-        irc.reply(reply.encode('utf-8'))
+        irc.reply(reply)
     course = wrap(course, ['text'])
 
 

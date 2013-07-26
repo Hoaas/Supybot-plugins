@@ -29,8 +29,8 @@
 
 ###
 
-import urllib
-import urllib2
+import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error, urllib.parse
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
@@ -51,35 +51,28 @@ class Series(callbacks.Plugin):
         """
         url = "http://www.episodeworld.com/botsearch/"
         
-        url += urllib.quote(search)
-        try:
-            req = urllib2.Request(url)
-            f = urllib2.urlopen(req)
-            html = f.read()
-            html = html.split("<br>")
-            l = len(html)
-            # 0: Name
-            # 1: Previous date
-            # 2: Next date
-            # 3: Url
-            if l < 1:
-                raise Exception("html-0-error")
-            if(html[0].strip() != search):
-                irc.reply(html[0].strip())
+        url += urllib.parse.quote(search)
+        html = utils.web.getUrl(url).decode()
+        html = html.split("<br>")
+        l = len(html)
+        # 0: Name
+        # 1: Previous date
+        # 2: Next date
+        # 3: Url
+        if l < 1:
+            raise Exception("html-0-error")
+        if(html[0].strip() != search):
+            irc.reply(html[0].strip())
 
-            if l < 2:
-                return
-            irc.reply(html[1].strip())
-            # Don't reply if there is no future episode planned
-            # The reply would only be "Next:  Name:  Date:" anyway (19 chars).
-            if l < 3:
-                return
-            if (len(html[2].strip()) >  20):
-                irc.reply(html[2].strip())
-            # irc.reply(html[3])
-        except:
-            irc.reply("Can not retrieve data at this point. Please try again later.")
+        if l < 2:
             return
+        irc.reply(html[1].strip())
+        # Don't reply if there is no future episode planned
+        # The reply would only be "Next:  Name:  Date:" anyway (19 chars).
+        if l < 3:
+            return
+        if (len(html[2].strip()) >  20):
+            irc.reply(html[2].strip())
     ep = wrap(ep, ['text'])
     
     def tv(self, irc, msg, args, search):
@@ -89,14 +82,9 @@ class Series(callbacks.Plugin):
         """
         url = "http://services.tvrage.com/tools/quickinfo.php?show="
 
-        url += urllib.quote(search)
-        try:
-            req = urllib2.Request(url)
-            f = urllib2.urlopen(req)
-            html = f.read()
-        except:
-            irc.reply("Can not retrieve data at this point. Please try again later.")
-            return
+        url += urllib.parse.quote(search)
+
+        html = utils.web.getUrl(url).decode()
         
         if(html.startswith("No Show Results Were Found")):
            irc.reply(html)

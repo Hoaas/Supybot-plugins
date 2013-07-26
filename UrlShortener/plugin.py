@@ -29,7 +29,7 @@
 
 ###
 
-import urllib2, urllib
+import urllib.request, urllib.error, urllib.parse, urllib.request, urllib.parse, urllib.error
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
@@ -51,11 +51,11 @@ class UrlShortener(callbacks.Plugin):
         for longurl in utils.web.urlRe.findall(text):
             if not len(longurl) > self.registryValue('length', channel):
                 continue
-            longurl = urllib.quote(longurl);
+            longurl = urllib.parse.quote(longurl);
             isgdurl = "http://is.gd/api.php?longurl=" + longurl
             try:
-                req = urllib2.Request(isgdurl)
-                f = urllib2.urlopen(req)
+                req = urllib.request.Request(isgdurl)
+                f = urllib.request.urlopen(req)
                 shorturl = f.read()
                 irc.reply("Short url: " + shorturl)
             except:

@@ -29,7 +29,7 @@
 
 ###
 
-import urllib, urllib2
+import urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse
 import socket
 import supybot.utils as utils
 from supybot.commands import *
@@ -80,8 +80,8 @@ class Patdown(callbacks.Plugin):
         text = ""
         try:
             headers = {'User-agent' : 'Mozilla/5.0 (X11; Linux i686; rv:7.0.1) Gecko/20100101 Firefox/7.0.1'}
-            req = urllib2.Request(url, None, headers)
-            f = urllib2.urlopen(req)
+            req = urllib.request.Request(url, None, headers)
+            f = urllib.request.urlopen(req)
             text = f.read()
         except:
             irc.reply("Failed to open " + url)

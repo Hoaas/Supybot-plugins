@@ -29,7 +29,7 @@
 
 ###
 
-import urllib, urllib2
+import urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
@@ -87,8 +87,8 @@ class SWTOR(callbacks.Plugin):
         
         url = "http://www.swtor.com/server-status"
         try:
-            req = urllib2.Request(url)
-            f = urllib2.urlopen(req)
+            req = urllib.request.Request(url)
+            f = urllib.request.urlopen(req)
             html = f.read()
         except:
             irc.reply("Failed to open " + url)

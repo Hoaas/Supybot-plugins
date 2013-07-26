@@ -28,7 +28,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 ###
-import urllib, urllib2
+import urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse
 
 import sys
 import supybot.utils as utils
@@ -50,13 +50,7 @@ class WTFSIMFD(callbacks.Plugin):
         """
         
         url = "http://www.whatthefuckshouldimakefordinner.com/"
-        try:
-            req = urllib2.Request(url)
-            f = urllib2.urlopen(req)
-            html = f.read()
-        except:
-            irc.reply("Can't read " + url + " at this point.")
-            return
+        html = utils.web.getUrl(url).decode()
         html = html[html.find("<dl>")+4:]
         insult = html[:html.find("</dl>")].strip()
         
@@ -70,54 +64,44 @@ class WTFSIMFD(callbacks.Plugin):
     dinner = wrap(dinner)
     
     def fp(self, irc, msg, args):
-    	"""
-    	
-    	Gets the picture of todays food from foodporndaily.com
-    	"""
+        """
+
+        Gets the picture of todays food from foodporndaily.com
+        """
    	
-    	url = "http://foodporndaily.com/"
-        try:
-            req = urllib2.Request(url)
-            f = urllib2.urlopen(req)
-            html = f.read()
-        except:
-            irc.reply("Can't read " + url + " at this point.")
-            return
-        str = 'img id="mainPhoto" src="'
-        html = html[html.find(str)+len(str):]
+        url = "http://foodporndaily.com/"
+        html = utils.web.getUrl(url).decode()
+        st = 'img id="mainPhoto" src="'
+        html = html[html.find(st)+len(st):]
         imageurl = html[:html.find('"')]
 
-        # This part is for shortening the url. Not really needed.
-        """
-        url = "http://is.gd/api.php?longurl=" + imageurl
-        print "Trying to shorten url using " + url
-        try:
-            req = urllib2.Request(url)
-            f = urllib2.urlopen(req)
-            imageurl = f.read()
-        except:
-            print "Failed to shorten url: " + url
-            return
-        """
-        """
-        # This part is all for downloading the images, using the ImgGet plugin, if loaded.
-    	imgget = False
-    	try:
-    		sys.modules['ImgGet']
-    		imgget = True
-    	except:
-    		pass
-    	if imgget:
-            try:
-                connection = urllib.urlopen(imageurl)
-                # Try to get content-type from header
-                contenttype = connection.info().getheader("Content-Type")
-	            # If we actually have a type, and it claims to be an image, we continue.
-            except:
-                print "Could not open connection or get header from " + url
-            if contenttype and contenttype.startswith('image'):
-	            # print sys.modules['ImgGet']._downloadImg(irc, imageurl, irc.nick, msg.args[0].lower(), connection, contenttype)
-        """
+#        # This part is for shortening the url. Not really needed.
+#        url = "http://is.gd/api.php?longurl=" + imageurl
+#        print "Trying to shorten url using " + url
+#        try:
+#            req = urllib2.Request(url)
+#            f = urllib2.urlopen(req)
+#            imageurl = f.read()
+#        except:
+#            print "Failed to shorten url: " + url
+#            return
+#        # This part is all for downloading the images, using the ImgGet plugin, if loaded.
+#    	imgget = False
+#    	try:
+#    		sys.modules['ImgGet']
+#    		imgget = True
+#    	except:
+#    		pass
+#    	if imgget:
+#            try:
+#                connection = urllib.urlopen(imageurl)
+#                # Try to get content-type from header
+#                contenttype = connection.info().getheader("Content-Type")
+#	            # If we actually have a type, and it claims to be an image, we continue.
+#            except:
+#                print "Could not open connection or get header from " + url
+#            if contenttype and contenttype.startswith('image'):
+#                # print sys.modules['ImgGet']._downloadImg(irc, imageurl, irc.nick, msg.args[0].lower(), connection, contenttype)
         irc.reply(imageurl)
     fp = wrap(fp)
 Class = WTFSIMFD
