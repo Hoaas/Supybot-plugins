@@ -406,6 +406,8 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
                     url = self.getNorgeUrl(location, lang)
         if url is None:
             url = self.getWorldUrl(location, lang)
+        if url is None:
+            return None
         o = urllib.parse.urlparse(url)
         url = o.scheme + '://' + o.netloc + urllib.parse.quote(o.path)
         return url
