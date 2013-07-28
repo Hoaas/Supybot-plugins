@@ -63,32 +63,15 @@ class DuckDuckGo(callbacks.Plugin):
         url = "https://api.duckduckgo.com/?format=xml&no_html=1&skip_disambig=1&no_redirect=1" + ss + "&q="
         query = urllib.parse.quote(query);
         url += query
-        ref = 'irc://%s/%s' % (dynamic.irc.server, dynamic.irc.nick)
-        try:
-            req = urllib.request.Request(url)
-            req.add_header('Supybot plugin (IRC-bot)',
-                    'https://github.com/Hoaas/Supybot-plugins/tree/master/DuckDuckGo')
-            req.add_header('Server / nick', ref)
-            f = urllib.request.urlopen(req)
-            xml = f.read()
-        except urllib.error.URLError as xxx_todo_changeme:
-            (err) = xxx_todo_changeme
-            irc.reply(err)
-            return
-        except:
-            irc.reply("Failed to open " + url)                    
-            return
+        xml = utils.web.getUrl(url)
 
         # Dirty dirty hack to replace '<br>' with ' - '
-        xml = xml.replace("&lt;br&gt;", " - ")
-
-        # Attempt to remove Unicode characters, or else python might crash like a drunk driver.
-        # xml = xml.encode('ascii', 'ignore')
+        #xml = xml.replace("&lt;br&gt;", " - ")
+        root = etree.fromstring(xml)
         try:
             root = etree.fromstring(xml)
         except:
-            self.log.info("DDG: Redirected from " + url+ " to " + f.geturl())
-            irc.reply(f.geturl())
+            self.log.info("DDG: Crash.")
             return
         redirect = root.findtext("Redirect") 
         type = root.findtext("Type")
@@ -113,9 +96,9 @@ class DuckDuckGo(callbacks.Plugin):
         if answer and repliessofar < maxreplies:
             # TODO: Fix this. It looks ugly.
             if anstype:
-                irc.reply(answer.strip().encode('utf-8') + "(" + anstype + ")")
+                irc.reply(answer.strip() + "(" + anstype + ")")
             else:
-                irc.reply(answer.strip().encode('utf-8'))
+                irc.reply(answer.strip())
             repliessofar += 1
         if abstract and repliessofar < maxreplies:
             # TODO: Fix this. It looks ugly.
@@ -123,11 +106,11 @@ class DuckDuckGo(callbacks.Plugin):
                 output = abstract.strip() + " " + abstracturl.strip()
             else:
                 output = abstract.strip() + asrc
-            irc.reply(output.encode('utf-8'))
+            irc.reply(output)
             repliessofar += 1
             return
         if definition and repliessofar < maxreplies:
-            irc.reply(definition.strip().encode('utf-8') + dsrc)
+            irc.reply(definition.strip() + dsrc)
             repliessofar += 1
             return
 
@@ -141,7 +124,7 @@ class DuckDuckGo(callbacks.Plugin):
             else:
                 output = results[counter].findtext("Text") + asrc + dsrc
                 output = output.strip()
-            irc.reply(output.encode('utf-8'))
+            irc.reply(output)
             repliessofar += 1
             counter += 1
 
@@ -157,7 +140,7 @@ class DuckDuckGo(callbacks.Plugin):
             else:
                 output = topics[i].findtext("Text") + asrc + dsrc
                 output = output.strip()
-            irc.reply(output.encode('utf-8'))
+            irc.reply(output)
             repliessofar += 1
             topicsleft -= 1
             i += 1
@@ -169,7 +152,7 @@ class DuckDuckGo(callbacks.Plugin):
             else:
                 output = stopics[i].findtext("Text") + asrc + dsrc
                 output = output.strip()
-            irc.reply(output.encode('utf-8'))
+            irc.reply(output)
             repliessofar += 1
             stopicsleft -= 1
             i += 1
