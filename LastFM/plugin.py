@@ -182,7 +182,6 @@ class LastFM(callbacks.Plugin):
             'format': 'json',
             'method': 'user.getRecentTracks'}
         ).encode('utf-8')
-        self.log.info(str(data))
         try:
             text = utils.web.getUrl(url, data=data)
         except urllib.error.HTTPError as err:
