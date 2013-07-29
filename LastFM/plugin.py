@@ -290,16 +290,15 @@ class LastFM(callbacks.Plugin):
             'api_key': self.apikey,
             'format': 'json',
             'method': 'track.getInfo'}
-        )
+        ).encode('utf-8')
 
         try:
-            text = utils.web.getUrl(url, data=data)
+            text = utils.web.getUrl(url, data=data).decode()
         except:
             self.log.info('LastFM failed to access API in num_of_plays.')
             return
 
         js = json.loads(text)
-
         try:
             js['error']
             return
