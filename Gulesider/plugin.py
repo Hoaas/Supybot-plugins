@@ -29,6 +29,7 @@
 
 ###
 
+import os
 import urllib.request, urllib.parse, urllib.error
 from xml.etree import ElementTree
 from bs4 import BeautifulSoup as BS
@@ -155,6 +156,11 @@ class Gulesider(callbacks.Plugin):
             persons, hits = self.getmultiplehits(soup)
 
         if not persons or len(persons) == 0:
+            if num:
+                terror = self.tlfterror(text)
+                if terror:
+                    irc.reply(ircutils.bold(terror) + ', ifølge telefonterror.no')
+                    return
             irc.reply('No hits.')
             return
 
@@ -166,6 +172,25 @@ class Gulesider(callbacks.Plugin):
                 ret = '; '.join([_f for _f in (ret, self.formatperson(p, num)) if _f])
         irc.reply(ret)
     tlf = wrap(tlf, ['text'])
+
+    def tlfterror(self, num):
+        path = os.path.dirname(__file__)
+        liste = os.path.join(path, 'nummerliste.txt')
+
+        num = num.replace(' ', '')
+        if num.startswith('00'):
+            num = '+' + num[2:]
+        try:
+            f = open(liste, encoding='windows-1252')
+        except:
+            self.log.warning('File nummerliste.txt from telefonterror.no is needed in the plugin directory for extended support.') 
+            return
+        for line in f:
+            num_and_name = line.split(',')
+            if len(num_and_name) != 2:
+                continue
+            if num_and_name[0] == num:
+                return num_and_name[1].strip()
 
 
 Class = Gulesider
