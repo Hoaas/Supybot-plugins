@@ -79,11 +79,7 @@ class AtB(callbacks.Plugin):
         """
 
         idList = self._getIdList(name)
-        if (idList == -1):
-            irc.reply("Error. Kunne ikke åpne URLen. hoaas.no er sikkert nede.")
-            self.log.debug("Error: Could not open URL. (AtB / _getIdList())")
-            return
-        elif(len(idList) < 1):
+        if(len(idList) < 1):
             irc.reply("Ingen holdeplasser som starter på \"" + name + "\" ble funnet.")
             return
 
@@ -115,7 +111,7 @@ class AtB(callbacks.Plugin):
             elif (times == -3):
                 continue
             elif (times == -4):
-                irc.reply("API key not set. see 'config help supybot.plugins.RottenTomatoes.apikey'.")
+                irc.reply("API key not set. see 'config help supybot.plugins.AtB.apikey'.")
                 return
             if(towardsCity):
                 rettowardscity = str(busstopname, 'utf8') + " mot sentrum: " + times
@@ -138,19 +134,13 @@ class AtB(callbacks.Plugin):
         # url = "http://api.busbuddy.norrs.no:8080/api/1.2/busstops"     # URL to JSON data that contains list over busstops
         url = "http://hoaas.no/busstops"   # Alternative local url
 
-        try:
-            req = urllib.request.Request(url)
-            #req.add_header('X-norrs-busbuddy-apikey', apikey)   # Recommended to add API-key in header. Could be added in url as "http://example.com/bus?apikey=23141234"
-            stream = urllib.request.urlopen(req)
-            data = stream.read()
-        except:
-            return -1
+        data = utils.web.getUrl(url).decode()
 
         data = json.loads(data)
         hitlist = []
         for busstop in data["busStops"]:
-            if ( busstop["name"].encode('utf8').lower().startswith(name.lower()) or ( busstop["nameWithAbbreviations"] and busstop["nameWithAbbreviations"].encode('utf8').lower().startswith(name.lower()) ) ):
-                         hitlist.append((busstop["name"].encode('utf8'), busstop["locationId"]))
+            if ( busstop["name"].lower().startswith(name.lower()) or ( busstop["nameWithAbbreviations"] and busstop["nameWithAbbreviations"].lower().startswith(name.lower()) ) ):
+                         hitlist.append((busstop["name"], busstop["locationId"]))
         return hitlist
 
     """Get the passing times of the next busses for the spesified ID.
@@ -165,15 +155,8 @@ class AtB(callbacks.Plugin):
 
         url = "http://api.busbuddy.norrs.no:8080/api/1.3/departures/" # <locationId>
         url += str(id)
-
-        try:
-            req = urllib.request.Request(url)
-            req.add_header('X-norrs-busbuddy-apikey', apikey)
-            stream = urllib.request.urlopen(req)
-            data = stream.read()
-        except Exception as e:
-            self.log.error("AtB API ({1}): {0}".format(str(e), url))
-            return -1, -1
+        header = {'X-norrs-busbuddy-apikey': apikey}
+        data = utils.web.getUrl(url, headers=header).decode()
         if (len(data) == 0):
             return -3, -3
         try:
