@@ -54,17 +54,17 @@ class TraktTV(callbacks.Plugin):
         plural = lambda n: 's' if n > 1 else ""
 
         if age.days:
-            age = '%s day%s ago' % (age.days, plural(age.days))
+            age = '%s day%s ago' % (int(age.days), plural(age.days))
         elif age.seconds > 3600:
             hours = age.seconds / 3600
-            age = '%s hour%s ago' % (hours, plural(hours))
+            age = '%s hour%s ago' % (int(hours), plural(hours))
         elif 60 <= age.seconds < 3600:
             minutes = age.seconds / 60
-            age = '%s minute%s ago' % (minutes, plural(minutes))
+            age = '%s minute%s ago' % (int(minutes), plural(minutes))
         elif 30 < age.seconds < 60:
             age = 'less than a minute ago'
         else:
-            age = 'less than %s second%s ago' % (d.seconds, plural(d.seconds))
+            age = 'less than %s second%s ago' % (int(d.seconds), plural(d.seconds))
         # str_dt = dt.strftime('%Y-%m-%d %I:%M %p')
         return age
 
