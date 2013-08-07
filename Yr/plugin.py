@@ -408,8 +408,10 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
             url = self.getWorldUrl(location, lang)
         if url is None:
             return None
-        o = urllib.parse.urlparse(url)
-        url = o.scheme + '://' + o.netloc + urllib.parse.quote(o.path)
+        # If urlencoding not found, do urlencoding
+        if(url.find('%') == -1):
+            o = urllib.parse.urlparse(url)
+            url = o.scheme + '://' + o.netloc + urllib.parse.quote(o.path)
         return url
 
     def dbQuery(self, query, parameter):
