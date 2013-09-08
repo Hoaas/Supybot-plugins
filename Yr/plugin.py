@@ -367,6 +367,8 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
                 12: "Finnmark"}
         if not loc:
             loc = self.registryValue('pollen', msg.args[0]) # Default value is 1.
+
+        fail = False
         try:
             loc = int(loc)
             # If the parsing fails we jump to the except.
@@ -377,11 +379,16 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
                 # Using lower() to ignore case.
                 if(locations[l].lower().find(loc.lower()) != -1):
                     loc = l
+                    fail = False
                     break
+                else:
+                    fail = True
             # If we have gone through the loop and loc still isn't an integer the location is not found
         
         # If number is outside the accepted range.
-        if(loc < 1 or loc > 12):
+        if(not fail and (loc < 1 or loc > 12)):
+            fail = True
+        if fail:
             irc.reply('Sorry, ' + str(loc) + ' is not a valid location. Check "pollen list" for list of locations.')
             return
         # At this point loc is an integer from 1 to 12
