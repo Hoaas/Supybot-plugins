@@ -51,24 +51,25 @@ class AtB(callbacks.Plugin):
         """<tekst>
         Returnerer tekst fra bussorakelet i Trondheim.
         """
-        url = 'http://busstuc-atb.lingit.no/json.php?callback=bussOrakel&question='
+        #url = 'http://busstuc-atb.lingit.no/json.php?callback=bussOrakel&question='
         #url = 'https://www.atb.no/xmlhttprequest.php?service=routeplannerOracle.getOracleAnswer&question='
+        url = 'http://busstjener.idi.ntnu.no/busstuc/oracle?q='
         url += urllib.parse.quote(text)
         data = utils.web.getUrl(url).decode()
-        if True:
-            data = data.replace('bussOrakel(', '')
-            data = data.replace(');', '')
-            data = data.replace('\\n', ' ')
-            data = data.replace('  ', ' ')
-            data = data.replace(' ,', ',')
-            data = data.replace(' .', '.')
+        #if True:
+        #    data = data.replace('bussOrakel(', '')
+        #    data = data.replace(');', '')
+        #    data = data.replace('\\n', ' ')
+        #    data = data.replace('  ', ' ')
+        #    data = data.replace(' ,', ',')
+        #    data = data.replace(' .', '.')
 
-            try:
-                j = json.loads(data)
-            except:
-                irc.reply('Failed to parse response from %s' % url)
-                return
-            data = j['answer']
+        #    try:
+        #        j = json.loads(data)
+        #    except:
+        #        irc.reply('Failed to parse response from %s' % url)
+        #        return
+        #    data = j['answer']
         irc.reply(data)
 
     buss = wrap(buss, ['text'])
