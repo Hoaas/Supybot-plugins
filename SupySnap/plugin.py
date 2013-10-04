@@ -72,7 +72,7 @@ class SupySnap(callbacks.Plugin):
             irc.error('Could not register.')
             return
         irc.reply('Account created! Now do "Config channel supybot.plugins.SupySnap.username {0}" and "Config channel supybot.plugins.SupySnap.password {1}".'.format(username, password))
-    register = wrap(register, ['channel', 'somethingWithoutSpaces', 'somethingWithoutSpaces', 'somethingWithoutSpaces', 'somethingWithoutSpaces', 'admin'])
+    register = wrap(register, ['channel', 'somethingWithoutSpaces', 'somethingWithoutSpaces', 'somethingWithoutSpaces', 'somethingWithoutSpaces'])
 
     def start(self, irc, msg, args, channel):
         """[channel]
