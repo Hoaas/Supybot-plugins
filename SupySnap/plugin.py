@@ -28,9 +28,9 @@
 
 ###
 
-#from pysnap import Snapchat, get_file_extension
 from . import pysnap
 
+import datetime
 import os.path
 import supybot.utils as utils
 from supybot.commands import *
@@ -51,6 +51,28 @@ class SupySnap(callbacks.Plugin):
     This should describe *how* to use this plugin."""
     threaded = True
     _names = []
+
+    def register(self, irc, msg, args, channel, username, password, email, birthday):
+        """[channel] <username> <password> <email> <birthday>
+
+        Registers the given username as a snapchat account. Stores username and
+        password for the given channel. Birthday needs to be on the form
+        yyyy-mm-dd."""
+        if email.find('@') == -1:
+            irc.error('That doesn\'t look like an email address')
+            return
+        try:
+            datetime.datetime.strptime(birthday, '%Y-%m-%d')
+        except ValueError:
+            irc.error('Birthday must be on the format YYYY-MM-DD.')
+            return
+        s = pysnap.Snapchat()
+        reg = s.register(username, password, email, birthday)
+        if not reg:
+            irc.error('Could not register.')
+            return
+        irc.reply('Account created! Now do "Config channel supybot.plugins.SupySnap.username {0}" and "Config channel supybot.plugins.SupySnap.password {1}".'.format(username, password))
+    register = wrap(register, ['channel', 'somethingWithoutSpaces', 'somethingWithoutSpaces', 'somethingWithoutSpaces', 'somethingWithoutSpaces', 'admin'])
 
     def start(self, irc, msg, args, channel):
         """[channel]
@@ -98,12 +120,18 @@ class SupySnap(callbacks.Plugin):
                     with open(abspath, 'wb') as f:
                         f.write(data)
                         irc.reply('[{0}] New snap from: {1}! - {2}{3}'.format(username, snap['sender'], address, filename))
+                    # if markasread:
+                        # s.mark_view(snap['id'])
             except Exception as e:
                 self.log.error('SupySnap: + ' + str(e))
 
 
         self._names.append(name)
-        schedule.addPeriodicEvent(fetch, seconds, name)
+        try:
+            schedule.addPeriodicEvent(fetch, seconds, name)
+        except AssertionError:
+            irc.error('SupySnap is already running in this channel.')
+            return
         irc.replySuccess()
     start = wrap(start, ['channel', 'admin'])
 
@@ -113,14 +141,24 @@ class SupySnap(callbacks.Plugin):
         Stops SupySnap for [channel]. If [channel] is not specified the 
         current one is used."""
         name = "supysnap_" + channel
-        schedule.removeEvent(name)
-        self._names.remove(name)
+        try:
+            self._names.remove(name)
+        except:
+            pass
+        try:
+            schedule.removeEvent(name)
+        except KeyError:
+            irc.error('SupySnap was not running for this channel.')
+            return
         irc.replySuccess()
     stop = wrap(stop, ['channel', 'admin'])
 
     def die(self):
         for name in self._names:
-            schedule.removeEvent(name)
+            try:
+                schedule.removeEvent(name)
+            except KeyError:
+                pass
         self._names = []
 
 #{'id': '449042378662886327r',
