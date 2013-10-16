@@ -36,6 +36,7 @@ import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
 import supybot.ircutils as ircutils
+import supybot.registry as registry
 import supybot.schedule as schedule
 import supybot.callbacks as callbacks
 try:
@@ -71,7 +72,10 @@ class SupySnap(callbacks.Plugin):
         if not reg:
             irc.error('Could not register.')
             return
-        irc.reply('Account created! Now do "Config channel supybot.plugins.SupySnap.username {0}" and "Config channel supybot.plugins.SupySnap.password {1}".'.format(username, password))
+        self.registryValue('username', channel, value=username)
+        self.registryValue('password', channel, value=password)
+        irc.reply('Account created!')
+        s.update_privacy(False)
     register = wrap(register, ['channel', 'somethingWithoutSpaces', 'somethingWithoutSpaces', 'somethingWithoutSpaces', 'somethingWithoutSpaces'])
 
     def start(self, irc, msg, args, channel):
@@ -85,6 +89,7 @@ class SupySnap(callbacks.Plugin):
         password = self.registryValue('password', channel)
         address = self.registryValue('address', channel)
         localpath = self.registryValue('localpath', channel)
+        markasread = self.registryValue('markasread', channel)
 
         if not username or username == '':
             irc.error('No username entered.')
@@ -102,7 +107,7 @@ class SupySnap(callbacks.Plugin):
             os.makedirs(localpath)
 
 
-        name = "supysnap_" + channel
+        name = self._name(channel)
         def fetch():
             try:
                 s = pysnap.Snapchat()
@@ -110,6 +115,9 @@ class SupySnap(callbacks.Plugin):
                     irc.reply('Invalid username or password.')
                     return
                 for snap in s.get_snaps():
+                    # media_type 3 is friend requests. status 2 means it is read
+                    if snap['media_type'] == 3 or snap['status'] == 2:
+                        continue
                     filename = '{0}_{1}.{2}'.format(snap['sender'], snap['id'], pysnap.get_file_extension(snap['media_type']))
                     abspath = os.path.abspath(os.path.join(localpath, filename))
                     if os.path.isfile(abspath):
@@ -120,10 +128,10 @@ class SupySnap(callbacks.Plugin):
                     with open(abspath, 'wb') as f:
                         f.write(data)
                         irc.reply('[{0}] New snap from: {1}! - {2}{3}'.format(username, snap['sender'], address, filename))
-                    # if markasread:
-                        # s.mark_view(snap['id'])
+                    if markasread:
+                        s.mark_viewed(snap['id'])
             except Exception as e:
-                self.log.error('SupySnap: + ' + str(e))
+                self.log.error('SupySnap: ' + str(e))
 
 
         self._names.append(name)
@@ -135,12 +143,15 @@ class SupySnap(callbacks.Plugin):
         irc.replySuccess()
     start = wrap(start, ['channel', 'admin'])
 
+    def _name(self, channel):
+        return 'supysnap_' + channel.lower()
+
     def stop(self, irc, msg, args, channel):
         """[channel]
 
         Stops SupySnap for [channel]. If [channel] is not specified the 
         current one is used."""
-        name = "supysnap_" + channel
+        name = self._name(channel)
         try:
             self._names.remove(name)
         except:
@@ -152,6 +163,16 @@ class SupySnap(callbacks.Plugin):
             return
         irc.replySuccess()
     stop = wrap(stop, ['channel', 'admin'])
+
+    def status(self, irc, msg, args, channel):
+        """[channel]
+
+        Gives the current status for SupySnap in the given channel."""
+        if self._name(channel) in self._names:
+            irc.reply('SupySnap running in ' + channel)
+        else:
+            irc.reply('SupySnap not running in ' + channel)
+    status = wrap(status, ['channel'])
 
     def die(self):
         for name in self._names:
