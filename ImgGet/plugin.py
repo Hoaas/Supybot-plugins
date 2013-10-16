@@ -117,10 +117,10 @@ class ImgGet(callbacks.Plugin):
             return
         
         if data['responseStatus'] != 200:
-            self.log.debug(data['responseStatus'])
-            raise callbacks.Error('We broke The Google!')
+            self.log.debug(str(data['responseStatus']))
+            raise callbacks.Error('We broke The Google! (http {0})'.format(data['responseStatus']))
 
-        if(len(data["responseData"]["results"]) > 0):
+        if len(data["responseData"]["results"]) > 0:
             if num < 1:
                 num = 1
             elif num > 10:
