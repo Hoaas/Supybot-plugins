@@ -51,14 +51,10 @@ SupySnap = conf.registerPlugin('SupySnap')
 # This is where your configuration variables (if any) should go.  For example:
 # conf.registerGlobalValue(SupySnap, 'someConfigVariableName',
 #     registry.Boolean(False, _("""Help for someConfigVariableName.""")))
-conf.registerChannelValue(SupySnap, 'username', registry.String('', """SnapChat
-    username."""))
-conf.registerChannelValue(SupySnap, 'password', registry.String('', """SnapChat
-    password.""", private=True))
-conf.registerChannelValue(SupySnap, 'address', registry.String('', """Address
-    to where the images will be made available."""))
-conf.registerChannelValue(SupySnap, 'localpath', registry.String('', """Local
-    path to where the images will be stored.""", private=True))
-conf.registerChannelValue(SupySnap, 'interval', registry.Integer(60, """Interval
-    between each check, in seconds."""))
+conf.registerChannelValue(SupySnap, 'username', registry.String('', """SnapChat username."""))
+conf.registerChannelValue(SupySnap, 'password', registry.String('', """SnapChat password.""", private=True))
+conf.registerChannelValue(SupySnap, 'address', registry.String('', """Address to where the images will be made available."""))
+conf.registerChannelValue(SupySnap, 'localpath', registry.String('', """Local path to where the images will be stored.""", private=True))
+conf.registerChannelValue(SupySnap, 'interval', registry.Integer(60, """Interval between each check, in seconds."""))
+conf.registerChannelValue(SupySnap, 'markasread', registry.Boolean(True, """If posted snaps should be marked as read. If they are marked as read they will not be available for download again."""))
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
