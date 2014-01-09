@@ -108,7 +108,6 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
         if lang != 'en' and lang != 'bm' and lang != 'nn':
             irc.reply('Language is not valid. Please fix. Defaulting to english.')
             lang = 'en'
-
         channel = msg.args[0].lower()
         url = self.getUrl(location, lang, channel, msg.nick)
         if url is None:
@@ -179,6 +178,16 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
             sunsetLoc = 'Solnedgang'
 
         sun = tree.find('.//sun')
+        if sun.get('never_rise'):
+            if lang == 'bm' or lang == 'nn':
+                return 'Mørketid.'
+            else:
+                return 'Polar night.'
+        if sun.get('never_set'):
+            if lang == 'bm' or lang == 'nn':
+                return 'Midnattsol.'
+            else:
+                return 'Midnight sun.'
         sunrise = sun.attrib['rise']
         sunset = sun.attrib['set']
 
