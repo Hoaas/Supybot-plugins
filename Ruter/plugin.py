@@ -48,13 +48,12 @@ class Ruter(callbacks.Plugin):
     This should describe *how* to use this plugin."""
     threaded = True
 
-    baseurl = 'http://api-test.trafikanten.no/'
+    baseurl = 'http://reis.trafikanten.no/'
 
     def search(self, place):
         url = self.baseurl + 'RealTime/FindMatches/' + urllib.parse.quote(place)
         data = utils.web.getUrl(url).decode()
         j = json.loads(data)
-
         return j[0].get('ID')
 
     def get_real_time_data(self, loc):
