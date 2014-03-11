@@ -274,6 +274,37 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
                 ret += ' {0}.'.format(winddesc)
             ret += ' ({0})'.format(name)
             return ret
+
+    def hotncold(self, irc, msg, args):
+        """takes no arguments
+        Hottest, coldest and wettest place in Norway the last day. Hours between 08 and 20 are counted. Updated around 2100 every day. Before that temperature for the previous day is shown."""
+        lang = 'bm'
+
+        url = 'http://www.yr.no/observasjonar/statistikk.html'
+        html = utils.web.getUrl(url)
+        soup = BS(html)
+        tbody = soup.body.find_all(class_='yr-content-stickynav-half left')
+        tr = tbody[0].findAll('tr')
+        toprow = tr[1]
+
+        hottestName = toprow.findAll('td')[0].text.strip()
+        hottestTemp = toprow.findAll('td')[1].text.strip()
+        hottestTemp = self.parse_num(hottestTemp)
+        hottestTemp = self.temp_format(hottestTemp, None, lang)
+
+        coldestName = toprow.findAll('td')[2].text.strip()
+        coldestTemp = toprow.findAll('td')[3].text.strip()
+        coldestTemp = self.parse_num(coldestTemp)
+        coldestTemp = self.temp_format(coldestTemp, None, lang)
+
+        wettestName = toprow.findAll('td')[4].text.strip()
+        wettestAmount = toprow.findAll('td')[5].text.strip().replace('\n', '')
+
+        ret = 'Varmest: {0} {1} Kaldest: {2} {3} Våtest: {4} {5}.'.format(hottestName, hottestTemp, coldestName, coldestTemp, wettestName, wettestAmount)
+        irc.reply(ret)
+    hotncold = wrap(hotncold)
+
+
     def _pollen(self, locations, loc):
         # locations is the dictionary, loc is the integer
         url = "http://www.yr.no/pollen/"
@@ -428,6 +459,7 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
         if(url.find('%') == -1):
             o = urllib.parse.urlparse(url)
             url = o.scheme + '://' + o.netloc + urllib.parse.quote(o.path)
+        url = url.replace('%0D%0A', '') # \r\n-problem. TODO: Proper fix.
         return url
 
     def dbQuery(self, query, parameter):
