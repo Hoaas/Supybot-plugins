@@ -84,6 +84,14 @@ class Gulesider(callbacks.Plugin):
             raise Exception('For mange fornavn!')
         return fornavn[0].text.strip()
 
+    def mellomnavn(self, person):
+        mellomnavn = person.find_all(class_='middleName')
+        if not mellomnavn:
+            return None
+        elif len(mellomnavn) != 1:
+            raise Exception('For mange mellomnavn! Evnt. for mange tags for mellomnavn på gulesider.no')
+        return mellomnavn[0].text.strip()
+
     def etternavn(self, person):
         etternavn = person.find_all(class_='family-name')
         if not etternavn:
@@ -94,10 +102,13 @@ class Gulesider(callbacks.Plugin):
 
     def getnavn(self, person):
         fornavn = self.fornavn(person)
+        mellomnavn = self.mellomnavn(person)
         etternavn = self.etternavn(person)
         navn = ''
         if fornavn:
             navn += fornavn + ' '
+        if mellomnavn:
+            navn += mellomnavn + ' '
         if etternavn:
             navn += etternavn
         if navn == '':
