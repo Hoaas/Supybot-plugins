@@ -56,6 +56,8 @@ class AtB(callbacks.Plugin):
         url = 'http://busstjener.idi.ntnu.no/busstuc/oracle?q='
         url += urllib.parse.quote(text)
         data = utils.web.getUrl(url).decode()
+        data = data.strip()
+        data = data.replace('\n', ' ')
         #if True:
         #    data = data.replace('bussOrakel(', '')
         #    data = data.replace(');', '')
