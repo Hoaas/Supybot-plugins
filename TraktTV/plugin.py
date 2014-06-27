@@ -29,15 +29,25 @@
 
 ###
 
+import sys
 import json
 import datetime
-import urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 from supybot.i18n import PluginInternationalization, internationalizeDocstring
+
+
+if sys.version_info[0] < 3:
+    from urllib import quote
+    from urllib import urlencode
+    from urllib2 import HTTPError
+else:
+    from urllib.parse import quote
+    from urllib.parse import urlencode
+    from urllib.error import HTTPError
 
 _ = PluginInternationalization('TraktTV')
 
@@ -81,7 +91,7 @@ class TraktTV(callbacks.Plugin):
         outurl = self.registryValue('outurl')
         username = self.registryValue('username')
         passwordhash = self.registryValue('passwordhash')
-        params = urllib.parse.urlencode({'username': username, 'password': passwordhash}).encode('utf-8')
+        params = urlencode({'username': username, 'password': passwordhash}).encode('utf-8')
 
 
         if not apikey or apikey == "Not set":
@@ -90,17 +100,12 @@ class TraktTV(callbacks.Plugin):
 
         #url = "http://api.trakt.tv/user/watching.json/%s/" % apikey
         url = "http://api.trakt.tv/user/profile.json/%s/" % apikey
-        url += urllib.parse.quote(nick)
+        url += quote(nick)
 
         try:
             data = utils.web.getUrl(url, data=params).decode()
-        except urllib.error.HTTPError as err:
-            if err.code == 404:
-                irc.reply("User not found.")
-            self.log.info("TraktTV: HTTP Error " + str(err.code))
-            return
-        except:
-            irc.reply("Failed. :(")
+        except utils.web.Error as err:
+            irc.reply(str(err))
             return
         try:
             data = json.loads(data)

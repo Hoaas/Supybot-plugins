@@ -56,4 +56,4 @@ conf.registerChannelValue(TraktTV, 'outurl', registry.Boolean(True, """If this p
 conf.registerGlobalValue(TraktTV, 'username', registry.String("", """Your
     trakt.tv username. Only needed for commands that require
     authentication.""", private=True))
-conf.registerGlobalValue(TraktTV, 'passwordhash', registry.String("", """SHA1 hash of your password for trakt.tv. Can use https://duckduckgo.com/?q=sha1+yourpassword to generate hash, or any other method you might prefer. Only needed for comands that require authentication.""", private=True))
+conf.registerGlobalValue(TraktTV, 'passwordhash', registry.String("", """SHA1 hash of your password for trakt.tv. Can use https://duckduckgo.com/?q=sha1+yourpassword to generate hash, or any other method you might prefer. Only needed for commands that require authentication.""", private=True))
