@@ -29,6 +29,7 @@
 
 ###
 import re
+import time
 import os.path
 import simplejson
 import supybot.ircdb as ircdb
@@ -172,6 +173,7 @@ class AutoOp(callbacks.Plugin):
         #self._autoMagic(irc, msg, channel) 
  
     def doJoin(self, irc, msg):
+        time.sleep(5)
         channel = msg.args[0]
         self._autoMagic(irc, msg, channel)
 

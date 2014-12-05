@@ -375,6 +375,10 @@ class ImgGet(callbacks.Plugin):
                 url = self._apina(url)
             elif(url.startswith("http://imgur.com/")):
                 url = self._imgur(url)
+            elif(url.startswith('http://v.asd.re/')):
+                url = url.replace('v.asd.re', 'asd.re/pans')
+            elif(url.startswith('http://asd.re/s.php')):
+                url = url.replace('s.php?i=', '')
             # If url was apina.biz or imgur.com, but not a picture we jump to next url.
             if(url == -1):
                 continue

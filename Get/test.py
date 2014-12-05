@@ -28,31 +28,10 @@
 
 ###
 
-import supybot.utils as utils
-from supybot.commands import *
-import supybot.plugins as plugins
-import supybot.ircutils as ircutils
-import supybot.callbacks as callbacks
-try:
-    from supybot.i18n import PluginInternationalization
-    _ = PluginInternationalization('Timer')
-except ImportError:
-    # Placeholder that allows to run the plugin on a bot
-    # without the i18n module
-    _ = lambda x:x
+from supybot.test import *
 
-class Timer(callbacks.Plugin):
-    """Add the help for "@plugin help Timer" here
-    This should describe *how* to use this plugin."""
-    pass
+class GetTestCase(PluginTestCase):
+    plugins = ('Get',)
 
 
-    def timer(self, irc, msg, args, text):
-        """<time> [message]
-        (not really true, accepts an whole range of different syntaxes) <time>
-        can be on the format 5h 3m or 5 hours 3m, or 5h3m. Message can be infront or behind the time.
-
-Class = Timer
-
-
-# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
+# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

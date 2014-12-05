@@ -50,7 +50,7 @@ class WTFSIMFD(callbacks.Plugin):
         """
         
         url = "http://www.whatthefuckshouldimakefordinner.com/"
-        html = utils.web.getUrl(url).decode()
+        html = utils.web.getUrl(url).decode(errors='ignore')
         html = html[html.find("<dl>")+4:]
         insult = html[:html.find("</dl>")].strip()
         
@@ -70,7 +70,7 @@ class WTFSIMFD(callbacks.Plugin):
         """
    	
         url = "http://foodporndaily.com/"
-        html = utils.web.getUrl(url).decode()
+        html = utils.web.getUrl(url).decode(errors='ignore')
         st = 'img id="mainPhoto" src="'
         html = html[html.find(st)+len(st):]
         imageurl = html[:html.find('"')]

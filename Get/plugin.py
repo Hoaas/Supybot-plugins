@@ -28,6 +28,11 @@
 
 ###
 
+import json
+import re
+from html.parser import HTMLParser
+import dateutil.parser
+
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
@@ -35,24 +40,53 @@ import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 try:
     from supybot.i18n import PluginInternationalization
-    _ = PluginInternationalization('Timer')
+    _ = PluginInternationalization('Get')
 except ImportError:
     # Placeholder that allows to run the plugin on a bot
     # without the i18n module
     _ = lambda x:x
 
-class Timer(callbacks.Plugin):
-    """Add the help for "@plugin help Timer" here
+class Get(callbacks.Plugin):
+    """Add the help for "@plugin help Get" here
     This should describe *how* to use this plugin."""
-    pass
+    threaded = True
+
+    url = 'https://www.get.no/portalbackend/api/support/operational-statuses/?zip='
+
+    def get(self, irc, msg, args, postnum):
+        """<postnummer>
+        Returnerer siste 3 driftsmeldinger for gitt postnummer fra Get.no
+        """
+        if len(postnum) != 4 or not postnum.isdigit():
+            irc.error("Postnummer må være 4 siffer.")
+            return
+        url = self.url + postnum
+        data = utils.web.getUrl(url).decode('utf8')
+        problemlist = json.loads(data)
+        for problem in problemlist[:-3]:
+            message = self.strip_tags(problem['message']).replace('\r', '').replace('\n', ' ') # Remove new lines and html from the text
+            message = re.sub(' +', ' ', message) # Remove double spaces
+            date = problem['affectedPeriodFrom']
+            date = dateutil.parser.parse(date)
+            date = date.strftime('%Y-%m-%d %H:%M')
+            irc.reply('{1}. {0}. {2}'.format(problem['status'], date, message))
+
+    get = wrap(get, ['text'])
+
+    def strip_tags(self, html):
+        s = MLStripper()
+        s.feed(html)
+        return s.get_data()
+Class = Get
 
 
-    def timer(self, irc, msg, args, text):
-        """<time> [message]
-        (not really true, accepts an whole range of different syntaxes) <time>
-        can be on the format 5h 3m or 5 hours 3m, or 5h3m. Message can be infront or behind the time.
-
-Class = Timer
-
-
-# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
+class MLStripper(HTMLParser):
+    def __init__(self):
+        self.reset()
+        self.strict = False
+        self.convert_charrefs= True
+        self.fed = []
+    def handle_data(self, d):
+        self.fed.append(d)
+    def get_data(self):
+        return ''.join(self.fed)

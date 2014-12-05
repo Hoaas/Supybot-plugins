@@ -182,19 +182,20 @@ class LastFM(callbacks.Plugin):
             'format': 'json',
             'method': 'user.getRecentTracks'}
         ).encode('utf-8')
-        try:
-            text = utils.web.getUrl(url, data=data)
-        except urllib.error.HTTPError as err:
-            if err.code == 403:
-                return str(err) + ' API key not valid?'
-            elif err.code == 400:
-                return 'No such user.'
-            else:
-                return 'Could not open URL. ' + str(err)
-        except urllib.error.URLError as err:
-            return 'Error accessing API. It might be down. Please try again later.'
-        except:
-            raise
+        text = utils.web.getUrl(url, data=data)
+#        try:
+#            text = utils.web.getUrl(url, data=data)
+#        except urllib.error.HTTPError as err:
+#            if err.code == 403:
+#                return str(err) + ' API key not valid?'
+#            elif err.code == 400:
+#                return 'No such user.'
+#            else:
+#                return 'Could not open URL. ' + str(err)
+#        except urllib.error.URLError as err:
+#            return 'Error accessing API. It might be down. Please try again later.'
+#        except:
+#            raise
 
         js = json.loads(text.decode('utf8'))
 
@@ -255,7 +256,7 @@ class LastFM(callbacks.Plugin):
         )
 
         try:
-            text = utils.web.getUrl(url, data=data)
+            text = utils.web.getUrl(url, data=data).decode()
         except:
             return
         js = json.loads(text)

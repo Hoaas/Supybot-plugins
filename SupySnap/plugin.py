@@ -28,8 +28,9 @@
 
 ###
 
-from . import pysnap
+import pysnap
 
+import time
 import datetime
 import os.path
 import supybot.utils as utils
@@ -53,10 +54,10 @@ class SupySnap(callbacks.Plugin):
     threaded = True
     _names = []
 
-    def register(self, irc, msg, args, channel, username, password, email, birthday):
-        """[channel] <username> <password> <email> <birthday>
+    def register(self, irc, msg, args, username, password, email, birthday):
+        """<username> <password> <email> <birthday>
 
-        Registers the given username as a snapchat account. Stores username and
+        Registers the given username as a snapchat account. Does NOT store username and
         password for the given channel. Birthday needs to be on the form
         yyyy-mm-dd."""
         if email.find('@') == -1:
@@ -72,11 +73,70 @@ class SupySnap(callbacks.Plugin):
         if not reg:
             irc.error('Could not register.')
             return
-        self.registryValue('username', channel, value=username)
-        self.registryValue('password', channel, value=password)
+        #self.registryValue('username', channel, value=username)
+        #self.registryValue('password', channel, value=password)
         irc.reply('Account created!')
         s.update_privacy(False)
-    register = wrap(register, ['channel', 'somethingWithoutSpaces', 'somethingWithoutSpaces', 'somethingWithoutSpaces', 'somethingWithoutSpaces'])
+    register = wrap(register, ['somethingWithoutSpaces', 'somethingWithoutSpaces', 'somethingWithoutSpaces', 'somethingWithoutSpaces'])
+
+
+    def test(self, irc, msg, args, channel):
+        """[channel]
+        Manually trigger SupySnap."""
+        seconds = self.registryValue('interval', channel)
+        username = self.registryValue('username', channel)
+        password = self.registryValue('password', channel)
+        address = self.registryValue('address', channel)
+        localpath = self.registryValue('localpath', channel)
+        markasread = self.registryValue('markasread', channel)
+
+        if not username or username == '':
+            irc.error('No username entered.')
+            return
+        if not password or password == '':
+            irc.error('No password entered.')
+            return
+        if not address or address == '':
+            irc.error('No address entered.')
+            return
+        if not localpath or localpath == '':
+            irc.error('No local path entered.')
+            return
+        if not os.path.isdir(localpath):
+            os.makedirs(localpath)
+        name = self._name(channel)
+        self.log.info('Creating Snapchat object')
+        s = pysnap.Snapchat()
+        self.log.info('Attempting to log in with username and password ' + username + '/' + password)
+        if not s.login(username, password).get('logged'):
+            irc.reply('Invalid username or password.')
+            return
+        self.log.info('Login successful.')
+        replies = 0
+        for snap in s.get_snaps():
+            self.log.info('Looping through snaps! - ' + str(snap))
+            # media_type 3 is friend requests. status 2 means it is read
+            if snap['media_type'] == 3 or snap['status'] == 2:
+                continue
+            #boop = 'ID: {0}\tMedia id: {1}\tMedia type: {2}\tTime: {3}\tSender: {4}\tRecipient: {5}\tStatus: {6}\tScreenshot count: {7}\tSent: {8}\tOpened: {9}'.format(snap['id'], snap['media_id'], snap['media_type'], snap['time'], snap['sender'], snap['recipient'], snap['status'], snap['screenshot_count'], snap['sent'], snap['opened']) 
+            #self.log.info(str(boop))
+            sent = time.strftime('%Y-%m-%dT%H:%M', time.gmtime(int(str(snap['sent'])[:-3])))
+            filename = '{2}_{0}.{1}'.format(snap['sender'], pysnap.get_file_extension(snap['media_type']), sent)
+            abspath = os.path.abspath(os.path.join(localpath, filename))
+            if os.path.isfile(abspath):
+                continue
+            data = s.get_blob(snap['id'])
+            if data is None:
+                continue
+            with open(abspath, 'wb') as f:
+                f.write(data)
+                irc.reply('[{0}] New snap from: {1}! - {2}{3}'.format(username, snap['sender'], address, filename))
+                replies += 1
+            if markasread:
+                s.mark_viewed(snap['id'])
+        if replies == 0:
+            irc.reply('No new snaps.')
+    test = wrap(test, ['channel'])
 
     def start(self, irc, msg, args, channel):
         """[channel]
@@ -118,7 +178,10 @@ class SupySnap(callbacks.Plugin):
                     # media_type 3 is friend requests. status 2 means it is read
                     if snap['media_type'] == 3 or snap['status'] == 2:
                         continue
-                    filename = '{0}_{1}.{2}'.format(snap['sender'], snap['id'], pysnap.get_file_extension(snap['media_type']))
+                    #boop = 'ID: {0}\tMedia id: {1}\tMedia type: {2}\tTime: {3}\tSender: {4}\tRecipient: {5}\tStatus: {6}\tScreenshot count: {7}\tSent: {8}\tOpened: {9}'.format(snap['id'], snap['media_id'], snap['media_type'], snap['time'], snap['sender'], snap['recipient'], snap['status'], snap['screenshot_count'], snap['sent'], snap['opened']) 
+                    #self.log.info(str(boop))
+                    sent = time.strftime('%Y-%m-%dT%H:%M', time.gmtime(int(str(snap['sent'])[:-3])))
+                    filename = '{2}_{0}.{1}'.format(snap['sender'], pysnap.get_file_extension(snap['media_type']), sent)
                     abspath = os.path.abspath(os.path.join(localpath, filename))
                     if os.path.isfile(abspath):
                         continue
@@ -194,6 +257,3 @@ class SupySnap(callbacks.Plugin):
 # 'time': None}
 
 Class = SupySnap
-
-
-# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:

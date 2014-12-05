@@ -28,31 +28,42 @@
 
 ###
 
-import supybot.utils as utils
-from supybot.commands import *
-import supybot.plugins as plugins
-import supybot.ircutils as ircutils
-import supybot.callbacks as callbacks
-try:
-    from supybot.i18n import PluginInternationalization
-    _ = PluginInternationalization('Timer')
-except ImportError:
-    # Placeholder that allows to run the plugin on a bot
-    # without the i18n module
-    _ = lambda x:x
+"""
+Add a description of the plugin (to be presented to the user inside the wizard)
+here.  This should describe *what* the plugin does.
+"""
 
-class Timer(callbacks.Plugin):
-    """Add the help for "@plugin help Timer" here
-    This should describe *how* to use this plugin."""
-    pass
+import supybot
+import supybot.world as world
+
+# Use this for the version of this plugin.  You may wish to put a CVS keyword
+# in here if you're keeping the plugin in CVS or some similar system.
+__version__ = ""
+
+# XXX Replace this with an appropriate author or supybot.Author instance.
+__author__ = supybot.authors.unknown
+
+# This is a dictionary mapping supybot.Author instances to lists of
+# contributions.
+__contributors__ = {}
+
+# This is a url where the most recent plugin package can be downloaded.
+__url__ = ''
+
+from . import config
+from . import plugin
+from imp import reload
+# In case we're being reloaded.
+reload(config)
+reload(plugin)
+# Add more reloads here if you add third-party modules and want them to be
+# reloaded when this plugin is reloaded.  Don't forget to import them as well!
+
+if world.testing:
+    from . import test
+
+Class = plugin.Class
+configure = config.configure
 
 
-    def timer(self, irc, msg, args, text):
-        """<time> [message]
-        (not really true, accepts an whole range of different syntaxes) <time>
-        can be on the format 5h 3m or 5 hours 3m, or 5h3m. Message can be infront or behind the time.
-
-Class = Timer
-
-
-# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
+# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
