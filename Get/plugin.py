@@ -63,14 +63,19 @@ class Get(callbacks.Plugin):
         url = self.url + postnum
         data = utils.web.getUrl(url).decode('utf8')
         problemlist = json.loads(data)
-        for problem in problemlist[:-3]:
+        count = 0
+        for problem in problemlist:
+            if 'bredbånd' not in problem['servicesAffected'] and 'Bredbånd' not in problem['servicesAffected']:
+                continue
+            count += 1
             message = self.strip_tags(problem['message']).replace('\r', '').replace('\n', ' ') # Remove new lines and html from the text
             message = re.sub(' +', ' ', message) # Remove double spaces
             date = problem['affectedPeriodFrom']
             date = dateutil.parser.parse(date)
             date = date.strftime('%Y-%m-%d %H:%M')
             irc.reply('{1}. {0}. {2}'.format(problem['status'], date, message))
-
+        if count == 0:
+            irc.reply('Ingen problemer med bredbånd!')
     get = wrap(get, ['text'])
 
     def strip_tags(self, html):
