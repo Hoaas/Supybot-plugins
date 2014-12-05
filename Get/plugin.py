@@ -55,7 +55,7 @@ class Get(callbacks.Plugin):
 
     def get(self, irc, msg, args, postnum):
         """<postnummer>
-        Returnerer siste 3 driftsmeldinger for gitt postnummer fra Get.no
+        Returnerer siste driftsmeldinger om bredbånd for gitt postnummer fra Get.no.
         """
         if len(postnum) != 4 or not postnum.isdigit():
             irc.error("Postnummer må være 4 siffer.")
