@@ -157,11 +157,11 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
     def getHtml(self, url):
         url = url.replace('/varsel.xml', '')
         url = url.replace('/forecast.xml', '')
-        html = utils.web.getUrl(url).decode()
+        html = utils.web.getUrl(url).decode(errors='replace')
         return html
 
     def getXml(self, url):
-        xml = utils.web.getUrl(url).decode()
+        xml = utils.web.getUrl(url).decode(errors='replace')
         return xml
 
     def parseXmlSun(self, xml, lang):
