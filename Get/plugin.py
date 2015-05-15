@@ -65,6 +65,8 @@ class Get(callbacks.Plugin):
         problemlist = json.loads(data)
         count = 0
         for problem in problemlist:
+            if problem.get('servicesAffected') is None:
+                continue
             if 'bredbånd' not in problem['servicesAffected'] and 'Bredbånd' not in problem['servicesAffected']:
                 continue
             count += 1
