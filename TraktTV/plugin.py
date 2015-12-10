@@ -32,6 +32,8 @@
 import sys
 import json
 import datetime
+
+import supybot.conf as conf
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
@@ -39,6 +41,11 @@ import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 from supybot.i18n import PluginInternationalization, internationalizeDocstring
 
+import supybot.utils.minisix as minisix
+pickle = minisix.pickle
+
+#datadir = conf.supybot.directories.data()
+filename = conf.supybot.directories.data.dirize('TraktTV.pickle')
 
 if sys.version_info[0] < 3:
     from urllib import quote
@@ -51,6 +58,14 @@ else:
 
 _ = PluginInternationalization('TraktTV')
 
+client_id = '463c8c2117631ccfd18a934247f16893f56a78498ba474d47255e0c4dbe221a7'
+client_secret = '78ea1cf2a4ff03ceed883a925da75aec1cc14a231f12e2dd1fd63aff0692ba10'
+
+pin_url = 'http://trakt.tv/pin/6010'
+token_url = 'https://api-v2launch.trakt.tv/oauth/token'
+users_url = 'https://api-v2launch.trakt.tv/users'
+
+
 @internationalizeDocstring
 class TraktTV(callbacks.Plugin):
     """Add the help for "@plugin help TraktTV" here
@@ -61,7 +76,7 @@ class TraktTV(callbacks.Plugin):
         dt = datetime.datetime.fromtimestamp(timestamp)
         age = datetime.datetime.now() - dt
 
-        plural = lambda n: 's' if n > 1 else ""
+        plural = lambda n: 's' if n > 1 else ''
 
         if age.days:
             age = '%s day%s ago' % (int(age.days), plural(age.days))
@@ -78,99 +93,146 @@ class TraktTV(callbacks.Plugin):
         # str_dt = dt.strftime('%Y-%m-%d %I:%M %p')
         return age
 
+    def getAccessToken(self, irc):
+        pkl = None
+        try:
+            pkl = open(filename, 'rb')
+        except IOError as e:
+            self.log.debug('Unable to open pickled file: %s', e)
+        if pkl:
+           auth = pickle.load(pkl)
+           self.log.debug('Auth from pickle-file: ' + str(auth))
+        else:
+            self.log.debug('No pickle file with access_token. Not previously logged in')
+            return
+
+        exp = auth.get('expires_in')
+        created = auth.get('created_at')
+        valid_time = created - exp
+        now = datetime.datetime.timestamp(datetime.datetime.now())
+        now = int(now)
+
+        self.log.debug('Auth token valid for ' + str((now - valid_time)/(60*60*24)) + ' days.')
+        self.log.debug('Auth token created at ' + str(datetime.datetime.fromtimestamp(created)))
+
+        if (now - valid_time) < 60*60*24*60: # If validity is under 60 days, renew (it's valid for 90 days, so we renew on first use after a month)
+            refresh_token = auth.get('refresh_token')
+            auth = self.renewAccessToken(refresh_token)
+
+        access_token = auth.get('access_token')
+        return access_token
+
+    def renewAccessToken(self, refresh_token):
+        self.log.debug('Renewing token.')
+        values = {
+                'refresh_token': refresh_token,
+                'client_id': client_id,
+                'client_secret': client_secret,
+                'redirect_uri': 'urn:ietf:wg:oauth:2.0:oob',
+                'grant_type': 'refresh_token'
+            }
+        headers = {
+            'Content-Type': 'application/json'
+        }
+        response = utils.web.getUrl(token_url, headers=headers, data=json.dumps(values))
+        response = response.decode()
+        self.log.debug('Renew token response: ' + str(response))
+        auth = json.loads(response)
+        pkl = open(filename, 'wb')
+        pickle.dump(auth, pkl)
+        return auth
+
+    def pin(self, irc, msg, args, pin):
+        """<pin>
+        Use to enter pin given by http://trakt.tv/pin/6010. Should only be needed initially, or if the plugin haven't been used in ~2 months. Other commands will give a warning if this is needed."""
+        self.log.debug('Creating new access token.')
+        values = {
+                'code': pin,
+                'client_id': client_id,
+                'client_secret': client_secret,
+                'redirect_uri': 'urn:ietf:wg:oauth:2.0:oob',
+                'grant_type': 'authorization_code'
+            }
+        headers = {
+            'Content-Type': 'application/json'
+        }
+        self.log.debug('Accessing ' + token_url)
+        self.log.debug(json.dumps(values))
+        response = utils.web.getUrl(token_url, headers=headers, data=json.dumps(values))
+        response = response.decode()
+        auth = json.loads(response)
+        self.log.debug('New auth: ' + str(auth))
+        pkl = open(filename, 'wb')
+        pickle.dump(auth, pkl)
+        irc.replySuccess()
+    pin = wrap(pin, ['text'])
+        
     def np(self, irc, msg, args, nick):
         """[nick]
 
-       Show currently playing movie/show from TraktTV. Needs to be a public
-       profile. If no nick is supplied the IRC nick of the caller is attempted.""" 
+        Show currently playing movie/show from TraktTV. Needs to be a public
+        profile. If no nick is supplied the IRC nick of the caller is attempted.""" 
 
         if not nick:
             nick = msg.nick
 
-        apikey = self.registryValue('apikey')
-        outurl = self.registryValue('outurl')
-        username = self.registryValue('username')
-        passwordhash = self.registryValue('passwordhash')
-        params = urlencode({'username': username, 'password': passwordhash}).encode('utf-8')
+        url = users_url + '/%s/watching' % nick
+        headers = {
+            'Content-type' : 'application/json',
+            'trakt-api-key' : client_id,
+            'trakt-api-version' : '2'
+        }
 
+        access_token = self.getAccessToken(irc)
 
-        if not apikey or apikey == "Not set":
-            irc.reply("API key not set. see 'config help supybot.plugins.TraktTV.apikey'.")
-            return
-
-        #url = "http://api.trakt.tv/user/watching.json/%s/" % apikey
-        url = "http://api.trakt.tv/user/profile.json/%s/" % apikey
-        url += quote(nick)
+        if access_token:
+            headers['Authorization'] = 'Bearer ' + access_token
 
         try:
-            data = utils.web.getUrl(url, data=params).decode()
+            self.log.debug('Trying ' + url + ' with these headers: ' + str(headers))
+            data = utils.web.getUrl(url, headers=headers).decode()
         except utils.web.Error as err:
-            irc.reply(str(err))
+            if '404' in str(err):
+                irc.error('User %s not found on Trakt.TV.' % nick)
+                return
+            if '401' in str(err):
+                irc.error('Private account. Log in with an account that can see this person. Visit %s and type the pin you get into the supybot command TraktTV pin <pin> (e.g. !TraktTV pin 123ABC456))' % (pin_url))
+                return
+            irc.error(str(err))
+            return
+        if not data:
+            irc.reply('Not currently scrobbling.')
             return
         try:
             data = json.loads(data)
         except:
-            irc.reply("Failed to parse response from trakt.tv.")
+            irc.error('Failed to parse response from trakt.tv.')
             raise
-            return
         if len(data) == 0:
-            irc.reply('No data available. Not a public profile?')
+            irc.error('Shouldn\'t really happen. Got an empty reply. But %s is probably not playing anything.' % nick)
             return
-        status = data.get('status')
-        if status and status == 'error':
-            widget = 'http://trakt.tv/user/%s/widget/watched-fanart.jpg' % nick
-            irc.reply(data.get('message') + " Maybe check out " + widget)
-            return
-
-        watch = data.get('watching')
-        watching = False
-        if watch:
-            watching = True
-        else:
-            watch = data.get('watched')
-
-        if not watch or len(watch) < 1:
-            irc.reply("%s have not seen anything." % nick)
-            return
-
-        if not watching:
-            watch = watch[0]
-
-        wtype = watch.get('type')
         
-        movie = watch.get('movie')
-        show = watch.get('show')
-        ep = watch.get('episode')
-
-        output = nick
-        t = ''
-        if watching:
-            output += ' np. '
-        else:
-            output += ' played ' 
-            t = self._convert_timestamp(watch.get('watched'))
-            t = ' ' + ircutils.bold(t)
-        if wtype == 'episode':
-            output += '{0} - {3} (s{1:02d}e{2:02d}){5} - {4}'.format(
-                    ircutils.bold(show.get('title')),
-                    ep.get('season'),
-                    ep.get('number'), ep.get('title'),
-                    ep.get('overview'),
-                    t)
-        elif wtype == 'movie':
-            output += '{0} ({1}){3} - {2} '.format(
-                    ircutils.bold(movie.get('title')),
-                    movie.get('year'),
-                    movie.get('overview'),
-                    t)
-            if outurl:
-                output += movie.get('url')
-        output = output.replace('\n',' ')
-        irc.reply(output)
+        show = data.get('show')
+        if show:
+            title = show.get('title')#.get('title')
+            episode = data.get('episode')
+            season = episode.get('season')
+            ep_number = episode.get('number')
+            ep_title = episode.get('title')
+            output = '{4} np. {0} - {1} (s{2:02d}e{3:02d})'.format(
+                ircutils.bold(title), ep_title, season, ep_number, nick
+            )
+            irc.reply(output)
+            return
+        movie = data.get('movie')
+        if movie:
+            title = movie.get('title')
+            year = movie.get('year')
+            output = '{2} np. {0} ({1})'.format(ircutils.bold(title), year, nick)
+            irc.reply(output)
+            return
+        irc.error('Don\'t know what to do with this data. Not a show or a movie?')
 
     np = wrap(np, [optional('text')])
 
 Class = TraktTV
-
-
-# virrset shiftwidth=4 softtabstop=4 expandtab textwidth=79:

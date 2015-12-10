@@ -50,10 +50,4 @@ TraktTV = conf.registerPlugin('TraktTV')
 #     registry.Boolean(False, _("""Help for someConfigVariableName.""")))
 
 
-# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
-conf.registerGlobalValue(TraktTV, 'apikey', registry.String('Not set', """API key to use trakt.tv API. Your key can be found at http://trakt.tv/settings/api.""", private=True))
 conf.registerChannelValue(TraktTV, 'outurl', registry.Boolean(True, """If this plugin should output URLs at all."""))
-conf.registerGlobalValue(TraktTV, 'username', registry.String("", """Your
-    trakt.tv username. Only needed for commands that require
-    authentication.""", private=True))
-conf.registerGlobalValue(TraktTV, 'passwordhash', registry.String("", """SHA1 hash of your password for trakt.tv. Can use https://duckduckgo.com/?q=sha1+yourpassword to generate hash, or any other method you might prefer. Only needed for commands that require authentication.""", private=True))

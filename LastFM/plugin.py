@@ -35,6 +35,7 @@ import time
 from datetime import tzinfo, datetime, timedelta
 
 import json
+#from xml.etree import ElementTree
 import urllib.request, urllib.error, urllib.parse, urllib.request, urllib.parse, urllib.error
 
 import supybot.dbi as dbi
@@ -133,7 +134,7 @@ class LastFM(callbacks.Plugin):
         for nick in users:
             nick = self.db.getusername(channel, nick)
             lp = self.last_played(nick, plays = play_now)
-            if lp.find(' np. ') != -1:
+            if lp.find(' np. ') != -1: # if np. exists in string
                 playing.append(lp)
                 if atonce:
                     irc.reply(lp)
@@ -183,35 +184,49 @@ class LastFM(callbacks.Plugin):
             'method': 'user.getRecentTracks'}
         ).encode('utf-8')
         text = utils.web.getUrl(url, data=data)
-#        try:
-#            text = utils.web.getUrl(url, data=data)
-#        except urllib.error.HTTPError as err:
-#            if err.code == 403:
-#                return str(err) + ' API key not valid?'
-#            elif err.code == 400:
-#                return 'No such user.'
-#            else:
-#                return 'Could not open URL. ' + str(err)
-#        except urllib.error.URLError as err:
-#            return 'Error accessing API. It might be down. Please try again later.'
-#        except:
-#            raise
+        text = text.decode()
 
-        js = json.loads(text.decode('utf8'))
+        other, user, np, artist, track, plays, when = self._parseJson(text, plays)
+        if other:
+            if other == -1:
+                return
+            return other
+        now = lambda n: 'np.' if n else 'last played'
+        time_since = lambda w: ' (%s)' % ircutils.bold(w) if w else ''
+        reply = '%s %s %s - %s%s%s' % (user, now(np), artist, track, plays, time_since(when))
+        return reply
 
+    #def _parseXml(self, text):
+    #    tree = ElementTree.fromstring(text)
+    #    recenttracks = tree.find('.//recenttracks')
+    #    last_track = recenttracks.find('.//track')
+    #    artist = last_track.find('.//artist').text
+    #    album = last_track.find('.//album').text
+    #    track = last_track.find('.//name').text
+
+    #    user = recenttracks.attrib['user']
+    #    #user = attr.find('.//user')
+    #    return None, user, False, artist, track, "", None
+
+    # Unknown if this works. Not tested.
+    def _parseJson(self, text, plays): # Ok, wrongly named. This method actually does another call if plays is True
+        js = json.loads(text)
         try:
             js['error']
-            return js['message']
+            return js['message'], None, None, None, None, None, None
         except: pass
 
         try:
-            last_track = js['recenttracks']['track']
+            last_track = js['recenttracks']['track'] # Might always happen after the API update
         except:
-            return js['recenttracks']['user'] + ' has no recent tracks.'
+            return js['recenttracks']['user'] + ' has no recent tracks.', None, None, None, None, None, None
 
         user = js['recenttracks']['@attr']['user']
         # Incase there is a list of tracks
-        if type(last_track) == list: last_track = last_track[0]
+        if type(last_track) == list:
+            if len(last_track) == 0:
+                return user + ' has no recent tracks.', None, None, None, None, None, None
+            last_track = last_track[0]
 
         artist = last_track['artist']['#text']
         album = last_track['album']['#text']
@@ -233,14 +248,9 @@ class LastFM(callbacks.Plugin):
             plays = ''
 
         if not artist or not track or not user:
-            return
+            return -1
+        return None, user, np, artist, track, plays, when
 
-        now = lambda n: 'np.' if n else 'last played'
-        time_since = lambda w: ' (%s)' % ircutils.bold(w) if w else ''
-
-        reply = '%s %s %s - %s%s%s' % (user, now(np), artist, track, plays, time_since(when))
-
-        return reply
 
     def get_tags(self, artist, mbid):
         # Need either mbid or both artist and album.
@@ -261,7 +271,11 @@ class LastFM(callbacks.Plugin):
             return
         js = json.loads(text)
         tags = []
-        toptags = js.get('toptags', '').get('tag')
+        toptags = js.get('toptags', '')
+        if not toptags:
+            self.log.info('Failed on url: ' + url + data)
+            return
+        toptags = toptags.get('tag')
         if not toptags:
             self.log.info('Failed on url: ' + url + data)
             return
@@ -284,8 +298,8 @@ class LastFM(callbacks.Plugin):
     def num_of_plays(self, mbid, artist, track, album, user):
         data = urllib.parse.urlencode(
             {'mbid': mbid,
-            'track': track,
-            'artist': artist,
+            #'track': track,
+            #'artist': artist,
             'username': user,
             'autocorrect': 0,
             'api_key': self.apikey,
@@ -376,6 +390,3 @@ class LastFM(callbacks.Plugin):
         return  rel_time
 
 Class = LastFM
-
-
-# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:

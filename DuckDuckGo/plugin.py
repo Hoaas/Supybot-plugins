@@ -92,7 +92,6 @@ class DuckDuckGo(callbacks.Plugin):
         dsrc = ""
         if defsrc:
             dsrc = " ({0})".format(defsrc)
-
         if answer and repliessofar < maxreplies:
             # TODO: Fix this. It looks ugly.
             if anstype:
