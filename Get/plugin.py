@@ -31,7 +31,7 @@
 import json
 import re
 from html.parser import HTMLParser
-import dateutil.parser
+import datetime
 
 import supybot.utils as utils
 from supybot.commands import *
@@ -72,9 +72,8 @@ class Get(callbacks.Plugin):
             count += 1
             message = self.strip_tags(problem['message']).replace('\r', '').replace('\n', ' ') # Remove new lines and html from the text
             message = re.sub(' +', ' ', message) # Remove double spaces
-            date = problem['affectedPeriodFrom']
-            date = dateutil.parser.parse(date)
-            date = date.strftime('%Y-%m-%d %H:%M')
+            date = problem['affectedPeriodFrom']/1000
+            date = datetime.datetime.fromtimestamp(date)
             irc.reply('{1}. {0}. {2}'.format(problem['status'], date, message))
         if count == 0:
             irc.reply('Ingen problemer med bredbånd!')
