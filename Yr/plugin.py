@@ -59,6 +59,8 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
     def parse_num(self, numstr):
         if not numstr:
             return
+        if not numstr:
+            return
         numstr = numstr.replace(',', '.')
         pattern = r'(-)?\d+(\.\d)?'
         numstr = re.search(pattern, numstr)
@@ -116,19 +118,21 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
             irc.reply("No hits on '%s'." % (location))
             return
         ret = None
-        html = self.getHtml(url)
+        xml = self.getXml(url)
         try:
-            ret = self.parseHtml(html, lang)
-        except:
-            pass
+            ret = self.parseXml(xml, lang)
+        except Exception as e:
+            self.log.warning("Yr: Failed to parseXml for url " + str(url))
+            self.log.warning(str(e))
         if ret is None:
-            xml = self.getXml(url)
+            html = self.getHtml(url)
             try:
-                ret = self.parseXml(xml, lang)
+                ret = self.parseHtml(html, lang)
             except:
-                pass
+                self.log.warning("Yr: Failed to parseHtml for url " + str(url))
         if ret is None:
             ret = 'Failed to parse :('
+            self.log.error("Yr: Failed all parsing for for url " + str(url))
         irc.reply(ret)
     temp = wrap(temp, ['channel', optional('text')])
 
@@ -203,6 +207,61 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
 
     def parseXml(self, xml, lang):
         tree = ElementTree.fromstring(xml)
+        ret = self.tryParseObservations(tree, lang)
+        if ret is None:
+            ret = self.tryParseForecast(tree, lang)
+        return ret
+    
+    def tryParseObservations(self, tree, lang):
+        location = tree.find('.//location')
+        name = location.find('.//name').text
+        country = location.find('.//country').text
+        loctype = location.find('.//type').text
+        ws = tree.find('.//observations')
+        if not ws:
+            return None
+        ws = ws.find('.//weatherstation')
+
+        # Use name of weather station instead of city name
+        wsname = ws.attrib['name']
+        if wsname is not None:
+            name = wsname
+
+        symbol = ws.find('.//symbol')
+        if symbol is not None:
+            symbol = symbol.attrib['name']
+        
+        windDirection = ws.find('.//windDirection')
+        if windDirection is not None:
+            windDirection = windDirection.attrib['name']
+        windSpeedName = ws.find('.//windSpeed')
+        if windSpeedName is not None:
+            windSpeedName = windSpeedName.attrib['name']
+        windSpeedValue = ws.find('.//windSpeed')
+        if windSpeedValue is not None:
+            windSpeedValue = windSpeedValue.attrib['mps']
+        temperature = ws.find('.//temperature')
+        if temperature is not None:
+            temperature = temperature.attrib['value']
+        pressure = ws.find('.//pressure')
+        if (pressure) is not None:
+            pressure = pressure.attrib['value']
+        temp = self.parse_num(temperature)
+        wind = self.parse_num(windSpeedValue)
+        if lang != 'en':
+            windSpeedValue = str(windSpeedValue).replace('.', ',')
+
+        ret = self.temp_format(temp, wind, lang)
+        lang_from = lambda x: 'from' if x == 'en' else 'fra'
+        if symbol:
+            ret += ' {0}.'.format(symbol)
+        if wind:
+            ret += ' {0}, {1} m/s {2} {3}.'.format(windSpeedName,
+                    windSpeedValue, lang_from(lang), windDirection.lower())
+        ret += ' ({0}, {1})'.format(name, country)
+        return ret
+
+    def tryParseForecast(self, tree, lang):
         location = tree.find('.//location')
         name = location.find('.//name').text
         country = location.find('.//country').text
@@ -217,7 +276,6 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
         windSpeedValue = forecast[3].attrib['mps']
         temperature = forecast[4].attrib['value']
         pressure = forecast[5].attrib['value']
-
         temp = self.parse_num(temperature)
         wind = self.parse_num(windSpeedValue)
         if lang != 'en':
@@ -225,9 +283,9 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
 
         ret = self.temp_format(temp, wind, lang)
         lang_from = lambda x: 'from' if x == 'en' else 'fra'
-        if symbol:
+        if symbol is not None:
             ret += ' {0}.'.format(symbol)
-        if wind:
+        if wind is not None:
             ret += ' {0}, {1} m/s {2} {3}.'.format(windSpeedName,
                     windSpeedValue, lang_from(lang), windDirection.lower())
         ret += ' ({0}, {1})'.format(name, country)

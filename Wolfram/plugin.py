@@ -32,7 +32,14 @@ class Wolfram(callbacks.Privmsg):
                 for err in results.findall('.//msg'):
                     irc.reply("Error: " + err.text)
                     return
-            irc.reply("huh, I dunno, I'm still a baby AI. Wait till the singularity I guess?")
+            suggestion = False
+            dyms = tree.findall('.//didyoumean')
+            for dym in dyms:
+                if dym.text:
+                    suggestion = True
+                    irc.reply("Did you mean: " + str(dym.text) + "?")
+            if not suggestion:
+                irc.reply("huh, I dunno, I'm still a baby AI. Wait till the singularity I guess?")
             return
 
         found = False
