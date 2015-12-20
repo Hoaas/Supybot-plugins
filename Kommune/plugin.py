@@ -74,7 +74,7 @@ class Kommune(callbacks.Plugin):
             if kommune.get('Kommune').lower().find(search.lower()) != -1:
                 irc.reply(self.formatedString(kommune))
                 return
-        irc.error('NoSuchKommuneExcepion. You suck.')
+        irc.error('NoSuchKommuneException. You suck.')
     kommune = wrap(kommune, ['text'])
 
     def formatedString(self, kommune):
