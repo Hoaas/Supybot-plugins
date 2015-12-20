@@ -341,7 +341,18 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
         url = 'http://www.yr.no/observasjonar/statistikk.html'
         html = utils.web.getUrl(url)
         soup = BS(html)
-        tbody = soup.body.find_all(class_='yr-content-stickynav-half left')
+        tbody_day = soup.body.find_all(class_='yr-content-stickynav-half left')
+        tbody_night = soup.body.find_all(class_='yr-content-stickynav-half right')
+        hottestName, hottestTemp, coldestName, coldestTemp, wettestName, wettestAmount = self._hotncoldparser(tbody_day, lang)
+        ret = 'Dagtid (0700 - 1900) Varmest: {0} {1} Kaldest: {2} {3} Våtest: {4} {5}.'.format(hottestName, hottestTemp, coldestName, coldestTemp, wettestName, wettestAmount)
+        irc.reply(ret)
+        hottestName, hottestTemp, coldestName, coldestTemp, wettestName, wettestAmount = self._hotncoldparser(tbody_night, lang)
+        ret = 'Nattestid (1900 - 0700) Varmest: {0} {1} Kaldest: {2} {3} Våtest: {4} {5}.'.format(hottestName, hottestTemp, coldestName, coldestTemp, wettestName, wettestAmount)
+        irc.reply(ret)
+    hotncold = wrap(hotncold)
+
+    def _hotncoldparser(self, tbodysoup, lang):
+        tbody = tbodysoup
         tr = tbody[0].findAll('tr')
         toprow = tr[1]
 
@@ -357,10 +368,7 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
 
         wettestName = toprow.findAll('td')[4].text.strip()
         wettestAmount = toprow.findAll('td')[5].text.strip().replace('\n', '')
-
-        ret = 'Varmest: {0} {1} Kaldest: {2} {3} Våtest: {4} {5}.'.format(hottestName, hottestTemp, coldestName, coldestTemp, wettestName, wettestAmount)
-        irc.reply(ret)
-    hotncold = wrap(hotncold)
+        return hottestName, hottestTemp, coldestName, coldestTemp, wettestName, wettestAmount
 
 
     def _pollen(self, locations, loc):
@@ -737,4 +745,3 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
 
 
 Class = Yr
-# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
