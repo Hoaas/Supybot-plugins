@@ -89,7 +89,7 @@ class SWTOR(callbacks.Plugin):
         try:
             req = urllib.request.Request(url)
             f = urllib.request.urlopen(req)
-            html = f.read()
+            html = f.read().decode()
         except:
             irc.reply("Failed to open " + url)
             return
@@ -102,8 +102,7 @@ class SWTOR(callbacks.Plugin):
         status, name, load, stype, lang = self._status(html, server.lower())
         
         if (status == -1):
-            irc.reply('Could not find a servername that starts with "' + server
-                    + '"')
+            irc.reply('Could not find a servername that starts with "' + server + '"')
             return
         irc.reply(name + ": " + status + ". Population load: " + load + ". " + stype + ". " + lang + ".")
 
@@ -111,6 +110,3 @@ class SWTOR(callbacks.Plugin):
     
 
 Class = SWTOR
-
-
-# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
