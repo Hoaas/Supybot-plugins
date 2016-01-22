@@ -108,7 +108,9 @@ class SupySnap(callbacks.Plugin):
         self.log.info('Creating Snapchat object')
         s = pysnap.Snapchat()
         self.log.info('Attempting to log in with username and password ' + username + '/' + password)
-        if not s.login(username, password).get('logged'):
+        login = s.login(username, password)
+        self.log.info(str(login))
+        if not login['updates_response'].get('logged'):
             irc.reply('Invalid username or password.')
             return
         self.log.info('Login successful.')
@@ -171,7 +173,7 @@ class SupySnap(callbacks.Plugin):
         def fetch():
             try:
                 s = pysnap.Snapchat()
-                if not s.login(username, password).get('logged'):
+                if not s.login(username, password)['updates_response'].get('logged'):
                     irc.reply('Invalid username or password.')
                     return
                 for snap in s.get_snaps():
