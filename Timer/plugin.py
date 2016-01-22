@@ -50,9 +50,6 @@ class Timer(callbacks.Plugin):
     def timer(self, irc, msg, args, text):
         """<time> [message]
         (not really true, accepts an whole range of different syntaxes) <time>
-        can be on the format 5h 3m or 5 hours 3m, or 5h3m. Message can be infront or behind the time.
+        can be on the format 5h 3m or 5 hours 3m, or 5h3m. Message can be infront or behind the time."""
 
 Class = Timer
-
-
-# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
