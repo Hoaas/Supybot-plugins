@@ -125,6 +125,7 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
             self.log.warning("Yr: Failed to parseXml for url " + str(url))
             self.log.warning(str(e))
         if ret is None:
+            url = url.replace('/varsel.xml', '')
             html = self.getHtml(url)
             try:
                 ret = self.parseHtml(html, lang)
