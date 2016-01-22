@@ -60,7 +60,8 @@ class DuckDuckGo(callbacks.Plugin):
             ss = "&kp=1"
         else:
             ss = "&kp=-1"
-        url = "https://api.duckduckgo.com/?format=xml&no_html=1&skip_disambig=1&no_redirect=1" + ss + "&q="
+        #url = "https://api.duckduckgo.com/?format=xml&no_html=1&skip_disambig=1&no_redirect=1" + ss + "&q="
+        url = "https://api.duckduckgo.com/?format=xml&no_html=1&no_redirect=1" + ss + "&q="
         query = urllib.parse.quote(query);
         url += query
         xml = utils.web.getUrl(url)
