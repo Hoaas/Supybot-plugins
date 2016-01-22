@@ -1,1 +1,6 @@
-Insert a description of your plugin here, with any notes, etc. about using it.
+Not made by me!
+But modified quite a bit.
+
+Might be a security hazard.
+
+Not currently working on my computer because of perl/Hailo issues.
