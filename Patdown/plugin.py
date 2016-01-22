@@ -82,7 +82,7 @@ class Patdown(callbacks.Plugin):
             headers = {'User-agent' : 'Mozilla/5.0 (X11; Linux i686; rv:7.0.1) Gecko/20100101 Firefox/7.0.1'}
             req = urllib.request.Request(url, None, headers)
             f = urllib.request.urlopen(req)
-            text = f.read()
+            text = f.read().decode()
         except:
             irc.reply("Failed to open " + url)
             return
