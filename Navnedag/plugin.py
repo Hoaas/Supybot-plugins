@@ -51,7 +51,7 @@ class Navnedag(callbacks.Plugin):
         """
         Returnerer info om hvem som har navnedag i dag."""
         now = datetime.datetime.now()
-        info = namedata['{0}-{1}'.format(now.month, now.day)]
+        info = namedata['{0:02}-{1:02}'.format(now.month, now.day)]
         retstr = info[0]
         if (info[1] != ''):
             retstr += '. ' + info[1]
