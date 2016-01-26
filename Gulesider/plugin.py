@@ -58,7 +58,13 @@ class Gulesider(callbacks.Plugin):
     def fetch(self, text):
         url = 'http://www.gulesider.no/person/resultat/'
         url += urllib.parse.quote(text)
-        html = utils.web.getUrl(url)
+        try:
+            request = urllib.request.Request(url)
+            response = urllib.request.urlopen(request)
+            html = reponse.read().decode('utf-8')
+            #html = utils.web.getUrl(url)
+        except urllib.error.HTTPError as e:
+            html = e.read()
         return html
 
     def formataddress(self, p):
@@ -102,7 +108,6 @@ class Gulesider(callbacks.Plugin):
             if terror:
                 irc.reply(ircutils.bold(terror) + ', ifølge telefonterror.no')
                 return
-
         html = self.fetch(text)
         soup = BS(html)
 
