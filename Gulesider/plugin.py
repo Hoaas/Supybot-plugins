@@ -61,7 +61,7 @@ class Gulesider(callbacks.Plugin):
         try:
             request = urllib.request.Request(url)
             response = urllib.request.urlopen(request)
-            html = reponse.read().decode('utf-8')
+            html = response.read().decode('utf-8')
             #html = utils.web.getUrl(url)
         except urllib.error.HTTPError as e:
             html = e.read()
