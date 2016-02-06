@@ -221,7 +221,11 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
         ws = tree.find('.//observations')
         if not ws:
             return None
-        ws = ws.find('.//weatherstation')
+        #ws = ws.find('.//weatherstation')
+        for station in ws.findall('.//weatherstation'):
+            if station.find('.//temperature') is not None:
+                ws = station
+                break
 
         # Use name of weather station instead of city name
         wsname = ws.attrib['name']
@@ -293,7 +297,7 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
         return ret
 
     def parseHtml(self, html, lang):
-        soup = BS(html)
+        soup = BS(html, 'lxml')
         body = soup.body
         stations = body.find_all(
             class_='yr-page')[0].find_all(
@@ -341,7 +345,7 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
 
         url = 'http://www.yr.no/observasjonar/statistikk.html'
         html = utils.web.getUrl(url)
-        soup = BS(html)
+        soup = BS(html, 'lxml')
         tbody_day = soup.body.find_all(class_='yr-content-stickynav-half left')
         tbody_night = soup.body.find_all(class_='yr-content-stickynav-half right')
         hottestName, hottestTemp, coldestName, coldestTemp, wettestName, wettestAmount = self._hotncoldparser(tbody_day, lang)
