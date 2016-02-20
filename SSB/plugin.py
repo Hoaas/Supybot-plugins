@@ -53,7 +53,7 @@ class SSB(callbacks.Plugin):
         url = 'http://www.ssb.no//befolkning/statistikker/navn/_window/banner+-+navnesok?navn='
         url += urllib.parse.quote(name)
         html = utils.web.getUrl(url).decode()
-        soup = BS(html)
+        soup = BS(html, 'lxml')
         reslist = soup.find(id='navnesok-result').findAll('p')
         retlist = []
         for res in reslist:

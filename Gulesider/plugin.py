@@ -109,7 +109,7 @@ class Gulesider(callbacks.Plugin):
                 irc.reply(ircutils.bold(terror) + ', ifølge telefonterror.no')
                 return
         html = self.fetch(text)
-        soup = BS(html)
+        soup = BS(html, 'lxml')
 
         persons = self.parsepersons(soup);
         if len(persons) == 0:
