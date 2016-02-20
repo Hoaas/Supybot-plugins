@@ -242,6 +242,7 @@ class LastFM(callbacks.Plugin):
             when = last_track['date']['#text']
             when = self._time_created_at(when) # Remove this line to output
                                                # date in UTC instead.
+        self.log.info(str(last_track))
         if plays:
             plays = self.num_of_plays(last_track['mbid'], artist, track, album, user)
         if not plays:
@@ -298,15 +299,14 @@ class LastFM(callbacks.Plugin):
     def num_of_plays(self, mbid, artist, track, album, user):
         data = urllib.parse.urlencode(
             {'mbid': mbid,
-            #'track': track,
-            #'artist': artist,
+            'track': track,
+            'artist': artist,
             'username': user,
             'autocorrect': 0,
             'api_key': self.apikey,
             'format': 'json',
             'method': 'track.getInfo'}
         ).encode('utf-8')
-
         try:
             text = utils.web.getUrl(url, data=data).decode()
         except:
