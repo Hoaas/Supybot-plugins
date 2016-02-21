@@ -256,6 +256,8 @@ class LastFM(callbacks.Plugin):
         # Need either mbid or both artist and album.
         if mbid == '' and artist == '':
             return
+        if mbid is None:
+            mbid = ''
         data = urllib.parse.urlencode(
             {'artist': artist,
             'mbid': mbid,
