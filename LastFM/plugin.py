@@ -242,7 +242,6 @@ class LastFM(callbacks.Plugin):
             when = last_track['date']['#text']
             when = self._time_created_at(when) # Remove this line to output
                                                # date in UTC instead.
-        self.log.info(str(last_track))
         if plays:
             plays = self.num_of_plays(last_track['mbid'], artist, track, album, user)
         if not plays:
@@ -296,9 +295,9 @@ class LastFM(callbacks.Plugin):
         tags = ', '.join(tags)
         return tags
 
-    def num_of_plays(self, mbid, artist, track, album, user):
+    def num_of_plays(self, mbid_track, artist, track, album, user):
         data = urllib.parse.urlencode(
-            {'mbid': mbid,
+            {'mbid': mbid_track,
             'track': track,
             'artist': artist,
             'username': user,
@@ -336,7 +335,8 @@ class LastFM(callbacks.Plugin):
         heart = lambda h: ircutils.bold(' <3') if h == '1' else ''
         tags = lambda t: ' [%s]' % t if t else ''
 
-        t = self.get_tags(artist, mbid)
+        mbid_artist = track.get('artist').get('mbid')
+        t = self.get_tags(artist, mbid_artist)
 
         retvalue = ''
 
