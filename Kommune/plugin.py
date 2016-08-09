@@ -53,12 +53,20 @@ class Kommune(callbacks.Plugin):
         """<kommune>
         Info om kommunen."""
         path = os.path.dirname(__file__)
-        jsonfile = os.path.join(path, 'kommuner.json')
+        jsonfile = os.path.join(path, 'kommuner_2016-06.json')
         with open(jsonfile) as json_file:
             data = json.load(json_file)
         kommuner = data.get('kommuner')
         hit = False
+        digit = False
+        if (search.isdigit()):
+            digit = True
         for kommune in kommuner:
+            if digit:
+                if kommune.get('Nr') == search:
+                    irc.reply(self.formatedString(kommune))
+                    hit = True
+                    break
             if kommune.get('Kommune').lower()  == search.lower():
                 irc.reply(self.formatedString(kommune))
                 hit = True
@@ -78,7 +86,8 @@ class Kommune(callbacks.Plugin):
     kommune = wrap(kommune, ['text'])
 
     def formatedString(self, kommune):
-        ret = '{0} - {1} (Adm. senter {2}) i {3}. {4} innbyggere. {5} km². Målform {6}.'.format(kommune.get('Nr'), kommune.get('Kommune'), kommune.get('Adm. senter'), kommune.get('Fylke'), kommune.get('Folketall'), kommune.get('Areal'), kommune.get('Målform').lower())
+        #ret = '{0} - {1} (Adm. senter {2}) i {3}. {4} innbyggere. {5} km². Målform {6}.'.format(kommune.get('Nr'), kommune.get('Kommune'), kommune.get('Adm. senter'), kommune.get('Fylke'), kommune.get('Folketall'), kommune.get('Areal'), kommune.get('Målform').lower()) # Old version without ordfører or parti
+        ret = '{0} - {1} (Adm. senter {2}) i {3}. {4} innbyggere. {5} km². Målform {6}. Ordfører: {7} ({8}).'.format(kommune.get('Nr'), kommune.get('Kommune'), kommune.get('Adm. senter'), kommune.get('Fylke'), kommune.get('Folketall'), kommune.get('Areal'), kommune.get('Målform').lower(), kommune.get('Ordfører'), kommune.get('Parti'))
         return ret
 
 Class = Kommune
