@@ -111,7 +111,7 @@ class Gulesider(callbacks.Plugin):
         html = self.fetch(text)
         soup = BS(html, 'lxml')
 
-        persons = self.parsepersons(soup);
+        persons = self.parsepersons(soup)
         if len(persons) == 0:
             irc.reply('No hits.')
             return
@@ -120,7 +120,7 @@ class Gulesider(callbacks.Plugin):
             if isdigit:
                 lines.append(self.formataddress(p))
             else:
-                lines.append(p.tlf + ' - ' + self.formataddress(p))
+                lines.append(str(p.tlf) + ' - ' + str(self.formataddress(p)))
         ret = '; '.join([_f for _f in (l for l in lines) if _f])
         irc.reply(ret)
     tlf = wrap(tlf, ['text'])
