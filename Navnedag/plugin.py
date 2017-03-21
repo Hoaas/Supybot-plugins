@@ -417,7 +417,7 @@ namedata = {'01-01': ['Jesus[trenger referanse]', '- 1. nyttårsdag, Jesu navned
     '12-22': ['Ingemar og Ingar', ''],
     '12-23': ['Sigurd og Sjur', '- primstavens Sjursmesse eller Tollesmesse, etter den islandske biskop Sankt Thorlákr Thorhallsson'],
     '12-24': ['Adam og Eva', ''],
-    '12-25': [' Ingen navnedag – Første juledag'],
+    '12-25': ['Ingen navnedag – Første juledag', ''],
     '12-26': ['Stefan og Steffen', 'Navnedagen er etter den hellige Stefanus, kirkens første martyr'],
     '12-27': ['Narve og Natalie', ''],
     '12-28': ['Unni, Une og Unn', 'Une ble tatt inn i revisjonen fra 1998.'],
