@@ -56,8 +56,15 @@ class OMDb(callbacks.Plugin):
         """[--year <int>] <movie>
         Shows some information about the given movie title.
         """
+
+        apikey = self.registryValue('apikey')
+        if not apikey or apikey == "Not set":
+            irc.reply("API key not set. See 'config help supybot.plugins.OMDb.apikey'.")
+            return
+
         url = self.url
-        url += "t=" + urllib.parse.quote(movie)
+        url += "apikey=" + apikey
+        url += "&t=" + urllib.parse.quote(movie)
         url += "&plot=short"
         url += "&tomatoes=true"
         url += "&r=json"

@@ -53,5 +53,6 @@ OMDb = conf.registerPlugin('OMDb')
 # conf.registerGlobalValue(OMDb, 'someConfigVariableName',
 #     registry.Boolean(False, _("""Help for someConfigVariableName.""")))
 
+conf.registerGlobalValue(OMDb, 'apikey', registry.String('Not set', """API key to use OMDb API. A key can be requested from https://www.omdbapi.com/apikey.aspx.""", private=True))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
