@@ -51,3 +51,5 @@ TraktTV = conf.registerPlugin('TraktTV')
 
 
 conf.registerChannelValue(TraktTV, 'outurl', registry.Boolean(True, """If this plugin should output URLs at all."""))
+conf.registerGlobalValue(TraktTV, 'client_id', registry.String('Not set', """Client ID to use Trakt API. A key can be requested from https://trakt.tv/oauth/applications by creating a new application.""", private=True))
+conf.registerGlobalValue(TraktTV, 'client_secret', registry.String('Not set', """Client Secret to use Trakt API. A key can be requested from https://trakt.tv/oauth/applications by creating a new application.""", private=True))

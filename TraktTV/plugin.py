@@ -60,9 +60,6 @@ else:
 
 _ = PluginInternationalization('TraktTV')
 
-client_id = '463c8c2117631ccfd18a934247f16893f56a78498ba474d47255e0c4dbe221a7'
-client_secret = '78ea1cf2a4ff03ceed883a925da75aec1cc14a231f12e2dd1fd63aff0692ba10'
-
 pin_url = 'http://trakt.tv/pin/6010'
 api_url = 'https://api.trakt.tv'
 
@@ -71,6 +68,12 @@ class TraktTV(callbacks.Plugin):
     """Add the help for "@plugin help TraktTV" here
     This should describe *how* to use this plugin."""
     threaded = True
+
+    def get_client_id(self):
+        return self.registryValue('client_id')
+
+    def get_client_secret(self):
+        return self.registryValue('client_secret')
 
     def _convert_timestamp(self, timestamp):
         dt = datetime.datetime.fromtimestamp(timestamp)
@@ -127,8 +130,8 @@ class TraktTV(callbacks.Plugin):
 
         values = {
                 'refresh_token': refresh_token,
-                'client_id': client_id,
-                'client_secret': client_secret,
+                'client_id': self.get_client_id(),
+                'client_secret': self.get_client_secret(),
                 'redirect_uri': 'urn:ietf:wg:oauth:2.0:oob',
                 'grant_type': 'refresh_token'
             }
@@ -156,8 +159,8 @@ class TraktTV(callbacks.Plugin):
         self.log.debug('Creating new access token.')
         values = {
                 'code': pin,
-                'client_id': client_id,
-                'client_secret': client_secret,
+                'client_id': self.get_client_id(),
+                'client_secret': self.get_client_secret(),
                 'redirect_uri': 'urn:ietf:wg:oauth:2.0:oob',
                 'grant_type': 'authorization_code'
             }
@@ -194,7 +197,7 @@ class TraktTV(callbacks.Plugin):
         url = api_url + '/users/%s/watching' % nick
         headers = {
             'Content-type' : 'application/json',
-            'trakt-api-key' : client_id,
+            'trakt-api-key' : self.get_client_id(),
             'trakt-api-version' : '2'
         }
 
@@ -261,7 +264,7 @@ class TraktTV(callbacks.Plugin):
         url = api_url + '/shows/%s/seasons?extended=episodes' % slug
         headers = {
             'Content-type': 'application/json',
-            'trakt-api-key': client_id,
+            'trakt-api-key': self.get_client_id(),
             'trakt-api-version': '2'
         }
 
@@ -282,7 +285,7 @@ class TraktTV(callbacks.Plugin):
         
         headers = {
             'Content-type': 'application/json',
-            'trakt-api-key': client_id,
+            'trakt-api-key': self.get_client_id(),
             'trakt-api-version': '2'
         }
 
