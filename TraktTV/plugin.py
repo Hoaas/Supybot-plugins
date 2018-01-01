@@ -31,6 +31,8 @@
 
 import sys
 import json
+import random
+import urllib.parse
 import datetime
 
 import supybot.conf as conf
@@ -62,9 +64,7 @@ client_id = '463c8c2117631ccfd18a934247f16893f56a78498ba474d47255e0c4dbe221a7'
 client_secret = '78ea1cf2a4ff03ceed883a925da75aec1cc14a231f12e2dd1fd63aff0692ba10'
 
 pin_url = 'http://trakt.tv/pin/6010'
-token_url = 'https://api-v2launch.trakt.tv/oauth/token'
-users_url = 'https://api-v2launch.trakt.tv/users'
-
+api_url = 'https://api.trakt.tv'
 
 @internationalizeDocstring
 class TraktTV(callbacks.Plugin):
@@ -124,6 +124,7 @@ class TraktTV(callbacks.Plugin):
 
     def renewAccessToken(self, refresh_token):
         self.log.debug('Renewing token.')
+
         values = {
                 'refresh_token': refresh_token,
                 'client_id': client_id,
@@ -131,13 +132,20 @@ class TraktTV(callbacks.Plugin):
                 'redirect_uri': 'urn:ietf:wg:oauth:2.0:oob',
                 'grant_type': 'refresh_token'
             }
+
         headers = {
             'Content-Type': 'application/json'
         }
+
+        token_url = api_url + '/oauth/token'
+
         response = utils.web.getUrl(token_url, headers=headers, data=json.dumps(values))
         response = response.decode()
+
         self.log.debug('Renew token response: ' + str(response))
+
         auth = json.loads(response)
+
         pkl = open(filename, 'wb')
         pickle.dump(auth, pkl)
         return auth
@@ -156,12 +164,19 @@ class TraktTV(callbacks.Plugin):
         headers = {
             'Content-Type': 'application/json'
         }
+
+        token_url = api_url + '/oauth/token'
+
         self.log.debug('Accessing ' + token_url)
         self.log.debug(json.dumps(values))
+
         response = utils.web.getUrl(token_url, headers=headers, data=json.dumps(values))
         response = response.decode()
+
         auth = json.loads(response)
+
         self.log.debug('New auth: ' + str(auth))
+
         pkl = open(filename, 'wb')
         pickle.dump(auth, pkl)
         irc.replySuccess()
@@ -176,7 +191,7 @@ class TraktTV(callbacks.Plugin):
         if not nick:
             nick = msg.nick
 
-        url = users_url + '/%s/watching' % nick
+        url = api_url + '/users/%s/watching' % nick
         headers = {
             'Content-type' : 'application/json',
             'trakt-api-key' : client_id,
@@ -234,5 +249,49 @@ class TraktTV(callbacks.Plugin):
         irc.error('Don\'t know what to do with this data. Not a show or a movie?')
 
     np = wrap(np, [optional('text')])
+
+    @wrap(['text'])
+    def random(self, irc, msg, args, show):
+        """<show>
+        
+        Returns a random episode for a given show."""
+
+        title, slug = self.search_by_title(show)
+
+        url = api_url + '/shows/%s/seasons?extended=episodes' % slug
+        headers = {
+            'Content-type': 'application/json',
+            'trakt-api-key': client_id,
+            'trakt-api-version': '2'
+        }
+
+        data = utils.web.getUrl(url, headers=headers).decode()
+        data = json.loads(data)
+
+        random_season = random.choice(data).get('episodes')
+        random_episode = random.choice(random_season)
+
+        ep = random_episode
+
+        output = 'Your random episode: %s - %s (s%02de%02d)' % (title, ep.get('title'), ep.get('season'), ep.get('number'))
+        irc.reply(output)
+
+    def search_by_title(self, search):
+        q = urllib.parse.quote(search)
+        url = api_url + '/search/show?query=%s' % q
+        
+        headers = {
+            'Content-type': 'application/json',
+            'trakt-api-key': client_id,
+            'trakt-api-version': '2'
+        }
+
+        data = utils.web.getUrl(url, headers=headers).decode() 
+        data = json.loads(data)
+
+        show = data[0]
+        title = show.get('show').get('title')
+        slug = show.get('show').get('ids').get('slug')
+        return title, slug
 
 Class = TraktTV
