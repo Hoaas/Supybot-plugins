@@ -96,7 +96,7 @@ class TraktTV(callbacks.Plugin):
         # str_dt = dt.strftime('%Y-%m-%d %I:%M %p')
         return age
 
-    def getAccessToken(self, irc):
+    def get_access_token(self):
         pkl = None
         try:
             pkl = open(filename, 'rb')
@@ -120,12 +120,12 @@ class TraktTV(callbacks.Plugin):
 
         if (now - valid_time) < 60*60*24*60: # If validity is under 60 days, renew (it's valid for 90 days, so we renew on first use after a month)
             refresh_token = auth.get('refresh_token')
-            auth = self.renewAccessToken(refresh_token)
+            auth = self.renew_access_token(refresh_token)
 
         access_token = auth.get('access_token')
         return access_token
 
-    def renewAccessToken(self, refresh_token):
+    def renew_access_token(self, refresh_token):
         self.log.debug('Renewing token.')
 
         values = {
@@ -201,8 +201,7 @@ class TraktTV(callbacks.Plugin):
             'trakt-api-version' : '2'
         }
 
-        access_token = self.getAccessToken(irc)
-
+        access_token = self.get_access_token()
         if access_token:
             headers['Authorization'] = 'Bearer ' + access_token
 
@@ -261,15 +260,9 @@ class TraktTV(callbacks.Plugin):
 
         title, slug = self.search_by_title(show)
 
-        url = api_url + '/shows/%s/seasons?extended=episodes' % slug
-        headers = {
-            'Content-type': 'application/json',
-            'trakt-api-key': self.get_client_id(),
-            'trakt-api-version': '2'
-        }
+        url = '/shows/%s/seasons?extended=episodes' % slug
 
-        data = utils.web.getUrl(url, headers=headers).decode()
-        data = json.loads(data)
+        data = self.apicall(url)
 
         random_season = random.choice(data).get('episodes')
         random_episode = random.choice(random_season)
@@ -279,18 +272,131 @@ class TraktTV(callbacks.Plugin):
         output = 'Your random episode: %s - %s (s%02de%02d)' % (title, ep.get('title'), ep.get('season'), ep.get('number'))
         irc.reply(output)
 
-    def search_by_title(self, search):
-        q = urllib.parse.quote(search)
-        url = api_url + '/search/show?query=%s' % q
+    @wrap([('literal', ('movies', 'shows'))])
+    def trending(self, irc, msg, args, type):
+        """<movies|shows>
+        Returns top 10 trending movies or shows."""
+
+        url = '/%s/trending' % self.get_movie_show_url_part(type)
+        irc.reply(self.get_lists(url))
+
+    @wrap([('literal', ('movies', 'shows'))])
+    def popular(self, irc, msg, args, type):
+        """<movies|shows>
+        Returns top 10 popular movies or shows."""
+
+        url = '/%s/popular' % self.get_movie_show_url_part(type)
+        irc.reply(self.get_lists(url))
+
+    @wrap([('literal', ('movies', 'shows')), optional(('literal', ('daily', 'weekly', 'monthly', 'yearly')))])
+    def played(self, irc, msg, args, type, period):
+        """<movies|shows> [daily|weekly|monthly|yearly]
+        Returns top 10 played movies or shows. Weekly by default."""
+
+        type_part = self.get_movie_show_url_part(type)
+        period_part = self.get_period_part(period)
+        url = '/%s/played/%s' % (type_part, period_part)
+
+        irc.reply(self.get_lists(url))
+
+    @wrap([('literal', ('movies', 'shows')), optional(('literal', ('daily', 'weekly', 'monthly', 'yearly')))])
+    def watched(self, irc, msg, args, type, period):
+        """<movies|shows> [daily|weekly|monthly|yearly]
+        Returns top 10 watched movies or shows. Weekly by default."""
+
+        type_part = self.get_movie_show_url_part(type)
+        period_part = self.get_period_part(period)
+        url = '/%s/watched/%s' % (type_part, period_part)
         
+        irc.reply(self.get_lists(url))
+
+    @wrap([('literal', ('movies', 'shows')), optional(('literal', ('daily', 'weekly', 'monthly', 'yearly')))])
+    def collected(self, irc, msg, args, type, period):
+        """<movies|shows> [daily|weekly|monthly|yearly]
+        Returns top 10 collected movies or shows. Weekly by default."""
+
+        type_part = self.get_movie_show_url_part(type)
+        period_part = self.get_period_part(period)
+        url = '/%s/collected/%s' % (type_part, period_part)
+        
+        irc.reply(self.get_lists(url))
+
+    @wrap([('literal', ('movies', 'shows'))])
+    def anticipated(self, irc, msg, args, type):
+        """<movies|shows>
+        Returns top 10 anticipated movies or shows."""
+
+        url = '/%s/anticipated' % self.get_movie_show_url_part(type)
+        
+        irc.reply(self.get_lists(url))
+
+    def get_movie_show_url_part(self, word):
+        if word.startswith('m'):
+            return 'movies'
+
+        if word.startswith('s'):
+            return 'shows'
+
+    def get_period_part(self, period):
+        if period is None or period.startswith('w'):
+            return 'weekly'
+
+        if period.startswith('d'):
+            return 'daily'
+
+        if period.startswith('m'):
+            return 'monthly'
+
+        if period.startswith('y'):
+            return 'yearly'
+    
+    def get_lists(self, url):
+        data = self.apicall(url)
+        
+        titles = []
+        for item in data:
+            m = item.get('movie')
+            s = item.get('show')
+            if m:
+                x = m
+            elif s:
+                x = s
+            else:
+                x = item
+            titles.append(x.get('title'))
+
+        return ', '.join(titles)
+
+
+
+    def apicall(self, url, client_id=True, auth_token=False):
+
         headers = {
             'Content-type': 'application/json',
-            'trakt-api-key': self.get_client_id(),
             'trakt-api-version': '2'
         }
 
-        data = utils.web.getUrl(url, headers=headers).decode() 
+        if client_id:
+            headers['trakt-api-key'] = self.get_client_id()
+
+        if auth_token:
+            access_token = self.get_access_token()
+            if access_token:
+                headers['Authorization'] = 'Bearer ' + access_token
+            else:
+                self.log.error('Error: TraktTV: Failed to get access token.')
+                return
+        
+        url = api_url + url
+
+        data = utils.web.getUrl(url, headers=headers).decode()
         data = json.loads(data)
+        return data
+
+    def search_by_title(self, search):
+        url = '/search/show?query=%s' % urllib.parse.quote(search)
+        
+        data = self.apicall(url)
 
         show = data[0]
         title = show.get('show').get('title')
