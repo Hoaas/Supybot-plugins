@@ -258,7 +258,10 @@ class TraktTV(callbacks.Plugin):
         
         Returns a random episode for a given show."""
 
-        title, slug = self.search_by_title(show)
+        title, slug = self.search_item_by_title_and_type(show, 'show')
+        if (title is None or slug is None):
+            irc.reply('Sorry, no hits.')
+            return
 
         url = '/shows/%s/seasons?extended=episodes' % slug
 
@@ -273,69 +276,107 @@ class TraktTV(callbacks.Plugin):
         irc.reply(output)
 
     @wrap([('literal', ('movies', 'shows'))])
-    def trending(self, irc, msg, args, type):
+    def trending(self, irc, msg, args, media_type):
         """<movies|shows>
         Returns top 10 trending movies or shows."""
 
-        url = '/%s/trending' % self.get_movie_show_url_part(type)
+        url = '/%s/trending' % media_type
         irc.reply(self.get_lists(url))
 
     @wrap([('literal', ('movies', 'shows'))])
-    def popular(self, irc, msg, args, type):
+    def popular(self, irc, msg, args, media_type):
         """<movies|shows>
         Returns top 10 popular movies or shows."""
 
-        url = '/%s/popular' % self.get_movie_show_url_part(type)
+        url = '/%s/popular' % media_type
         irc.reply(self.get_lists(url))
 
     @wrap([('literal', ('movies', 'shows')), optional(('literal', ('daily', 'weekly', 'monthly', 'yearly')))])
-    def played(self, irc, msg, args, type, period):
+    def played(self, irc, msg, args, media_type, period):
         """<movies|shows> [daily|weekly|monthly|yearly]
         Returns top 10 played movies or shows. Weekly by default."""
 
-        type_part = self.get_movie_show_url_part(type)
         period_part = self.get_period_part(period)
-        url = '/%s/played/%s' % (type_part, period_part)
+        url = '/%s/played/%s' % (media_type, period_part)
 
         irc.reply(self.get_lists(url))
 
     @wrap([('literal', ('movies', 'shows')), optional(('literal', ('daily', 'weekly', 'monthly', 'yearly')))])
-    def watched(self, irc, msg, args, type, period):
+    def watched(self, irc, msg, args, media_type, period):
         """<movies|shows> [daily|weekly|monthly|yearly]
         Returns top 10 watched movies or shows. Weekly by default."""
 
-        type_part = self.get_movie_show_url_part(type)
         period_part = self.get_period_part(period)
-        url = '/%s/watched/%s' % (type_part, period_part)
+        url = '/%s/watched/%s' % (media_type, period_part)
         
         irc.reply(self.get_lists(url))
 
     @wrap([('literal', ('movies', 'shows')), optional(('literal', ('daily', 'weekly', 'monthly', 'yearly')))])
-    def collected(self, irc, msg, args, type, period):
+    def collected(self, irc, msg, args, media_type, period):
         """<movies|shows> [daily|weekly|monthly|yearly]
         Returns top 10 collected movies or shows. Weekly by default."""
 
-        type_part = self.get_movie_show_url_part(type)
         period_part = self.get_period_part(period)
-        url = '/%s/collected/%s' % (type_part, period_part)
+        url = '/%s/collected/%s' % (media_type, period_part)
         
         irc.reply(self.get_lists(url))
 
     @wrap([('literal', ('movies', 'shows'))])
-    def anticipated(self, irc, msg, args, type):
+    def anticipated(self, irc, msg, args, media_type):
         """<movies|shows>
         Returns top 10 anticipated movies or shows."""
 
-        url = '/%s/anticipated' % self.get_movie_show_url_part(type)
+        url = '/%s/anticipated' % media_type
         
         irc.reply(self.get_lists(url))
 
-    def get_movie_show_url_part(self, word):
-        if word.startswith('m'):
-            return 'movies'
+    @wrap([('literal', ('movie', 'show')), 'text'])
+    def rating(self, irc, msg, args, media_type, name):
+        """<movies|show> <name>
 
-        if word.startswith('s'):
-            return 'shows'
+        Returns rating with distribution of votes for movies or shows."""
+        #values = " ▁▂▃▄▅▆▇█❘"
+        title, slug = self.search_item_by_title_and_type(name, media_type)
+        if (title is None or slug is None):
+            irc.reply('Sorry, no hits.')
+            return
+
+        url = '/%s/%s/ratings' % (media_type + 's', slug)
+        data = self.apicall(url)
+
+        rating = data.get('rating')
+        votes = data.get('votes')
+
+        distribution = data.get('distribution')
+        sortedlist = [(k, distribution[k]) for k in sorted(distribution, key=float)]
+        sorted_scores = [num for score, num in sortedlist]
+
+        biggest = max(sorted_scores)
+        weightedDistribution = [score / biggest for score in sorted_scores]
+        graph = self.create_graph_for_range(weightedDistribution)
+
+        output = '%s rated %.1f by %s people: 0 %s10' % (title, rating, votes, graph)
+        irc.reply(output)
+
+    def create_graph_for_range(self, values):
+        output = ''
+        for r in values:
+            output += self.get_graph_level(r)
+        output += '❘'
+        return output
+
+    def get_graph_level(self, value):
+        if (value <= 0.0): return " "
+        if (value > 0.0 and value <= 0.1): return "▁"
+        if (value > 0.1 and value <= 0.2): return "▂"
+        if (value > 0.2 and value <= 0.3): return "▃"
+        if (value > 0.3 and value <= 0.4): return "▄"
+        if (value > 0.4 and value <= 0.5): return "▅"
+        if (value > 0.5 and value <= 0.6): return "▆"
+        if (value > 0.6 and value <= 0.7): return "▆"
+        if (value > 0.7 and value <= 0.8): return "▇"
+        if (value > 0.8 and value <= 0.9): return "█"
+        if (value > 0.9): return "█"
 
     def get_period_part(self, period):
         if period is None or period.startswith('w'):
@@ -367,8 +408,6 @@ class TraktTV(callbacks.Plugin):
 
         return ', '.join(titles)
 
-
-
     def apicall(self, url, client_id=True, auth_token=False):
 
         headers = {
@@ -393,14 +432,14 @@ class TraktTV(callbacks.Plugin):
         data = json.loads(data)
         return data
 
-    def search_by_title(self, search):
-        url = '/search/show?query=%s' % urllib.parse.quote(search)
-        
+    def search_item_by_title_and_type(self, search, search_type):
+        url = '/search/%s?query=%s' % (search_type, urllib.parse.quote(search))
         data = self.apicall(url)
 
+        if (len(data) == 0): return None, None
         show = data[0]
-        title = show.get('show').get('title')
-        slug = show.get('show').get('ids').get('slug')
+        title = show.get(search_type).get('title')
+        slug = show.get(search_type).get('ids').get('slug')
         return title, slug
 
 Class = TraktTV
