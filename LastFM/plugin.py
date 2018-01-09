@@ -72,8 +72,9 @@ class DbiLastFMNickDB(plugins.DbiChannelDB):
             size = self.size()
             for i in range(1, size+1):
                 u = self.get(i)
-                if u.nick == nick:  return u.username
-            return nick
+                if u.nick == nick:
+                    return u.username, True
+            return nick, False
 
 LASTFMNICKDB = plugins.DB('LastFM', {'flat': DbiLastFMNickDB})
 
@@ -99,7 +100,7 @@ class LastFM(callbacks.Plugin):
             nick = msg.nick
         channel = msg.args[0]
 
-        oldname = self.db.getusername(channel, nick)
+        oldname, username_in_db = self.db.getusername(channel, nick)
         if oldname != username:
             if self.db.remove(channel, nick):
                 #irc.reply('Naw, sorry. Changing username is temp. disabled.')
@@ -132,7 +133,9 @@ class LastFM(callbacks.Plugin):
             users.append(u)
 
         for nick in users:
-            nick = self.db.getusername(channel, nick)
+            nick, username_in_db = self.db.getusername(channel, nick)
+            if not username_in_db:
+                continue
             lp = self.last_played(nick, plays = play_now)
             if lp.find(' np. ') != -1: # if np. exists in string
                 playing.append(lp)
@@ -161,7 +164,7 @@ class LastFM(callbacks.Plugin):
         if not user:
             user = msg.nick
         channel = msg.args[0]
-        user = self.db.getusername(channel, user)
+        user, username_in_db = self.db.getusername(channel, user)
 
         notags = True
         if options:
