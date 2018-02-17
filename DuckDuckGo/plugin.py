@@ -29,7 +29,7 @@
 
 ###
 from lxml import etree
-import urllib.request, urllib.error, urllib.parse, urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error, urllib.parse
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
