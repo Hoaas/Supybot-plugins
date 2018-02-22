@@ -30,6 +30,7 @@
 
 import os
 import json
+import random
 
 import supybot.utils as utils
 from supybot.commands import *
@@ -61,6 +62,12 @@ class Kommune(callbacks.Plugin):
         digit = False
         if (search.isdigit()):
             digit = True
+
+        if search.lower() == 'random':
+            k = random.choice(kommuner)
+            irc.reply(self.formatedString(k))
+            return
+
         for kommune in kommuner:
             if digit:
                 if kommune.get('Nr') == search:
