@@ -66,9 +66,6 @@ class PasswordTester(callbacks.Plugin):
         
         text = response.decode('ascii', 'ignore').strip()
 
-        for r in text:
-            self.log.info("'%s'" % r)
-
         irc.reply("This password has been present %s times in data breaches." % text)
 
 Class = PasswordTester
