@@ -58,7 +58,7 @@ class PasswordTester(callbacks.Plugin):
 
         sha1 = hashlib.sha1(password.encode()).hexdigest()
         sha1_prefix = sha1[:5]
-        sha1_suffix = sha1[5:]
+        sha1_suffix = sha1[5:].upper()
 
         try:
             response = utils.web.getUrl(self.url + sha1_prefix)
