@@ -48,7 +48,7 @@ class PasswordTester(callbacks.Plugin):
     """Checks if the given string is in Troy Hunts HaveIBeenPwned.com API."""
     threaded = True
 
-    url = "https://api.pwnedpasswords.com/pwnedpassword/"
+    url = "https://api.pwnedpasswords.com/range/"
 
     @wrap(['text'])
     def password(self, irc, msg, args, password):
@@ -57,16 +57,24 @@ class PasswordTester(callbacks.Plugin):
         Returns if and how many times this password has been in data breaches."""
 
         sha1 = hashlib.sha1(password.encode()).hexdigest()
+        sha1_prefix = sha1[:5]
+        sha1_suffix = sha1[5:]
 
         try:
-            response = utils.web.getUrl(self.url + sha1)
+            response = utils.web.getUrl(self.url + sha1_prefix)
+            text = response.decode('ascii', 'ignore').strip()
+            if sha1_suffix in text:
+                # Password is pwned
+                frequency = [s for s in text.splitlines() if sha1_suffix in s][0].split(':')[1]
+                irc.reply("This password has been present %s times in data breaches." % frequency)
+                return
+            else:
+                irc.reply("Password is safe to use!")
+                return
         except:
-            irc.reply("Password is safe to use! ... or was, before you checked it here.")
+            irc.reply("The call to HIBP failed in some way. Unable to check password status at this time.")
             return
-        
-        text = response.decode('ascii', 'ignore').strip()
 
-        irc.reply("This password has been present %s times in data breaches." % text)
 
 Class = PasswordTester
 
