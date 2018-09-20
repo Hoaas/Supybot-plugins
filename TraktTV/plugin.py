@@ -31,6 +31,7 @@
 
 import sys
 import json
+import time
 import random
 import urllib.parse
 import datetime
@@ -60,7 +61,6 @@ else:
 
 _ = PluginInternationalization('TraktTV')
 
-pin_url = 'http://trakt.tv/pin/6010'
 api_url = 'https://api.trakt.tv'
 
 @internationalizeDocstring
@@ -153,38 +153,83 @@ class TraktTV(callbacks.Plugin):
         pickle.dump(auth, pkl)
         return auth
 
-    def pin(self, irc, msg, args, pin):
-        """<pin>
-        Use to enter pin given by http://trakt.tv/pin/6010. Should only be needed initially, or if the plugin haven't been used in ~2 months. Other commands will give a warning if this is needed."""
+    def auth(self, irc):
         self.log.debug('Creating new access token.')
         values = {
-                'code': pin,
-                'client_id': self.get_client_id(),
-                'client_secret': self.get_client_secret(),
-                'redirect_uri': 'urn:ietf:wg:oauth:2.0:oob',
-                'grant_type': 'authorization_code'
-            }
+                'client_id': self.get_client_id()
+        }
         headers = {
             'Content-Type': 'application/json'
         }
 
-        token_url = api_url + '/oauth/token'
+        codes_url = api_url + '/oauth/device/code'
 
-        self.log.debug('Accessing ' + token_url)
+        self.log.debug('Accessing ' + codes_url)
         self.log.debug(json.dumps(values))
 
-        response = utils.web.getUrl(token_url, headers=headers, data=json.dumps(values))
+        response = utils.web.getUrl(codes_url, headers=headers, data=json.dumps(values))
         response = response.decode()
 
-        auth = json.loads(response)
+        codes = json.loads(response)
 
-        self.log.debug('New auth: ' + str(auth))
+        self.log.debug('Codes response: ' + str(codes))
+        irc.reply('Visit %s and input %s.'% (codes.get('verification_url'), codes.get('user_code')))
+
+        token_url = api_url + '/oauth/device/token'
+        authed = False
+        interval = codes.get('interval')
+        time_max = codes.get('expires_in')
+        time_expired = 0
+
+        values = {
+                'client_id': self.get_client_id(),
+                'client_secret': self.get_client_secret(),
+                'code': codes.get('device_code')
+        }
+
+
+        auth = None
+        while (not authed and time_expired < time_max):
+            time.sleep(interval)
+            time_expired += interval
+            time_max = 30
+            self.log.info('Time expired: ' + str(time_expired))
+
+            try:
+                response = utils.web.getUrl(token_url, headers=headers, data=json.dumps(values))
+            except utils.web.Error as err:
+                if '400' in str(err): # Pending - waiting for user to authorize your app
+                    continue
+                if '404' in str(err): # Not Found - invalid device_code
+                    irc.error('Not Found - invalid device_code. Report a bug at https://github.com/Hoaas/Supybot-plugins/issues/new?title=TraktTV:%20Invalid%20device_code')
+                    return
+                if '409' in str(err): # Already Used - user already approved this code
+                    irc.error('This code is already used. Try again?')
+                    return
+                if '410' in str(err): # Expired - the tokens have expired, restart the process
+                    irc.error('The tokens have expired. Try again?')
+                    return
+                if '418' in str(err): # Denied - user explicitly denied this code
+                    irc.error('You have to press the other button! (the green one that says YES)')
+                    return
+                if '429' in str(err): # Slow Down - your app is polling too quickly
+                    irc.error('Slow Down - your app is polling too quickly. Report a bug at https://github.com/Hoaas/Supybot-plugins/issues/new?title=TraktTV:%20429%20Slow%20Down')
+                    return
+                irc.error(str(err))
+                return
+
+            authed = True
+
+            response = response.decode()
+
+            self.log.debug('Response: ' + response)
+
+            auth = json.loads(response)
 
         pkl = open(filename, 'wb')
         pickle.dump(auth, pkl)
-        irc.replySuccess()
-    pin = wrap(pin, ['text'])
-        
+        irc.reply('Authed!')
+
     def np(self, irc, msg, args, nick):
         """[nick]
 
@@ -213,7 +258,7 @@ class TraktTV(callbacks.Plugin):
                 irc.error('User %s not found on Trakt.TV.' % nick)
                 return
             if '401' in str(err):
-                irc.error('Private account. Log in with an account that can see this person. Visit %s and type the pin you get into the supybot command TraktTV pin <pin> (e.g. !TraktTV pin 123ABC456))' % (pin_url))
+                self.auth(irc)
                 return
             irc.error(str(err))
             return
