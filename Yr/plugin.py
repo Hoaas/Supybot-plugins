@@ -380,10 +380,11 @@ class Yr(callbacks.Plugin, plugins.ChannelDBHandler):
         # locations is the dictionary, loc is the integer
         url = "http://www.yr.no/pollen/"
         
-        plants = {0: "Or",
-            1: "Hassel",
-            2: "Salix",
-            3: "Bjørk",
+        plants = {
+            0: "Salix",
+            1: "Bjørk",
+            2: "Or",
+            3: "Hassel",
             4: "Gress",
             5: "Burot"
         }
