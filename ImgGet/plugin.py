@@ -29,11 +29,15 @@
 
 ###
 
+import os
+import json
 import datetime
 import os.path
 import simplejson
 import base64
 import PIL.Image as Image
+import mimetypes
+import requests
 
 import http
 import urllib
@@ -260,24 +264,24 @@ class ImgGet(callbacks.Plugin):
     def _downloadImg(self, irc, url, nick, channel, connection, contenttype, headers):
         # Try to get content-length from header
         contentlength = None
-        size = None
+        sizeFromHeaderFormatted = None
         try:
             contentlength = int([tup for tup in headers if tup[0] == "Content-Length"][0][1])
-            size = self.sizeof_fmt(contentlength)
+            sizeFromHeaderFormatted = self.sizeof_fmt(contentlength)
         except:
             self.log.debug('Could not retrieve contentlength from header; ' + url)
                                 
         # We don't download if the contentlength is above 1 MiB * sizelimit. Download anyway if it doesn't say.
         sizelimit = self.registryValue('sizelimit', channel)
         if contentlength and contentlength > (1024*1024*sizelimit):
-            self.log.debug('Image too big: %s. Url: %s' % (size, url))
+            self.log.debug('Image too big: %s. Url: %s' % (sizeFromHeaderFormatted, url))
             return
         
         # Create the image directory etc.
         filedir, filename = self._filename(nick, channel, url, contenttype)
 
         try: 
-            self.log.info('Downloading %s: %s' % (size, url))
+            self.log.info('Downloading %s: %s' % (sizeFromHeaderFormatted, url))
         except:
             self.log.debug("Downloading ??? KiB: " + url)
         
@@ -285,7 +289,7 @@ class ImgGet(callbacks.Plugin):
         # Starting the timer
         starttime = datetime.datetime.now()
         try:
-            location, header = urllib.request.urlretrieve(url, filedir)
+            filePath, header = urllib.request.urlretrieve(url, filedir)
         except:
             self.log.debug('Could not download file from ' + url)
             return
@@ -351,21 +355,23 @@ class ImgGet(callbacks.Plugin):
             mirroroutput = "Alt. source: " + isgdurl + " Org. url took " + "%.2f" % secondsfloat + " seconds to download."
             #if not os.path.isfile(dataDir):
             #    open(dataDir, 'w')
- 
-        image = Image.open(location)
+
+        size = os.stat(filePath).st_size
+        sizeFormatted = self.sizeof_fmt(size)
+        image = Image.open(filePath)
         width, height = image.size
-        if size:
-            imageinfo = '%s × %s (%s)' % (width, height, size)
+        if sizeFormatted:
+            imageinfo = '%s × %s (%s)' % (width, height, sizeFormatted)
         else:
             imageinfo = '%s × %s' % (width, height)
         
         outputInfo = self.registryValue('outputInfo', channel)
         if outputInfo and not mirror:
-            irc.reply(imageinfo)
+            return imageinfo
         elif outputInfo and mirror:
-            irc.reply(imageinfo + ' (' + mirroroutput + ')')
+            return imageinfo + ' (' + mirroroutput + ')'
         elif not outputInfo and mirror:
-            irc.reply(mirroroutput)
+            return mirroroutput
 
         
     def _checkUrl(self, irc, text, nick, channel):
@@ -391,17 +397,22 @@ class ImgGet(callbacks.Plugin):
                 conn.request("HEAD", o.path)
                 res = conn.getresponse()
                 headers = res.getheaders()
-                contenttype = [tup for tup in headers if tup[0] == "Content-Type"][0][1]
+                #contenttype = [tup for tup in headers if tup[0] == "Content-Type"][0][1]
             except:
                 self.log.warning('Could not get header from ' + url)
                 # Without a header we can't know if it is an image or not
                 continue
     
+            contenttype = mimetypes.guess_type(urllib.parse.urlparse(url).path)[0]
+
             conn.request("GET", o.path)
             # If we actually have a type, and it claims to be an image, we continue.
             if contenttype and contenttype.startswith('image'):
-                self._downloadImg(irc, url, nick, channel, conn, contenttype, headers)
-    
+                reply = self._downloadImg(irc, url, nick, channel, conn, contenttype, headers)
+                if reply is not None:
+                    irc.reply(reply)
+
+
     # Warning. Do NOT have any check to see if an url to a big image is being spammed, or if that image is already downloaded.
     def doPrivmsg(self, irc, msg):
         channel = msg.args[0].lower()
@@ -416,6 +427,3 @@ class ImgGet(callbacks.Plugin):
 
 
 Class = ImgGet
-
-
-# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
