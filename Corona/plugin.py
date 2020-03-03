@@ -30,7 +30,7 @@
 import json
 import urllib
 
-from supybot import utils, plugins, ircutils, callbacks
+from supybot import utils, plugins, ircutils, callbacks, log
 from supybot.commands import *
 try:
     from supybot.i18n import PluginInternationalization
@@ -52,28 +52,37 @@ class Corona(callbacks.Plugin):
         """<area>
         Displays Coronavirus stats"""
 
-        data = utils.web.getUrl(self.url).decode()
-        data = json.loads(data)
+        try:
+            data = utils.web.getUrl(self.url).decode()
+            data = json.loads(data)
+        except utils.web.Error as e:
+            log.debug('Corona: error retrieving data from {0}: {1}'.format(self.url, e))
+            return
 
         features = data.get('features')
+        if not features:
+            log.debug("Corona: Error retrieving features data.")
+            return
 
         total_confirmed = total_deaths = total_recovered = 0
+        confirmed = deaths = recovered = 0
 
         extra_output = None
         for region in features:
             r = region.get('attributes')
-            
-            confirmed = r.get('Confirmed')
-            deaths = r.get('Deaths')
-            recovered = r.get('Recovered')
 
             if search:
                 name = r.get('Country_Region')
-                if search.lower() in name.lower():
+                if 'china' in search:
+                    search = 'mainland china'
+                if search.lower() == name.lower():
+                    confirmed += r.get('Confirmed')
+                    deaths += r.get('Deaths')
+                    recovered += r.get('Recovered')
                     local_ratio_dead = deaths/confirmed
                     extra_output = ' {0} infected, {1} dead ({4:.00%}), {2} recovered in {3}.'\
                         .format(confirmed, deaths, recovered, name, local_ratio_dead)
-            
+
             total_confirmed += r.get('Confirmed')
             total_deaths += r.get('Deaths')
             total_recovered += r.get('Recovered')
@@ -89,6 +98,4 @@ class Corona(callbacks.Plugin):
         irc.reply(output)
 
 Class = Corona
-
-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
