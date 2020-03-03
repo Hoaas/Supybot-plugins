@@ -69,7 +69,7 @@ class Corona(callbacks.Plugin):
 
             if search:
                 name = r.get('Country_Region')
-                if name == search:
+                if search.lower() in name.lower():
                     local_ratio_dead = deaths/confirmed
                     extra_output = ' {0} infected, {1} dead ({4:.00%}), {2} recovered in {3}.'\
                         .format(confirmed, deaths, recovered, name, local_ratio_dead)
