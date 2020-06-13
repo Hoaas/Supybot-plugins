@@ -76,6 +76,4 @@ class BadeTemp(callbacks.Plugin):
 
         irc.reply(', '.join(locs))
 
-        #irc.reply("Huk {0} ({1}), Sørenga {2} ({3}), Katten {4} ({5}), Nordstrand {6} ({7}), Skraperudtjern {8} ({9})".format(hTemp, hDate, sTemp, sDate, kTemp, kDate, nTemp, nDate, skTemp, skDate))
-
 Class = BadeTemp
