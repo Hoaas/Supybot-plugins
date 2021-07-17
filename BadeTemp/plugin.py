@@ -63,7 +63,17 @@ class BadeTemp(callbacks.Plugin):
         last_week = datetime.now() - timedelta(days=7)
 
         for loc in j:
-            if search.lower() in loc.get('location').get('region').get('name').lower():
+            location = loc.get('location')
+            if location is None:
+                continue
+            region = location.get('region')
+            if region is None:
+                continue
+            name = region.get('name')
+            if name is None:
+                continue
+            names = name.lower()
+            if search.lower() in names:
                 time = loc.get('time')
                 reported_date = parser.isoparse(time).replace(tzinfo=None)
 
@@ -73,7 +83,9 @@ class BadeTemp(callbacks.Plugin):
                 temp = loc.get('temperature')
                 name = loc.get('location').get('name')
                 locs.append('{0}° {1}'.format(temp, name))
-
-        irc.reply(', '.join(locs))
+        if locs is None or len(locs) == 0:
+            irc.reply('Fant ingen regioner med det navnet')
+        else:
+            irc.reply(', '.join(locs))
 
 Class = BadeTemp
