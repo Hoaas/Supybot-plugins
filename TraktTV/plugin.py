@@ -230,6 +230,7 @@ class TraktTV(callbacks.Plugin):
         pickle.dump(auth, pkl)
         irc.reply('Authed!')
 
+    @wrap([optional('text')])
     def np(self, irc, msg, args, nick):
         """[nick]
 
@@ -294,8 +295,6 @@ class TraktTV(callbacks.Plugin):
             irc.reply(output)
             return
         irc.error('Don\'t know what to do with this data. Not a show or a movie?')
-
-    np = wrap(np, [optional('text')])
 
     @wrap(['text'])
     def random(self, irc, msg, args, show):
