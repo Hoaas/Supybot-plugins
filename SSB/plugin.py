@@ -28,7 +28,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 ###
 
-from bs4 import BeautifulSoup as BS
+import json
 
 import re
 import urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse
@@ -50,21 +50,22 @@ class SSB(callbacks.Plugin):
     def navn(self, irc, msg, args, name):
         """<navn>
         Returnerer info om navnet."""
-        url = 'http://www.ssb.no//befolkning/statistikker/navn/_window/banner+-+navnesok?navn='
+        url = 'https://www.ssb.no/_/service/mimir/nameSearch?name='
         url += urllib.parse.quote(name)
-        html = utils.web.getUrl(url).decode()
-        soup = BS(html, 'lxml')
-        reslist = soup.find(id='navnesok-result').findAll('p')
-        retlist = []
-        for res in reslist:
-            parts = res.findAll(text=True) # Strip HTML
-            line = ''.join(parts)
-            if line.find('Det er ') == -1:
-                continue
-            retlist.append(line)
-        ret = '. '.join(retlist)
-        ret += '.'
-        irc.reply(ret)
+
+        data = utils.web.getUrl(url).decode()
+
+        data = json.loads(data)
+
+        docs = data.get('response').get('docs')
+
+        text = ''
+        for d in docs:
+            text += '{0} ({1} {2})'.format(d.get("count"), d.get("gender"), d.get("type"))
+            text += ', '
+
+        text = text[:-2]
+        irc.reply(text)
     navn = wrap(navn, ['text'])
 
 Class = SSB
