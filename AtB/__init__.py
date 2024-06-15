@@ -53,7 +53,7 @@ __url__ = '' # 'http://supybot.com/Members/yourname/AtB/download'
 
 from . import config
 from . import plugin
-from imp import reload
+from importlib import reload
 reload(plugin) # In case we're being reloaded.
 reload(config)
 # Add more reloads here if you add third-party modules and want them to be
