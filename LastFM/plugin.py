@@ -38,12 +38,15 @@ import json
 #from xml.etree import ElementTree
 import urllib.request, urllib.error, urllib.parse, urllib.request, urllib.parse, urllib.error
 
-import supybot.dbi as dbi
-import supybot.utils as utils
-#from supybot.commands import *
-import supybot.plugins as plugins
-import supybot.ircutils as ircutils
-import supybot.callbacks as callbacks
+from supybot import dbi, utils, plugins, ircutils, callbacks
+from supybot.commands import *
+try:
+    from supybot.i18n import PluginInternationalization
+    _ = PluginInternationalization('LastFM')
+except ImportError:
+    # Placeholder that allows to run the plugin on a bot
+    # without the i18n module
+    _ = lambda x: x
 
 class LastFMNickRecord(dbi.Record):
     __fields__ = [
@@ -92,6 +95,7 @@ class LastFM(callbacks.Plugin):
         self.__parent.__init__(irc)
         self.db = LASTFMNICKDB()
 
+    @wrap(['anything', optional('anything')])
     def add(self, irc, msg, args, username, nick):
         """<username> [nick]
 
@@ -108,8 +112,8 @@ class LastFM(callbacks.Plugin):
                 #irc.reply('Updating LastFM nick for user %s from %s to %s.' % (nick, oldname, username))
         irc.reply('Storing LastFM nick %s for user %s.' % (username, nick))
         self.db.add(channel, nick, username)
-    add = wrap(add, ['anything', optional('anything')])
 
+    @wrap([getopts({'allatonce':'', 'skipplays':''})])
     def whosplaying(self, irc, msg, args, opts):
         """[--allatonce] [--skipplays]
 
@@ -148,13 +152,13 @@ class LastFM(callbacks.Plugin):
         if not atonce:
             for output in playing:
                 irc.reply(output)
-    whosplaying = wrap(whosplaying, [getopts({'allatonce':'', 'skipplays':''})])
 
     def set_apikey(self):
         self.apikey = self.registryValue('apikey')
         if not self.apikey or self.apikey == "Not set":
             raise Exception('Apikey not set. Check out config help supybot.plugins.LastFM.apikey')
 
+    @wrap([getopts({'notags':''}), optional('text')])
     def lastfm(self, irc, msg, args, options, user):
         """[--notags][user]
 
@@ -175,7 +179,6 @@ class LastFM(callbacks.Plugin):
         reply = self.last_played(user, plays=notags)
         if reply:
             irc.reply(reply)
-    lastfm = wrap(lastfm, [getopts({'notags':''}), optional('text')])
 
     def last_played(self, user, plays = True):
         self.set_apikey()

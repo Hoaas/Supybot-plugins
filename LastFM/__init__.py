@@ -34,17 +34,17 @@ Add a description of the plugin (to be presented to the user inside the wizard)
 here.  This should describe *what* the plugin does.
 """
 
+import sys
 import supybot
 import supybot.world as world
 
-supybot.authors.hoaas = supybot.Author('Terje Hoås', 'Hoaas', 'terjehoaas@gmail.com')
 
 # Use this for the version of this plugin.  You may wish to put a CVS keyword
 # in here if you're keeping the plugin in CVS or some similar system.
 __version__ = ""
 
 # XXX Replace this with an appropriate author or supybot.Author instance.
-__author__ = supybot.Author('Terje Hoås', 'Hoaas', 'terjehoaas@gmail.com')
+__author__ = supybot.Author('Terje Hoås', 'Hoaas', 'supybot@robogoat.dev')
 
 # This is a dictionary mapping supybot.Author instances to lists of
 # contributions.
@@ -56,6 +56,7 @@ __url__ = '' # 'http://supybot.com/Members/yourname/LastFM/download'
 from . import config
 from . import plugin
 from importlib import reload
+reload(config)
 reload(plugin) # In case we're being reloaded.
 # Add more reloads here if you add third-party modules and want them to be
 # reloaded when this plugin is reloaded.  Don't forget to import them as well!
