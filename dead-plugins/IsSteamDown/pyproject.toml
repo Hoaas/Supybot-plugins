@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools"]
+
+[project]
+name = "limnoria-issteamdown"
+version = "0.0.0"
+authors = [
+    { name = "Terje Hoås" },
+]
+readme = "README.md"
+dependencies = [
+    "limnoria",
+]
+classifiers = [
+    'Environment :: Plugins',
+    'Programming Language :: Python :: 3',
+    'Topic :: Communications :: Chat',
+]
+
+[project.entry-points.'limnoria.plugins']
+IsSteamDown = "limnoria_issteamdown"
+
+[tool.setuptools.package-dir]
+"limnoria_issteamdown" = "."
+
+[tool.setuptools.package-data]
+"limnoria_issteamdown" = ["locales/*.po"]

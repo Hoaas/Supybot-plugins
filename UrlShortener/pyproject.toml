@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools"]
+
+[project]
+name = "limnoria-urlshortener"
+version = "0.0.0"
+authors = [
+    { name = "Terje Hoås" },
+]
+readme = "README.md"
+dependencies = [
+    "limnoria",
+]
+classifiers = [
+    'Environment :: Plugins',
+    'Programming Language :: Python :: 3',
+    'Topic :: Communications :: Chat',
+]
+
+[project.entry-points.'limnoria.plugins']
+UrlShortener = "limnoria_urlshortener"
+
+[tool.setuptools.package-dir]
+"limnoria_urlshortener" = "."
+
+[tool.setuptools.package-data]
+"limnoria_urlshortener" = ["locales/*.po"]
