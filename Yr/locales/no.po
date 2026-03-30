@@ -1,0 +1,113 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Limnoria\n"
+"Language: no\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+#: plugin.py
+msgid "[#channel] <city>\n\nSearches for location from geonames.org and uses coordinates found there to fetch a weather forecast from the met.no API."
+msgstr "[#channel] <sted>\n\nSøker etter sted på geonames.org og bruker koordinatene derfra til å hente værvarsel fra met.no sitt API."
+
+#: plugin.py
+msgid "[#channel] <city>\n\nShows sunrise and sunset times for the given location."
+msgstr "[#channel] <sted>\n\nViser soloppgang og solnedgang for oppgitt sted."
+
+#: plugin.py
+msgid "Lists the 3 hottest and 3 coldest places in Norway with their temperatures."
+msgstr "Viser de 3 varmeste og 3 kaldeste stedene i Norge med temperaturer."
+
+#: plugin.py
+msgid "\"%s\" not found at geonames.org"
+msgstr "\"%s\" ble ikke funnet på geonames.org"
+
+#: plugin.py
+msgid "Weather data not available"
+msgstr "Værdata ikke tilgjengelig"
+
+#: plugin.py
+msgid "No temperature data available"
+msgstr "Ingen temperaturdata tilgjengelig"
+
+#: plugin.py
+msgid "No cold temperature data available"
+msgstr "Ingen kuldegradsdata tilgjengelig"
+
+#: plugin.py
+msgid "Unknown timezone: \"%s\""
+msgstr "Ukjent tidssone: \"%s\""
+
+#: plugin.py
+msgid "from"
+msgstr "fra"
+
+#: plugin.py
+msgid "humidity"
+msgstr "luftfuktighet"
+
+#: plugin.py
+msgid "precipitation"
+msgstr "nedbør"
+
+#: plugin.py
+msgid "north"
+msgstr "nord"
+
+#: plugin.py
+msgid "north-northeast"
+msgstr "nord-nordøst"
+
+#: plugin.py
+msgid "northeast"
+msgstr "nordøst"
+
+#: plugin.py
+msgid "east-northeast"
+msgstr "øst-nordøst"
+
+#: plugin.py
+msgid "east"
+msgstr "øst"
+
+#: plugin.py
+msgid "east-southeast"
+msgstr "øst-sørøst"
+
+#: plugin.py
+msgid "southeast"
+msgstr "sørøst"
+
+#: plugin.py
+msgid "south-southeast"
+msgstr "sør-sørøst"
+
+#: plugin.py
+msgid "south"
+msgstr "sør"
+
+#: plugin.py
+msgid "south-southwest"
+msgstr "sør-sørvest"
+
+#: plugin.py
+msgid "southwest"
+msgstr "sørvest"
+
+#: plugin.py
+msgid "west-southwest"
+msgstr "vest-sørvest"
+
+#: plugin.py
+msgid "west"
+msgstr "vest"
+
+#: plugin.py
+msgid "west-northwest"
+msgstr "vest-nordvest"
+
+#: plugin.py
+msgid "northwest"
+msgstr "nordvest"
+
+#: plugin.py
+msgid "north-northwest"
+msgstr "nord-nordvest"

@@ -1,4 +1,3 @@
-# coding=utf8
 ###
 # Copyright (c) 2010, Terje Hoås
 # All rights reserved.
@@ -29,432 +28,324 @@
 
 ###
 import json
-from datetime import datetime
-import pytz
 import urllib.parse
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from supybot import utils, plugins, ircutils, callbacks
+import supybot.utils as utils
 from supybot.commands import *
+import supybot.ircutils as ircutils
+import supybot.callbacks as callbacks
 try:
-    from supybot.i18n import PluginInternationalization
+    from supybot.i18n import PluginInternationalization, internationalizeDocstring
     _ = PluginInternationalization('Yr')
 except ImportError:
-    # Placeholder that allows to run the plugin on a bot
-    # without the i18n module
     _ = lambda x: x
+    internationalizeDocstring = lambda f: f
+
+
+def searchByName(query):
+    """Search geonames.org for a location by name.
+
+    Returns (name, adminname, country, lat, lon) or (None, None, None, None, None)
+    if no result is found.
+    """
+    username = 'robogoat'
+    url = f'http://api.geonames.org/searchJSON?username={username}&q={urllib.parse.quote(query)}'
+    data = utils.web.getUrl(url)
+    j = json.loads(data)
+    if j.get('totalResultsCount') == 0:
+        return None, None, None, None, None
+
+    hit = j.get('geonames')[0]
+    lat = hit.get('lat')
+    lon = hit.get('lng')
+    name = hit.get('toponymName')
+    adminname = hit.get('adminName1')
+    country = hit.get('countryName')
+    return name, adminname, country, lat, lon
+
+
+def parseForecast(data):
+    """Parse a met.no nowcast/locationforecast JSON payload into a formatted string.
+
+    data may be bytes or str. Returns a human-readable forecast string, or a
+    translated error string if the required data is absent.
+    """
+    if isinstance(data, bytes):
+        data = data.decode()
+    j = json.loads(data)
+    prop = j.get('properties')
+    ts = prop.get('timeseries')[0]
+
+    units = prop.get('meta').get('units')
+    tsdata = ts.get('data')
+    instant = tsdata.get('instant')
+    next1h = tsdata.get('next_1_hours')
+
+    if not next1h:
+        return _('Weather data not available')
+
+    symbol = next1h.get('summary', {}).get('symbol_code')
+    rain = next1h.get('details', {}).get('precipitation_amount')
+
+    details = instant.get('details')
+    temp = details.get('air_temperature')
+    windspeed = details.get('wind_speed')
+    winddirection = details.get('wind_from_direction')
+    humidity = details.get('relative_humidity')
+
+    output = tempFormat(temp, windspeed)
+    if symbol:
+        output += f' {symbolToEmoji(symbol)}'
+
+    if windspeed:
+        output += f' {windspeed} {units.get("wind_speed")}'
+        if winddirection is not None:
+            dirs = [
+                _('north'), _('north-northeast'), _('northeast'), _('east-northeast'),
+                _('east'), _('east-southeast'), _('southeast'), _('south-southeast'),
+                _('south'), _('south-southwest'), _('southwest'), _('west-southwest'),
+                _('west'), _('west-northwest'), _('northwest'), _('north-northwest'),
+            ]
+            ix = int((winddirection + 11.25) / 22.5)
+            output += f' {_("from")} {dirs[ix % 16]}'
+        output += '.'
+
+    if humidity:
+        output += f' {humidity}{units.get("relative_humidity")} {_("humidity")}.'
+
+    if rain:
+        output += f' {rain} {units.get("precipitation_amount")} {_("precipitation")}.'
+
+    return output
+
+
+def forecastByCoordinates(lat, lon):
+    """Fetch a weather forecast for the given coordinates.
+
+    Tries nowcast (Nordic area) first, falls back to locationforecast.
+    Returns the result of parseForecast().
+    """
+    headers = {
+        'User-Agent': '+SupybotIRCPlugin https://github.com/Hoaas/Supybot-plugins',
+        'Authorization': 'Basic YjFlMWJlNWQtMTg0ZC00ZTM0LTk2ZjUtZGQwZjgyZWZhZjZi',
+    }
+
+    try:
+        url = f'https://api.met.no/weatherapi/nowcast/2.0/complete?lat={lat}&lon={lon}'
+        data = utils.web.getUrl(url, headers=headers)
+    except Exception:
+        url = f'https://api.met.no/weatherapi/locationforecast/2.0/compact?lat={lat}&lon={lon}'
+        data = utils.web.getUrl(url, headers=headers)
+
+    return parseForecast(data)
+
+
+def symbolToEmoji(symbol):
+    """Convert a met.no symbol code to an emoji character."""
+    symbol = symbol.replace('_', ' ').replace('night', '').capitalize().strip()
+    s = symbol.lower()
+    if 'clearsky' in s:
+        return '☀'
+    elif 'fair' in s:
+        return '🌤️'
+    elif 'partlycloudy' in s:
+        return '🌤'
+    elif 'fog' in s:
+        return '🌫️'
+    elif 'cloudy' in s:
+        return '☁'
+    elif 'showers' in s:
+        return '🌦️'
+    elif 'thunder' in s:
+        return '⛈️'
+    elif 'rain' in s:
+        return '🌧️'
+    elif 'snow' in s:
+        return '🌨️'
+    elif 'sleet' in s:
+        return '🌨️🌧️'
+    else:
+        return f'{symbol}.'
+
+
+def windChill(temp, wind):
+    """Return wind chill temperature or None if conditions don't apply."""
+    if not (temp < 10 and (wind * 3.6) > 4.8):
+        return None
+    return 13.12 + 0.6215 * temp - 11.37 * ((wind * 3.6) ** 0.16) + 0.3965 * temp * ((wind * 3.6) ** 0.16)
+
+
+def tempFormat(temp, wind):
+    """Format temperature with optional wind chill in IRC colour."""
+    chill = ''
+    if wind:
+        windchill = windChill(temp, wind)
+        if windchill is not None:
+            chill_str = f'{windchill:.1f}°'
+            if windchill > 0:
+                chill_str = ircutils.mircColor(chill_str, 'Red')
+            else:
+                chill_str = ircutils.mircColor(chill_str, 12)
+            chill = f' ({chill_str})'
+
+    tempdesc = f'{temp}°'
+    if temp > 0:
+        tempdesc = ircutils.mircColor(tempdesc, 'Red')
+    else:
+        tempdesc = ircutils.mircColor(tempdesc, 12)
+
+    return f'{tempdesc}{chill}'
+
+
+def readTimeFromJson(j, key):
+    """Extract and format a time value from a met.no sunrise JSON object."""
+    time = j.get('properties', {}).get(key, {}).get('time')
+    if time is None:
+        return '❓'
+    return datetime.fromisoformat(time).strftime('%H:%M')
+
+
+def utcOffsetForTimezone(tz_name):
+    """Return the current UTC offset for the given tz database name as an RFC 3339 string.
+
+    E.g. 'Europe/Oslo' -> '+02:00', 'UTC' -> '+00:00'.
+    Raises ZoneInfoNotFoundError if tz_name is not a valid tz database name.
+    """
+    tz = ZoneInfo(tz_name)
+    now_local = datetime.now(tz)
+    offset = now_local.utcoffset()
+    total_minutes = int(offset.total_seconds() // 60)
+    sign = '+' if total_minutes >= 0 else '-'
+    total_minutes = abs(total_minutes)
+    return f'{sign}{total_minutes // 60:02d}:{total_minutes % 60:02d}'
+
+
+def formatTemperatureExtremes(hot_data, cold_region_data_list):
+    """Format the hottest and coldest places from met.no temperature extremes data.
+
+    hot_data: parsed JSON list of hottest places (already ordered, limit 3).
+    cold_region_data_list: list of parsed JSON lists, one per region (order=min, limit 3).
+
+    Returns a formatted IRC string, or None if either dataset is empty.
+    """
+    if not hot_data:
+        return None
+
+    cold_all = []
+    for region_data in cold_region_data_list:
+        cold_all.extend(region_data)
+
+    if not cold_all:
+        return None
+
+    cold_all.sort(key=lambda x: x['temperature']['value'])
+    cold_top3 = cold_all[:3]
+
+    hot_parts = []
+    for place in hot_data:
+        temp = place['temperature']['value']
+        name = place['locationMetadata']['name']
+        county = place['locationMetadata']['county']
+        hot_parts.append(f"{name} ({county}) {ircutils.mircColor(f'{temp}°', 'Red')}")
+
+    cold_parts = []
+    for place in cold_top3:
+        temp = place['temperature']['value']
+        name = place['locationMetadata']['name']
+        county = place['locationMetadata']['county']
+        cold_parts.append(f"{name} ({county}) {ircutils.mircColor(f'{temp}°', 12)}")
+
+    hot_str = f"{ircutils.mircColor('🔥 Varmest:', 'Red')} {', '.join(hot_parts)}"
+    cold_str = f"{ircutils.mircColor('🧊 Kaldest:', 12)} {', '.join(cold_parts)}"
+    return f'{hot_str} | {cold_str}'
+
+
+# Regions used for cold extremes. NO-21 (Svalbard) is excluded because the
+# API consistently returns no data for it.
+_HOTNCOLD_REGIONS = [
+    'NO-42', 'NO-32', 'NO-33', 'NO-56', 'NO-34', 'NO-15', 'NO-18',
+    'NO-03', 'NO-11', 'NO-40', 'NO-55', 'NO-50', 'NO-39', 'NO-46', 'NO-31',
+]
+
 
 class Yr(callbacks.Plugin):
-    """This plugin fetches current information from yr.no (which is a site run by The Norwegian Meteorological Institute)
-        for the appropriate location, assuming the correct URL have been set. The language returned is defined by the set URL."""
+    """Fetches weather information from met.no / yr.no."""
     threaded = True
 
     @wrap(['channel', 'text'])
+    @internationalizeDocstring
     def temp(self, irc, msg, args, channel, location):
         """[#channel] <city>
 
-        Searches for location from geonames.org and uses coordinates found there to the API on met.no"""
-
-        name, adminname, country, lat, lon = self._searchByName(location)
-
-        if (name is None):
-            irc.error('"%s" not found at geonames.org' % (location))
+        Searches for location from geonames.org and uses coordinates found
+        there to fetch a weather forecast from the met.no API."""
+        name, adminname, country, lat, lon = searchByName(location)
+        if name is None:
+            irc.error(_('"%s" not found at geonames.org') % location)
             return
-
-        forecast = self._forecastByCoordinates(lat, lon)
-
-        irc.reply(forecast + ' (%s, %s, %s)' % (name, adminname, country))
+        forecast = forecastByCoordinates(lat, lon)
+        irc.reply(f'{forecast} ({name}, {adminname}, {country})')
 
     @wrap(['channel', 'text'])
+    @internationalizeDocstring
     def sun(self, irc, msg, args, channel, location):
         """[#channel] <city>
-        
-        🌞
-        """
-        name, adminname, country, lat, lon = self._searchByName(location)
 
-        today = datetime.today()
-        tz = pytz.timezone("Europe/Oslo")
-        tzaware = tz.localize(today, is_dst=None)
+        Shows sunrise and sunset times for the given location."""
+        name, adminname, country, lat, lon = searchByName(location)
+        if name is None:
+            irc.error(_('"%s" not found at geonames.org') % location)
+            return
 
-        offset = '+0%s:00' % (1 if tzaware.tzinfo._dst.seconds == 0 else 2)
-        url = 'https://api.met.no/weatherapi/sunrise/3.0/sun?date=%s&lat=%s&lon=%s&offset=%s' \
-            % (today.date(), lat, lon, urllib.parse.quote(offset))
-        
+        tz_name = self.registryValue('timezone', channel)
+        try:
+            offset = utcOffsetForTimezone(tz_name)
+        except ZoneInfoNotFoundError:
+            irc.error(_('Unknown timezone: "%s"') % tz_name)
+            return
+
+        today = datetime.now(timezone.utc)
+        url = f'https://api.met.no/weatherapi/sunrise/3.0/sun?date={today.date()}&lat={lat}&lon={lon}&offset={urllib.parse.quote(offset)}'
         data = utils.web.getUrl(url)
         j = json.loads(data)
 
-        sunrise = self._readTimeFromJson(j, 'sunrise')
-        sunset = self._readTimeFromJson(j, 'sunset')
-        #moonrise = self._readTimeFromJson(j, 'moonrise')
-        #moonset = self._readTimeFromJson(j, 'moonset')
+        sunrise = readTimeFromJson(j, 'sunrise')
+        sunset = readTimeFromJson(j, 'sunset')
 
-        sun = '☀⬆ %s ☀⬇ %s' % (sunrise, sunset)
-        #moon = '🌙⬆ %s 🌙⬇ %s' % (moonrise, moonset)
-
-        irc.reply('%s, (%s, %s, %s)' % (sun, name, adminname, country))
-
-    def _readTimeFromJson(self, j, key):
-        time = j.get('properties').get(key).get('time')
-        if time is None:
-            return '❓'
-
-        time = datetime.fromisoformat(time)
-        return time.strftime('%H:%M')
-
-    def _searchByName(self, query):
-        username = 'robogoat'
-        url = 'http://api.geonames.org/searchJSON?username=%s&q=%s' % (username, urllib.parse.quote(query))
-        data = utils.web.getUrl(url)
-
-        j = json.loads(data)
-        if j.get('totalResultsCount') == 0:
-            return None, None, None, None, None
-
-        hit = j.get('geonames')[0]
-
-        lat = hit.get('lat')
-        lon = hit.get('lng')
-        name = hit.get('toponymName')
-        adminname = hit.get('adminName1')
-        country = hit.get('countryName')
-
-        return name, adminname, country, lat, lon
-
-    def _forecastByCoordinates(self, lat, lon):
-        headers = {
-            'User-Agent': '+SupybotIRCPlugin https://github.com/Hoaas/Supybot-plugins',
-            'Authorization': "Basic YjFlMWJlNWQtMTg0ZC00ZTM0LTk2ZjUtZGQwZjgyZWZhZjZi"
-        }
-
-        try:
-            # Nordic area only
-            url = 'https://api.met.no/weatherapi/nowcast/2.0/complete?lat=%s&lon=%s' % (lat, lon)
-            data = utils.web.getUrl(url, headers=headers)
-        except Exception:
-            url = 'https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=%s&lon=%s' % (lat, lon)
-            data = utils.web.getUrl(url, headers=headers)
-       
-        j = json.loads(data)
-        prop = j.get('properties')
-        ts = prop.get('timeseries')[0]
-
-        time = ts.get('time')
-        units = prop.get('meta').get('units')
-
-        tsdata = ts.get('data')
-        instant = tsdata.get('instant')
-        next1h = tsdata.get('next_1_hours')
-        
-        # Add null checks
-        if not next1h:
-            return 'Værdata ikke tilgjengelig'
-            
-        symbol = next1h.get('summary', {}).get('symbol_code')
-        rain = next1h.get('details', {}).get('precipitation_amount')
-
-        details = instant.get('details')
-        temp = details.get('air_temperature')
-        windspeed = details.get('wind_speed')
-        winddirection = details.get('wind_from_direction')
-        humidity = details.get('relative_humidity')
-
-        output = '%s' % (self.temp_format(temp, windspeed, 'no'))
-        if (symbol):
-            symbol_emoji = self.symbol_to_emoji(symbol)
-            output += ' %s' % (symbol_emoji)
-
-        if (windspeed):
-            output += ' %s %s' % (windspeed, units.get('wind_speed'))
-
-            if (winddirection):
-                dirs = ["nord", "nord-nordøst", "nordøst", "øst-nordøst", "øst", "øst-sørøst", "sørøst", "sør-sørøst", "sør", "sør-sørvest", "sørvest", "vest-sørvest", "vest", "vest-nordvest", "nordvest", "nord-nordvest"]
-                ix = int((winddirection + 11.25 / 22.5 - 0.02))
-                output += ' fra %s' % format(dirs[ix % 16])
-            output += '.'
-
-        if (humidity):
-            output += ' %s%s luftfuktighet.' % (humidity, units.get('relative_humidity'))
-
-        if (rain):
-            output += ' %s %s nedbør.' % (rain, units.get('precipitation_amount'))
-
-        return output
-
-    @wrap([additional('text')])
-    def pollen(self, irc, msg, args, loc):
-        """[<location>]
-        Norwegian only. See "pollen list" for list of locations.
-        """
-        irc.reply('Se https://www.naaf.no/pollenvarsel/')
-
-        return
-
-        if (loc == "list"):
-            irc.reply("1 Østlandet med Oslo, 2 Sørlandet, 3 Rogaland, 4 Hordaland, \
-5 Sogn og Fjordane, 6 Møre og Romsdal, 7 Sentrale fjellstrøk i Sør-Norge, 8 Indre Østlandet, \
-9 Trøndelag, 10 Nordland, 11 Troms, 12 Finnmark")
-            return
-        
-        # Dictionary with locations
-        locations = {1: "Østlandet med Oslo",
-                2: "Sørlandet",
-                3: "Rogaland",
-                4: "Hordaland",
-                5: "Sogn og Fjordane",
-                6: "Møre og Romsdal",
-                7: "Sentrale fjellstrøk i Sør-Norge",
-                8: "Indre Østlandet",
-                9: "Trøndelag",
-                10: "Nordland",
-                11: "Troms",
-                12: "Finnmark"}
-        if not loc:
-            loc = self.registryValue('pollen', msg.args[0]) # Default value is 1.
-
-        fail = False
-        try:
-            loc = int(loc)
-            # If the parsing fails we jump to the except.
-        # if location is not an integer
-        except:
-            for l in locations:
-                # If we have location that containt the string
-                # Using lower() to ignore case.
-                if(locations[l].lower().find(loc.lower()) != -1):
-                    loc = l
-                    fail = False
-                    break
-                else:
-                    fail = True
-            # If we have gone through the loop and loc still isn't an integer the location is not found
-        
-        # If number is outside the accepted range.
-        if(not fail and (loc < 1 or loc > 12)):
-            fail = True
-        if fail:
-            irc.reply('Sorry, ' + str(loc) + ' is not a valid location. Check "pollen list" for list of locations.')
-            return
-        # At this point loc is an integer from 1 to 12
-        retstr = self._pollen(locations, loc)
-        if (retstr == -1):
-            irc.reply('Sorry, failed to retrieve pollentriks.')
-        else:
-            irc.reply(retstr)
-
-    def symbol_to_emoji(self, symbol):
-        symbol = symbol\
-            .replace('_', ' ')\
-            .replace('night', '')\
-            .capitalize()\
-            .strip()
-        s = symbol.lower()
-        output = ' '
-        if ('clearsky' in s):
-            output += '☀'
-        elif ('fair' in s):
-            output += '🌤️'
-        elif ('partlycloudy' in s):
-            output += '🌤'
-        elif ('fog' in s):
-            output += '🌫️'
-        elif ('cloudy' in s):
-            output += '☁'
-        elif ('showers' in s):
-            output += '🌦️'
-        elif ('thunder' in s):
-            output += '⛈️'
-        elif ('rain' in s):
-            output += '🌧️'
-        elif ('snow' in s):
-            output += '🌨️'
-        elif ('sleet' in s):
-            output += '🌨️🌧️'
-        else:
-                output += '%s.' % (symbol)
-
-        return output
-
-    """Takes two floats and returns float or None"""
-    def wind_chill(self, temp, wind):
-        if not (temp < 10 and (wind*3.6) > 4.8):
-            return None
-
-        windchill = 13.12 + 0.6215 * temp- 11.37 * ((wind * 3.6)**0.16) + 0.3965 * temp * ((wind * 3.6)**0.16)
-        return windchill
-
-    def temp_format(self, temp, wind, lang):
-        chill = ''
-        windchill = None
-        if wind:
-            windchill = self.wind_chill(temp, wind)
-        if windchill is not None:
-            chill = '{0:.1f}°'.format(windchill)
-            if windchill > 0:
-                chill = ircutils.mircColor(str(chill), 'Red')
-            else:
-                chill = ircutils.mircColor(str(chill), 12)
-            chill = ' ({0})'.format(chill)
-        tempdesc = str(temp) + '°'
-        if temp > 0:
-            tempdesc = ircutils.mircColor(tempdesc, 'Red')
-        else:
-            tempdesc = ircutils.mircColor(tempdesc, 12)
-        if lang != 'en':
-            tempdesc = tempdesc.replace('.', ',')
-            chill = chill.replace('.', ',')
-        return '{0}{1}'.format(tempdesc, chill)
-
-    def _pollen(self, locations, loc):
-        # locations is the dictionary, loc is the integer
-        url = "http://www.yr.no/pollen/"
-        
-        plants = {
-            0: "Salix",
-            1: "Bjørk",
-            2: "Or",
-            3: "Hassel",
-            4: "Gress",
-            5: "Burot"
-        }
-        
-        html = utils.web.getUrl(url).decode()
-
-        first = locations[loc]
-        # Dropping everything before our first find
-        html = html[html.find(first):]
-        html = html[:html.find('</tr>')]
-        name = html[:html.find('<')]
-        
-        html = html[html.find('<td'):]
-        html = html.splitlines()
-        
-        plantcounter = 0
-        today = {}
-        tomorrow = {}
-        for i in range(len(html)):
-            if ((i % 2) == 0):
-                if(html[i].find('class') != -1):
-                    today[plantcounter] = html[i][html[i].find('title="')+7:html[i].find('" />')]
-            else:
-                if(html[i].find('class') != -1):
-                    tomorrow[plantcounter] = html[i][html[i].find('title="')+7:html[i].find('" />')]
-                plantcounter += 1
-        rtoday = ""
-        rtomorrow = ""
-        for i in today:
-            if "Beskjeden" in today[i]:
-                today[i] = ircutils.mircColor(today[i], "Light green")
-            elif "Moderat" in today[i]:
-                today[i] = ircutils.mircColor(today[i], "Orange")
-            elif "Kraftig" in today[i]:
-                today[i] = ircutils.mircColor(today[i], "Red")
-            elif "Ekstrem" in today[i]:
-                today[i] = ircutils.mircColor(today[i], "Brown")
-
-            rtoday += plants[i] + " (" + today[i] + "), "
-        for i in tomorrow:
-            if "Beskjeden" in tomorrow[i]:
-                tomorrow[i] = ircutils.mircColor(tomorrow[i], "Light green")
-            elif "Moderat" in tomorrow[i]:
-                tomorrow[i] = ircutils.mircColor(tomorrow[i], "Orange")
-            elif "Kraftig" in tomorrow[i]:
-                tomorrow[i] = ircutils.mircColor(tomorrow[i], "Red")
-            elif "Ekstrem" in tomorrow[i]:
-                tomorrow[i] = ircutils.mircColor(tomorrow[i], "Brown")
-            rtomorrow += plants[i] + " (" + tomorrow[i] + "), "
-        rtoday = rtoday[:-2]
-        rtomorrow = rtomorrow[:-2]
-        if (len(rtoday) < 5):
-            rtoday = ircutils.bold("I dag") + ": Clear! "
-        else:
-            rtoday = ircutils.bold("I dag") + ": " + rtoday + ". "
-        if (len(rtomorrow) < 5):
-            rtomorrow = ircutils.bold("I morgen") + ": Clear!"
-        else:
-            rtomorrow = ircutils.bold("I morgen") + ": " + rtomorrow + "."
-        
-        if not rtoday and not rtomorrow:
-            return "Ingen pollen varslet."
-        if not rtoday:
-            return rtomorrow
-        if not rtomorrow:
-            return rtoday
-        return locations[loc] + ": " + rtoday + rtomorrow
+        tz_label = f' ({tz_name})' if tz_name == 'UTC' else ''
+        irc.reply(f'☀⬆ {sunrise} ☀⬇ {sunset}{tz_label}, ({name}, {adminname}, {country})')
 
     @wrap([])
+    @internationalizeDocstring
     def hotncold(self, irc, msg, args):
         """
-        Lists the 3 hottest and 3 coldest places in Norway with their temperatures.
-        """
-        try:
-            region_codes = ["NO-42", "NO-32", "NO-33", "NO-56", "NO-34", "NO-15", "NO-18", 
-                           "NO-03", "NO-11", "NO-21", "NO-40", "NO-55", "NO-50", "NO-39", 
-                           "NO-46", "NO-31"]
-            
-            base_url = 'https://moduler.yr.no/api/v0/forecast/currenthourextremes/temperature'
-            
-            # Fetch hottest places without region filtering
-            hot_url = f'{base_url}?order=max&limit=3'
-            hot_data = utils.web.getUrl(hot_url)
-            hot_top3 = json.loads(hot_data)
-            
-            # Check if we got valid data
-            if not hot_top3:
-                irc.error("No temperature data available")
-                return
-            
-            cold_places_all = []
-            
-            # Fetch coldest places for each region (skip NO-21)
-            for region in region_codes:
-                if region != "NO-21":
-                    try:
-                        cold_url = f'{base_url}?order=min&limit=3&regionCode={region}'
-                        cold_data = utils.web.getUrl(cold_url)
-                        cold_json = json.loads(cold_data)
-                        cold_places_all.extend(cold_json)
-                    except Exception:
-                        # Skip region if fetch fails
-                        continue
-            
-            if not cold_places_all:
-                irc.error("No cold temperature data available")
-                return
-            
-            # Sort and get top 3 coldest
-            cold_places_all.sort(key=lambda x: x['temperature']['value'])
-            cold_top3 = cold_places_all[:3]
-            
-            # Format hottest places
-            hot_places = []
-            for place in hot_top3:
-                temp = place['temperature']['value']
-                name = place['locationMetadata']['name']
-                county = place['locationMetadata']['county']
-                temp_str = f"{temp}°"
-                colored_temp = ircutils.mircColor(temp_str, 'Red')
-                hot_places.append(f"{name} ({county}) {colored_temp}")
-            
-            # Format coldest places
-            cold_places = []
-            for place in cold_top3:
-                temp = place['temperature']['value']
-                name = place['locationMetadata']['name']
-                county = place['locationMetadata']['county']
-                temp_str = f"{temp}°"
-                colored_temp = ircutils.mircColor(temp_str, 12)  # Light blue
-                cold_places.append(f"{name} ({county}) {colored_temp}")
-            
-            # Create output message
-            hot_header = ircutils.mircColor("🔥 Varmest:", 'Red')
-            cold_header = ircutils.mircColor("🧊 Kaldest:", 12)
-            
-            hot_str = f"{hot_header} {', '.join(hot_places)}"
-            cold_str = f"{cold_header} {', '.join(cold_places)}"
-            
-            irc.reply(f"{hot_str} | {cold_str}")
-            
-        except Exception as e:
-            irc.error(f"Failed to fetch temperature extremes: {str(e)}")
+
+        Lists the 3 hottest and 3 coldest places in Norway with their
+        temperatures."""
+        base_url = 'https://moduler.yr.no/api/v0/forecast/currenthourextremes/temperature'
+
+        hot_data = json.loads(utils.web.getUrl(f'{base_url}?order=max&limit=3'))
+
+        if not hot_data:
+            irc.error(_('No temperature data available'))
+            return
+
+        cold_region_data_list = []
+        for region in _HOTNCOLD_REGIONS:
+            try:
+                cold_region_data_list.append(
+                    json.loads(utils.web.getUrl(f'{base_url}?order=min&limit=3&regionCode={region}'))
+                )
+            except Exception:
+                continue
+
+        result = formatTemperatureExtremes(hot_data, cold_region_data_list)
+        if result is None:
+            irc.error(_('No cold temperature data available'))
+            return
+
+        irc.reply(result)
 
 Class = Yr
