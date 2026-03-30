@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools"]
+
+[project]
+name = "limnoria-imgget"
+version = "0.0.0"
+authors = [
+    { name = "Terje Hoås" },
+]
+readme = "README.md"
+dependencies = [
+    "limnoria",
+]
+classifiers = [
+    'Environment :: Plugins',
+    'Programming Language :: Python :: 3',
+    'Topic :: Communications :: Chat',
+]
+
+[project.entry-points.'limnoria.plugins']
+ImgGet = "limnoria_imgget"
+
+[tool.setuptools.package-dir]
+"limnoria_imgget" = "."
+
+[tool.setuptools.package-data]
+"limnoria_imgget" = ["locales/*.po"]
