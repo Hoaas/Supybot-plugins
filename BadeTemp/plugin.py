@@ -29,7 +29,7 @@
 ###
 import json
 from datetime import datetime, timedelta, timezone
-from dateutil import tz, parser
+from dateutil import parser
 
 import supybot.utils as utils
 from supybot.commands import *
@@ -37,12 +37,53 @@ import supybot.plugins as plugins
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 try:
-    from supybot.i18n import PluginInternationalization
+    from supybot.i18n import PluginInternationalization, internationalizeDocstring
     _ = PluginInternationalization('BadeTemp')
 except ImportError:
-    # Placeholder that allows to run the plugin on a bot
-    # without the i18n module
     _ = lambda x: x
+    internationalizeDocstring = lambda f: f
+
+
+def fetchTemps(search, data):
+    """Return a list of 'temp° name' strings matching search in region name.
+
+    Entries older than 7 days are excluded. data may be a JSON string or
+    bytes. search is matched case-insensitively against the region name.
+    """
+    if isinstance(data, bytes):
+        data = data.decode()
+    j = json.loads(data)
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+    locs = []
+
+    for loc in j:
+        location = loc.get('location')
+        if location is None:
+            continue
+        region = location.get('region')
+        if region is None:
+            continue
+        regionName = region.get('name')
+        if regionName is None:
+            continue
+        if search.lower() not in regionName.lower():
+            continue
+
+        timeStr = loc.get('time')
+        if timeStr is None:
+            continue
+        reportedDate = parser.isoparse(timeStr)
+        if reportedDate.tzinfo is None:
+            reportedDate = reportedDate.replace(tzinfo=timezone.utc)
+        if reportedDate < cutoff:
+            continue
+
+        temp = loc.get('temperature')
+        name = location.get('name')
+        locs.append(f'{temp}° {name}')
+
+    return locs
 
 
 class BadeTemp(callbacks.Plugin):
@@ -50,42 +91,19 @@ class BadeTemp(callbacks.Plugin):
     threaded = True
 
     @wrap(['text'])
+    @internationalizeDocstring
     def badetemp(self, irc, msg, args, search):
-        """
-        Viser badetemperatur for plasser rundt om i Norge. Data hentes fra Yr.no."""
+        """<sted>
 
-        url = "https://www.yr.no/api/v0/regions/NO/watertemperatures"
-        text = utils.web.getUrl(url).decode()
-        j = json.loads(text)
-
-        locs = []
-
-        last_week = datetime.now() - timedelta(days=7)
-
-        for loc in j:
-            location = loc.get('location')
-            if location is None:
-                continue
-            region = location.get('region')
-            if region is None:
-                continue
-            name = region.get('name')
-            if name is None:
-                continue
-            names = name.lower()
-            if search.lower() in names:
-                time = loc.get('time')
-                reported_date = parser.isoparse(time).replace(tzinfo=None)
-
-                if reported_date < last_week:
-                    continue
-
-                temp = loc.get('temperature')
-                name = loc.get('location').get('name')
-                locs.append('{0}° {1}'.format(temp, name))
-        if locs is None or len(locs) == 0:
-            irc.reply('Fant ingen regioner med det navnet')
-        else:
+        Viser badetemperatur for plasser rundt om i Norge. Data hentes fra
+        Yr.no."""
+        url = 'https://www.yr.no/api/v0/regions/NO/watertemperatures'
+        data = utils.web.getUrl(url)
+        locs = fetchTemps(search, data)
+        if locs:
             irc.reply(', '.join(locs))
+        else:
+            irc.reply(_('No regions found with that name'))
 
 Class = BadeTemp
+

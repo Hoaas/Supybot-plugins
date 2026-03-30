@@ -28,11 +28,157 @@
 
 ###
 
+import json
+from datetime import datetime, timedelta, timezone
+
+import supybot.utils as utils
 from supybot.test import *
 
+from . import plugin as badetemp_plugin
 
-class BadeTempTestCase(PluginTestCase):
+
+def makeEntry(regionName, locationName, temp, daysAgo=1):
+    """Build a single yr.no water temperature JSON entry."""
+    t = datetime.now(timezone.utc) - timedelta(days=daysAgo)
+    return {
+        'location': {
+            'name': locationName,
+            'region': {'name': regionName},
+        },
+        'time': t.isoformat(),
+        'temperature': temp,
+    }
+
+
+def makeData(*entries):
+    """Serialise a list of entries to JSON bytes."""
+    return json.dumps(list(entries)).encode()
+
+
+# ---------------------------------------------------------------------------
+# Unit tests for the fetchTemps helper — no bot, no network
+# ---------------------------------------------------------------------------
+
+class FetchTempsTestCase(SupyTestCase):
+
+    def testMatchReturnsFormattedString(self):
+        data = makeData(makeEntry('Oslo', 'Sollerudstranda', 4.8))
+        result = badetemp_plugin.fetchTemps('Oslo', data)
+        self.assertEqual(result, ['4.8° Sollerudstranda'])
+
+    def testMatchIsCaseInsensitive(self):
+        data = makeData(makeEntry('Oslo', 'Sollerudstranda', 4.8))
+        result = badetemp_plugin.fetchTemps('oslo', data)
+        self.assertEqual(result, ['4.8° Sollerudstranda'])
+
+    def testPartialRegionNameMatches(self):
+        data = makeData(makeEntry('Stor-Oslo', 'Tjuvholmen', 4.2))
+        result = badetemp_plugin.fetchTemps('oslo', data)
+        self.assertEqual(result, ['4.2° Tjuvholmen'])
+
+    def testNoMatchReturnsEmptyList(self):
+        data = makeData(makeEntry('Oslo', 'Sollerudstranda', 4.8))
+        result = badetemp_plugin.fetchTemps('Bergen', data)
+        self.assertEqual(result, [])
+
+    def testMultipleMatchesReturnedInOrder(self):
+        data = makeData(
+            makeEntry('Oslo', 'Sollerudstranda', 4.8),
+            makeEntry('Oslo', 'Tjuvholmen', 4.2),
+        )
+        result = badetemp_plugin.fetchTemps('Oslo', data)
+        self.assertEqual(result, ['4.8° Sollerudstranda', '4.2° Tjuvholmen'])
+
+    def testStaleEntryIsExcluded(self):
+        data = makeData(makeEntry('Oslo', 'Sollerudstranda', 4.8, daysAgo=8))
+        result = badetemp_plugin.fetchTemps('Oslo', data)
+        self.assertEqual(result, [])
+
+    def testRecentEntryOnBoundaryIsIncluded(self):
+        data = makeData(makeEntry('Oslo', 'Sollerudstranda', 4.8, daysAgo=6))
+        result = badetemp_plugin.fetchTemps('Oslo', data)
+        self.assertEqual(result, ['4.8° Sollerudstranda'])
+
+    def testMixedFreshAndStaleEntriesOnlyReturnsFresh(self):
+        data = makeData(
+            makeEntry('Oslo', 'Sollerudstranda', 4.8, daysAgo=1),
+            makeEntry('Oslo', 'Tjuvholmen', 3.1, daysAgo=8),
+        )
+        result = badetemp_plugin.fetchTemps('Oslo', data)
+        self.assertEqual(result, ['4.8° Sollerudstranda'])
+
+    def testEntryWithoutRegionIsSkipped(self):
+        entry = {
+            'location': {'name': 'Nowhere'},
+            'time': datetime.now(timezone.utc).isoformat(),
+            'temperature': 5.0,
+        }
+        data = json.dumps([entry]).encode()
+        result = badetemp_plugin.fetchTemps('Nowhere', data)
+        self.assertEqual(result, [])
+
+    def testEntryWithoutLocationIsSkipped(self):
+        entry = {
+            'time': datetime.now(timezone.utc).isoformat(),
+            'temperature': 5.0,
+        }
+        data = json.dumps([entry]).encode()
+        result = badetemp_plugin.fetchTemps('Oslo', data)
+        self.assertEqual(result, [])
+
+    def testAcceptsBytesInput(self):
+        data = makeData(makeEntry('Oslo', 'Sollerudstranda', 4.8))
+        self.assertIsInstance(data, bytes)
+        result = badetemp_plugin.fetchTemps('Oslo', data)
+        self.assertEqual(result, ['4.8° Sollerudstranda'])
+
+    def testAcceptsStringInput(self):
+        data = makeData(makeEntry('Oslo', 'Sollerudstranda', 4.8)).decode()
+        self.assertIsInstance(data, str)
+        result = badetemp_plugin.fetchTemps('Oslo', data)
+        self.assertEqual(result, ['4.8° Sollerudstranda'])
+
+
+# ---------------------------------------------------------------------------
+# Integration tests for the bot command — network call is mocked
+# ---------------------------------------------------------------------------
+
+class BadeTempCommandTestCase(PluginTestCase):
     plugins = ('BadeTemp',)
 
+    def testCommandReturnsMatch(self):
+        data = makeData(makeEntry('Oslo', 'Sollerudstranda', 4.8))
+        original = utils.web.getUrl
+        utils.web.getUrl = lambda url, **kw: data
+        try:
+            self.assertResponse('badetemp Oslo', '4.8° Sollerudstranda')
+        finally:
+            utils.web.getUrl = original
 
-# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
+    def testCommandReturnsNotFoundMessage(self):
+        data = makeData(makeEntry('Oslo', 'Sollerudstranda', 4.8))
+        original = utils.web.getUrl
+        utils.web.getUrl = lambda url, **kw: data
+        try:
+            self.assertResponse(
+                'badetemp Bergen',
+                'No regions found with that name'
+            )
+        finally:
+            utils.web.getUrl = original
+
+    def testCommandReturnsMultipleResultsCommaSeparated(self):
+        data = makeData(
+            makeEntry('Oslo', 'Sollerudstranda', 4.8),
+            makeEntry('Oslo', 'Tjuvholmen', 4.2),
+        )
+        original = utils.web.getUrl
+        utils.web.getUrl = lambda url, **kw: data
+        try:
+            self.assertResponse(
+                'badetemp Oslo',
+                '4.8° Sollerudstranda, 4.2° Tjuvholmen'
+            )
+        finally:
+            utils.web.getUrl = original
+
