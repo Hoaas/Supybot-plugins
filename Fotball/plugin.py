@@ -1,5 +1,5 @@
 ###
-# Copyright (c) 2016, Terje Hoås
+# Copyright (c) 2023, Terje Hoås
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,41 +28,45 @@
 
 ###
 
-"""
-RioMedals: Shows medal winners for Rio Olympics 2016. Uses http://www.medalbot.com/.
-"""
+import requests
 
-import supybot
-import supybot.world as world
-
-# Use this for the version of this plugin.  You may wish to put a CVS keyword
-# in here if you're keeping the plugin in CVS or some similar system.
-__version__ = ""
-
-# XXX Replace this with an appropriate author or supybot.Author instance.
-__author__ = supybot.authors.unknown
-
-# This is a dictionary mapping supybot.Author instances to lists of
-# contributions.
-__contributors__ = {}
-
-# This is a url where the most recent plugin package can be downloaded.
-__url__ = ''
-
-from . import config
-from . import plugin
-from importlib import reload
-# In case we're being reloaded.
-reload(config)
-reload(plugin)
-# Add more reloads here if you add third-party modules and want them to be
-# reloaded when this plugin is reloaded.  Don't forget to import them as well!
-
-if world.testing:
-    from . import test
-
-Class = plugin.Class
-configure = config.configure
+from supybot import utils, plugins, ircutils, callbacks
+from supybot.commands import *
+from supybot.i18n import PluginInternationalization
 
 
-# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
+_ = PluginInternationalization('Fotball')
+
+
+class Fotball(callbacks.Plugin):
+    """Henter siste match details fra NIFS"""
+    threaded = True
+
+    @wrap(['text'])
+    def fotball(self, irc, msg, args, search):
+        """<lag>
+        
+        Henter siste event i feeden til NIFS der matchnavn inneholder søkeord"""
+
+        url = 'https://v3api.nifs.no/matchEvents/?latest=1'
+
+        response = requests.get(url)
+        kamper = response.json()
+
+        for kamp in kamper:
+            kampnavn = kamp.get('match').get('name')
+            kommentar = kamp.get('comment')
+            if search.lower() in kampnavn.lower():
+                resultat = kamp.get('match').get('result')
+                hjemme = resultat.get('homeScore90')
+                borte = resultat.get('awayScore90')
+                if kommentar is None:
+                    irc.reply(f'{kampnavn} {hjemme} - {borte}')
+                else:
+                    irc.reply(f'{kampnavn} {hjemme} - {borte} - {kommentar}')
+                break
+
+Class = Fotball
+
+
+# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:

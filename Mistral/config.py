@@ -1,5 +1,5 @@
 ###
-# Copyright (c) 2016, Terje Hoås
+# Copyright (c) 2025, Terje Hoås
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,11 +28,10 @@
 
 ###
 
-import supybot.conf as conf
-import supybot.registry as registry
+from supybot import conf, registry
 try:
     from supybot.i18n import PluginInternationalization
-    _ = PluginInternationalization('RioMedals')
+    _ = PluginInternationalization('Mistral')
 except:
     # Placeholder that allows to run the plugin on a bot
     # without the i18n module
@@ -45,13 +44,39 @@ def configure(advanced):
     # user or not.  You should effect your configuration by manipulating the
     # registry as appropriate.
     from supybot.questions import expect, anything, something, yn
-    conf.registerPlugin('RioMedals', True)
+    conf.registerPlugin('Mistral', True)
 
 
-RioMedals = conf.registerPlugin('RioMedals')
-# This is where your configuration variables (if any) should go.  For example:
-# conf.registerGlobalValue(RioMedals, 'someConfigVariableName',
-#     registry.Boolean(False, _("""Help for someConfigVariableName.""")))
+Mistral = conf.registerPlugin('Mistral')
 
+conf.registerGlobalValue(Mistral, 'apiKey',
+    registry.String('', _("""Your Mistral API key. You can get one from 
+    https://console.mistral.ai/. This is required for the plugin to work."""),
+    private=True))
+
+conf.registerGlobalValue(Mistral, 'model',
+    registry.String('mistral-medium-2505', _("""The Mistral model to use. 
+    Default is mistral-medium-2505.""")))
+
+conf.registerGlobalValue(Mistral, 'temperature',
+    registry.Float(0.7, _("""Temperature for response generation. 
+    Lower values make responses more focused and deterministic.""")))
+
+conf.registerGlobalValue(Mistral, 'maxResponseLength',
+    registry.PositiveInteger(400, _("""Maximum length of responses in characters. 
+    Responses longer than this will be truncated for IRC compatibility.""")))
+
+conf.registerGlobalValue(Mistral, 'contextHistory',
+    registry.PositiveInteger(10, _("""Number of recent chat messages to include 
+    as context when making requests to Mistral.""")))
+
+conf.registerGlobalValue(Mistral, 'enableWebSearch',
+    registry.Boolean(True, _("""Whether to enable web search capabilities. 
+    When enabled, Mistral can search the web for current information.""")))
+
+conf.registerGlobalValue(Mistral, 'agentId',
+    registry.String('', _("""Optional: a specific Mistral Agent ID to use for websearch.
+    If set, the plugin will try to use this agent instead of creating or searching by name.
+    Example: ag_<agent_id>""")))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
