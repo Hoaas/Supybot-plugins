@@ -33,6 +33,14 @@ msgid "No cold temperature data available"
 msgstr "Ingen kuldegradsdata tilgjengelig"
 
 #: plugin.py
+msgid "🔥 Hottest:"
+msgstr "🔥 Varmest:"
+
+#: plugin.py
+msgid "🧊 Coldest:"
+msgstr "🧊 Kaldest:"
+
+#: plugin.py
 msgid "Unknown timezone: \"%s\""
 msgstr "Ukjent tidssone: \"%s\""
 

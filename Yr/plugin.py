@@ -257,8 +257,8 @@ def formatTemperatureExtremes(hot_data, cold_region_data_list):
         county = place['locationMetadata']['county']
         cold_parts.append(f"{name} ({county}) {ircutils.mircColor(f'{temp}°', 12)}")
 
-    hot_str = f"{ircutils.mircColor('🔥 Varmest:', 'Red')} {', '.join(hot_parts)}"
-    cold_str = f"{ircutils.mircColor('🧊 Kaldest:', 12)} {', '.join(cold_parts)}"
+    hot_str = f"{ircutils.mircColor(_('🔥 Hottest:'), 'Red')} {', '.join(hot_parts)}"
+    cold_str = f"{ircutils.mircColor(_('🧊 Coldest:'), 12)} {', '.join(cold_parts)}"
     return f'{hot_str} | {cold_str}'
 
 
