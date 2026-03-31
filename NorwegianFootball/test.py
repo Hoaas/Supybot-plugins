@@ -29,6 +29,7 @@
 ###
 
 import json
+from datetime import datetime, timedelta, timezone
 
 import supybot.utils as utils
 from supybot.test import *
@@ -49,9 +50,13 @@ def makeResult(home90, away90, home120=None, away120=None,
     return r
 
 
-def makeEvent(eventId, matchId, matchName, result, comment=None):
-    """Build a single NIFS match event entry."""
-    return {
+def makeEvent(eventId, matchId, matchName, result, comment=None, minutesAgo=5):
+    """Build a single NIFS match event entry.
+
+    minutesAgo controls the event timestamp relative to now.
+    Pass minutesAgo=None to omit the timestamp entirely.
+    """
+    event = {
         'id': eventId,
         'matchId': matchId,
         'comment': comment,
@@ -61,6 +66,10 @@ def makeEvent(eventId, matchId, matchName, result, comment=None):
             'result': result,
         },
     }
+    if minutesAgo is not None:
+        ts = datetime.now(timezone.utc) - timedelta(minutes=minutesAgo)
+        event['timestamp'] = ts.isoformat()
+    return event
 
 
 def makeData(*events):
@@ -71,6 +80,34 @@ def makeData(*events):
 # ---------------------------------------------------------------------------
 # Unit tests for module-level helpers — no bot, no network
 # ---------------------------------------------------------------------------
+
+class FormatAgeTestCase(SupyTestCase):
+
+    def _ts(self, secondsAgo):
+        dt = datetime.now(timezone.utc) - timedelta(seconds=secondsAgo)
+        return dt.isoformat()
+
+    def testJustNow(self):
+        self.assertEqual(norwegianfootball_plugin.formatAge(self._ts(30)), 'just now')
+
+    def testMinutesAgo(self):
+        self.assertEqual(norwegianfootball_plugin.formatAge(self._ts(5 * 60)), '5m ago')
+
+    def testHoursAgo(self):
+        self.assertEqual(norwegianfootball_plugin.formatAge(self._ts(2 * 3600)), '2h ago')
+
+    def testDaysAgo(self):
+        self.assertEqual(norwegianfootball_plugin.formatAge(self._ts(3 * 86400)), '3d ago')
+
+    def testEmptyStringReturnsEmpty(self):
+        self.assertEqual(norwegianfootball_plugin.formatAge(''), '')
+
+    def testNoneReturnsEmpty(self):
+        self.assertEqual(norwegianfootball_plugin.formatAge(None), '')
+
+    def testUnparseableReturnsEmpty(self):
+        self.assertEqual(norwegianfootball_plugin.formatAge('not-a-date'), '')
+
 
 class FormatScoreTestCase(SupyTestCase):
 
@@ -99,51 +136,50 @@ class FindMatchesTestCase(SupyTestCase):
                       comment='Rosenborg scores!')
         )
         result = norwegianfootball_plugin.findMatches('Rosenborg', data)
-        self.assertEqual(result, ['Rosenborg - Molde 1 - 0 - Rosenborg scores!'])
+        self.assertEqual(result, ['Rosenborg - Molde 1 - 0 - Rosenborg scores! (5m ago)'])
 
     def testMatchWithoutAnyComment(self):
         data = makeData(
             makeEvent(1, 10, 'Rosenborg - Molde', makeResult(1, 0))
         )
         result = norwegianfootball_plugin.findMatches('Rosenborg', data)
-        self.assertEqual(result, ['Rosenborg - Molde 1 - 0'])
+        self.assertEqual(result, ['Rosenborg - Molde 1 - 0 (5m ago)'])
 
     def testLatestCommentUsedNotLatestEvent(self):
         # Event 1: goal with comment; Event 2: substitution, no comment, newer id.
         # Score must come from event 2 (latest), comment from event 1.
-        result10 = makeResult(1, 0)
-        result11 = makeResult(1, 0)
         data = makeData(
-            makeEvent(1, 10, 'Rosenborg - Molde', result10,
-                      comment='Mål for Rosenborg!'),
-            makeEvent(2, 10, 'Rosenborg - Molde', result11),
+            makeEvent(1, 10, 'Rosenborg - Molde', makeResult(1, 0),
+                      comment='Mål for Rosenborg!', minutesAgo=10),
+            makeEvent(2, 10, 'Rosenborg - Molde', makeResult(1, 0),
+                      minutesAgo=5),
         )
         result = norwegianfootball_plugin.findMatches('Rosenborg', data)
-        self.assertEqual(result, ['Rosenborg - Molde 1 - 0 - Mål for Rosenborg!'])
+        self.assertEqual(result, ['Rosenborg - Molde 1 - 0 - Mål for Rosenborg! (5m ago)'])
 
     def testScoreFromLatestEvent(self):
         # Event 1: 0-0, no comment; Event 2: 1-0, no comment.
         # Score must be 1-0 (from event 2).
         data = makeData(
-            makeEvent(1, 10, 'Rosenborg - Molde', makeResult(0, 0)),
-            makeEvent(2, 10, 'Rosenborg - Molde', makeResult(1, 0)),
+            makeEvent(1, 10, 'Rosenborg - Molde', makeResult(0, 0), minutesAgo=10),
+            makeEvent(2, 10, 'Rosenborg - Molde', makeResult(1, 0), minutesAgo=5),
         )
         result = norwegianfootball_plugin.findMatches('Rosenborg', data)
-        self.assertEqual(result, ['Rosenborg - Molde 1 - 0'])
+        self.assertEqual(result, ['Rosenborg - Molde 1 - 0 (5m ago)'])
 
     def testSearchIsCaseInsensitive(self):
         data = makeData(
             makeEvent(1, 10, 'Rosenborg - Molde', makeResult(1, 0))
         )
         result = norwegianfootball_plugin.findMatches('rosenborg', data)
-        self.assertEqual(result, ['Rosenborg - Molde 1 - 0'])
+        self.assertEqual(result, ['Rosenborg - Molde 1 - 0 (5m ago)'])
 
     def testPartialNameMatches(self):
         data = makeData(
             makeEvent(1, 10, 'Rosenborg - Molde', makeResult(1, 0))
         )
         result = norwegianfootball_plugin.findMatches('Mold', data)
-        self.assertEqual(result, ['Rosenborg - Molde 1 - 0'])
+        self.assertEqual(result, ['Rosenborg - Molde 1 - 0 (5m ago)'])
 
     def testNoMatchReturnsEmptyList(self):
         data = makeData(
@@ -160,8 +196,8 @@ class FindMatchesTestCase(SupyTestCase):
         )
         result = norwegianfootball_plugin.findMatches('Rosenborg', data)
         self.assertEqual(len(result), 2)
-        self.assertIn('Rosenborg - Molde 1 - 0 - Mål!', result)
-        self.assertIn('Brann - Rosenborg II 2 - 1', result)
+        self.assertIn('Rosenborg - Molde 1 - 0 - Mål! (5m ago)', result)
+        self.assertIn('Brann - Rosenborg II 2 - 1 (5m ago)', result)
 
     def testExtraTimeScoreShown(self):
         data = makeData(
@@ -169,7 +205,7 @@ class FindMatchesTestCase(SupyTestCase):
                       makeResult(1, 1, home120=2, away120=1))
         )
         result = norwegianfootball_plugin.findMatches('Rosenborg', data)
-        self.assertEqual(result, ['Rosenborg - Molde 2 - 1 (aet)'])
+        self.assertEqual(result, ['Rosenborg - Molde 2 - 1 (aet) (5m ago)'])
 
     def testPenaltyScoreShown(self):
         data = makeData(
@@ -178,7 +214,15 @@ class FindMatchesTestCase(SupyTestCase):
                                  homePen=5, awayPen=4))
         )
         result = norwegianfootball_plugin.findMatches('Rosenborg', data)
-        self.assertEqual(result, ['Rosenborg - Molde 1 - 1 (5 - 4 pen)'])
+        self.assertEqual(result, ['Rosenborg - Molde 1 - 1 (5 - 4 pen) (5m ago)'])
+
+    def testMissingTimestampOmitsAge(self):
+        data = makeData(
+            makeEvent(1, 10, 'Rosenborg - Molde', makeResult(1, 0),
+                      minutesAgo=None)
+        )
+        result = norwegianfootball_plugin.findMatches('Rosenborg', data)
+        self.assertEqual(result, ['Rosenborg - Molde 1 - 0'])
 
     def testEntryWithoutMatchKeyIsSkipped(self):
         data = json.dumps([{'id': 1, 'comment': 'orphan'}]).encode()
@@ -196,7 +240,7 @@ class FindMatchesTestCase(SupyTestCase):
         ).decode()
         self.assertIsInstance(data, str)
         result = norwegianfootball_plugin.findMatches('Rosenborg', data)
-        self.assertEqual(result, ['Rosenborg - Molde 1 - 0'])
+        self.assertEqual(result, ['Rosenborg - Molde 1 - 0 (5m ago)'])
 
 
 # ---------------------------------------------------------------------------
@@ -214,9 +258,9 @@ class NorwegianFootballCommandTestCase(PluginTestCase):
         original = utils.web.getUrl
         utils.web.getUrl = lambda url, **kw: data
         try:
-            self.assertResponse(
+            self.assertRegexp(
                 'fotball Rosenborg',
-                'Rosenborg - Molde 1 - 0 - Rosenborg scores!'
+                r'Rosenborg - Molde 1 - 0 - Rosenborg scores! \(.+ ago\)'
             )
         finally:
             utils.web.getUrl = original
@@ -228,7 +272,7 @@ class NorwegianFootballCommandTestCase(PluginTestCase):
         original = utils.web.getUrl
         utils.web.getUrl = lambda url, **kw: data
         try:
-            self.assertResponse('fotball Rosenborg', 'Rosenborg - Molde 2 - 0')
+            self.assertRegexp('fotball Rosenborg', r'Rosenborg - Molde 2 - 0 \(.+ ago\)')
         finally:
             utils.web.getUrl = original
 

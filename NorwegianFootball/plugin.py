@@ -29,6 +29,7 @@
 ###
 
 import json
+from datetime import datetime, timezone
 
 import supybot.utils as utils
 from supybot.commands import *
@@ -40,6 +41,30 @@ try:
 except ImportError:
     _ = lambda x: x
     internationalizeDocstring = lambda f: f
+
+
+def formatAge(timestamp):
+    """Return a human-readable age string for an ISO 8601 timestamp.
+
+    Examples: 'just now', '5m ago', '2h ago', '3d ago'.
+    Returns an empty string if the timestamp is missing or unparseable.
+    """
+    if not timestamp:
+        return ''
+    try:
+        dt = datetime.fromisoformat(timestamp)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        seconds = int((datetime.now(timezone.utc) - dt).total_seconds())
+        if seconds < 60:
+            return 'just now'
+        if seconds < 3600:
+            return f'{seconds // 60}m ago'
+        if seconds < 86400:
+            return f'{seconds // 3600}h ago'
+        return f'{(seconds // 86400)}d ago'
+    except (ValueError, TypeError):
+        return ''
 
 
 def formatScore(result):
@@ -109,6 +134,10 @@ def findMatches(search, data):
             line = f'{name} {score} - {latestComment["comment"]}'
         else:
             line = f'{name} {score}'
+
+        age = formatAge(latestEvent.get('timestamp'))
+        if age:
+            line = f'{line} ({age})'
 
         results.append(line)
 
