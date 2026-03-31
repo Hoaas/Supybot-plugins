@@ -36,7 +36,7 @@ import supybot
 import supybot.world as world
 
 __version__ = ""
-__author__ = supybot.authors.unknown
+__author__ = supybot.Author('Terje Hoås', 'Hoaas', 'terje@robogoat.dev')
 __contributors__ = {}
 __url__ = ''
 
