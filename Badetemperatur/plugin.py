@@ -33,18 +33,16 @@ from dateutil import parser
 
 import supybot.utils as utils
 from supybot.commands import *
-import supybot.plugins as plugins
-import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 try:
     import supybot.i18n as _i18n
     from supybot.i18n import PluginInternationalization, internationalizeDocstring
-    _i18nInstance = PluginInternationalization('BadeTemp')
+    _i18nInstance = PluginInternationalization('Badetemperatur')
 
     def _(s):
         import supybot.conf as _conf
         try:
-            lang = _conf.supybot.plugins.BadeTemp.language()
+            lang = _conf.supybot.plugins.Badetemperatur.language()
         except Exception:
             lang = ''
         lang = lang or _i18n.currentLocale
@@ -99,17 +97,17 @@ def fetchTemps(search, data):
     return locs
 
 
-class BadeTemp(callbacks.Plugin):
-    """Badetemperaturer for Norge fra yr.no"""
+class Badetemperatur(callbacks.Plugin):
+    """Shows bathing water temperatures for locations in Norway, sourced from yr.no."""
     threaded = True
 
     @wrap(['text'])
     @internationalizeDocstring
     def badetemp(self, irc, msg, args, search):
-        """<sted>
+        """<location>
 
-        Viser badetemperatur for plasser rundt om i Norge. Data hentes fra
-        Yr.no."""
+        Shows bathing water temperatures for locations around Norway. Data is
+        sourced from Yr.no and is Norway-only."""
         url = 'https://www.yr.no/api/v0/regions/NO/watertemperatures'
         data = utils.web.getUrl(url)
         locs = fetchTemps(search, data)
@@ -118,5 +116,4 @@ class BadeTemp(callbacks.Plugin):
         else:
             irc.reply(_('No regions found with that name'))
 
-Class = BadeTemp
-
+Class = Badetemperatur

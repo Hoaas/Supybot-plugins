@@ -28,31 +28,26 @@
 
 ###
 
-import supybot.conf as conf
-import supybot.registry as registry
-try:
-    from supybot.i18n import PluginInternationalization
-    _ = PluginInternationalization('BadeTemp')
-except:
-    # Placeholder that allows to run the plugin on a bot
-    # without the i18n module
-    _ = lambda x: x
+"""
+Badetemperatur: Shows bathing water temperatures for locations in Norway, from yr.no.
+"""
 
+import supybot
+import supybot.world as world
 
-def configure(advanced):
-    # This will be called by supybot to configure this module.  advanced is
-    # a bool that specifies whether the user identified themself as an advanced
-    # user or not.  You should effect your configuration by manipulating the
-    # registry as appropriate.
-    from supybot.questions import expect, anything, something, yn
-    conf.registerPlugin('BadeTemp', True)
+__version__ = ""
+__author__ = supybot.authors.unknown
+__contributors__ = {}
+__url__ = ''
 
+from . import config
+from . import plugin
+from importlib import reload
+reload(config)
+reload(plugin)
 
-BadeTemp = conf.registerPlugin('BadeTemp')
-conf.registerGlobalValue(BadeTemp, 'language', registry.String('', """Override
-    the language for this plugin. Leave empty to use the global
-    supybot.language setting. Accepts any locale code with a matching .po
-    file, including 'no' (Norwegian)."""))
+if world.testing:
+    from . import test
 
-
-# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
+Class = plugin.Class
+configure = config.configure

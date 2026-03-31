@@ -2,7 +2,7 @@
 requires = ["setuptools"]
 
 [project]
-name = "limnoria-badetemp"
+name = "limnoria-badetemperatur"
 version = "0.0.0"
 authors = [
     { name = "Terje Hoås" },
@@ -18,10 +18,10 @@ classifiers = [
 ]
 
 [project.entry-points.'limnoria.plugins']
-BadeTemp = "limnoria_badetemp"
+Badetemperatur = "limnoria_badetemperatur"
 
 [tool.setuptools.package-dir]
-"limnoria_badetemp" = "."
+"limnoria_badetemperatur" = "."
 
 [tool.setuptools.package-data]
-"limnoria_badetemp" = ["locales/*.po"]
+"limnoria_badetemperatur" = ["locales/*.po"]

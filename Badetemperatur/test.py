@@ -34,7 +34,7 @@ from datetime import datetime, timedelta, timezone
 import supybot.utils as utils
 from supybot.test import *
 
-from . import plugin as badetemp_plugin
+from . import plugin as badetemperatur_plugin
 
 
 def makeEntry(regionName, locationName, temp, daysAgo=1):
@@ -63,22 +63,22 @@ class FetchTempsTestCase(SupyTestCase):
 
     def testMatchReturnsFormattedString(self):
         data = makeData(makeEntry('Oslo', 'Sollerudstranda', 4.8))
-        result = badetemp_plugin.fetchTemps('Oslo', data)
+        result = badetemperatur_plugin.fetchTemps('Oslo', data)
         self.assertEqual(result, ['4.8° Sollerudstranda'])
 
     def testMatchIsCaseInsensitive(self):
         data = makeData(makeEntry('Oslo', 'Sollerudstranda', 4.8))
-        result = badetemp_plugin.fetchTemps('oslo', data)
+        result = badetemperatur_plugin.fetchTemps('oslo', data)
         self.assertEqual(result, ['4.8° Sollerudstranda'])
 
     def testPartialRegionNameMatches(self):
         data = makeData(makeEntry('Stor-Oslo', 'Tjuvholmen', 4.2))
-        result = badetemp_plugin.fetchTemps('oslo', data)
+        result = badetemperatur_plugin.fetchTemps('oslo', data)
         self.assertEqual(result, ['4.2° Tjuvholmen'])
 
     def testNoMatchReturnsEmptyList(self):
         data = makeData(makeEntry('Oslo', 'Sollerudstranda', 4.8))
-        result = badetemp_plugin.fetchTemps('Bergen', data)
+        result = badetemperatur_plugin.fetchTemps('Bergen', data)
         self.assertEqual(result, [])
 
     def testMultipleMatchesReturnedInOrder(self):
@@ -86,17 +86,17 @@ class FetchTempsTestCase(SupyTestCase):
             makeEntry('Oslo', 'Sollerudstranda', 4.8),
             makeEntry('Oslo', 'Tjuvholmen', 4.2),
         )
-        result = badetemp_plugin.fetchTemps('Oslo', data)
+        result = badetemperatur_plugin.fetchTemps('Oslo', data)
         self.assertEqual(result, ['4.8° Sollerudstranda', '4.2° Tjuvholmen'])
 
     def testStaleEntryIsExcluded(self):
         data = makeData(makeEntry('Oslo', 'Sollerudstranda', 4.8, daysAgo=8))
-        result = badetemp_plugin.fetchTemps('Oslo', data)
+        result = badetemperatur_plugin.fetchTemps('Oslo', data)
         self.assertEqual(result, [])
 
     def testRecentEntryOnBoundaryIsIncluded(self):
         data = makeData(makeEntry('Oslo', 'Sollerudstranda', 4.8, daysAgo=6))
-        result = badetemp_plugin.fetchTemps('Oslo', data)
+        result = badetemperatur_plugin.fetchTemps('Oslo', data)
         self.assertEqual(result, ['4.8° Sollerudstranda'])
 
     def testMixedFreshAndStaleEntriesOnlyReturnsFresh(self):
@@ -104,7 +104,7 @@ class FetchTempsTestCase(SupyTestCase):
             makeEntry('Oslo', 'Sollerudstranda', 4.8, daysAgo=1),
             makeEntry('Oslo', 'Tjuvholmen', 3.1, daysAgo=8),
         )
-        result = badetemp_plugin.fetchTemps('Oslo', data)
+        result = badetemperatur_plugin.fetchTemps('Oslo', data)
         self.assertEqual(result, ['4.8° Sollerudstranda'])
 
     def testEntryWithoutRegionIsSkipped(self):
@@ -114,7 +114,7 @@ class FetchTempsTestCase(SupyTestCase):
             'temperature': 5.0,
         }
         data = json.dumps([entry]).encode()
-        result = badetemp_plugin.fetchTemps('Nowhere', data)
+        result = badetemperatur_plugin.fetchTemps('Nowhere', data)
         self.assertEqual(result, [])
 
     def testEntryWithoutLocationIsSkipped(self):
@@ -123,19 +123,19 @@ class FetchTempsTestCase(SupyTestCase):
             'temperature': 5.0,
         }
         data = json.dumps([entry]).encode()
-        result = badetemp_plugin.fetchTemps('Oslo', data)
+        result = badetemperatur_plugin.fetchTemps('Oslo', data)
         self.assertEqual(result, [])
 
     def testAcceptsBytesInput(self):
         data = makeData(makeEntry('Oslo', 'Sollerudstranda', 4.8))
         self.assertIsInstance(data, bytes)
-        result = badetemp_plugin.fetchTemps('Oslo', data)
+        result = badetemperatur_plugin.fetchTemps('Oslo', data)
         self.assertEqual(result, ['4.8° Sollerudstranda'])
 
     def testAcceptsStringInput(self):
         data = makeData(makeEntry('Oslo', 'Sollerudstranda', 4.8)).decode()
         self.assertIsInstance(data, str)
-        result = badetemp_plugin.fetchTemps('Oslo', data)
+        result = badetemperatur_plugin.fetchTemps('Oslo', data)
         self.assertEqual(result, ['4.8° Sollerudstranda'])
 
 
@@ -143,8 +143,8 @@ class FetchTempsTestCase(SupyTestCase):
 # Integration tests for the bot command — network call is mocked
 # ---------------------------------------------------------------------------
 
-class BadeTempCommandTestCase(PluginTestCase):
-    plugins = ('BadeTemp',)
+class BadetemperaturCommandTestCase(PluginTestCase):
+    plugins = ('Badetemperatur',)
 
     def testCommandReturnsMatch(self):
         data = makeData(makeEntry('Oslo', 'Sollerudstranda', 4.8))
@@ -181,4 +181,3 @@ class BadeTempCommandTestCase(PluginTestCase):
             )
         finally:
             utils.web.getUrl = original
-
