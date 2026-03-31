@@ -1,4 +1,3 @@
-# coding=utf8
 ###
 # Copyright (c) 2011, Terje Hoås
 # All rights reserved.
@@ -6,14 +5,14 @@
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
 #
-#		* Redistributions of source code must retain the above copyright notice,
-#		  this list of conditions, and the following disclaimer.
-#		* Redistributions in binary form must reproduce the above copyright notice,
-#		  this list of conditions, and the following disclaimer in the
-#		  documentation and/or other materials provided with the distribution.
-#		* Neither the name of the author of this software nor the name of
-#		  contributors to this software may be used to endorse or promote products
-#		  derived from this software without specific prior written consent.
+#   * Redistributions of source code must retain the above copyright notice,
+#     this list of conditions, and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright notice,
+#     this list of conditions, and the following disclaimer in the
+#     documentation and/or other materials provided with the distribution.
+#   * Neither the name of the author of this software nor the name of
+#     contributors to this software may be used to endorse or promote products
+#     derived from this software without specific prior written consent.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -29,24 +28,48 @@
 
 ###
 
+import supybot.utils as utils
 from supybot.test import *
 
-
-class AtBTestCase(PluginTestCase):
-	plugins = ('AtB',)
-	def test_calcPrice(self):
-		self.assertResponse('calcPrice 7 False', '160')
-		self.assertResponse('calcPrice 15 False', '310')
-		self.assertResponse('calcPrice 30 False', '585')
-		self.assertResponse('calcPrice 60 False', '1050')
-		self.assertResponse('calcPrice 90 False', '1555')
-		self.assertResponse('calcPrice 180 False', '2880')
+from . import plugin
 
 
-		self.assertResponse('calcPrice 7 True', '95')
-		self.assertResponse('calcPrice 15 True', '185')
-		self.assertResponse('calcPrice 30 True', '350')
-		self.assertResponse('calcPrice 60 True', '630')
-		self.assertResponse('calcPrice 90 True', '935')
-		self.assertResponse('calcPrice 180 True', '1730')
+class AtBHelperTestCase(SupyTestCase):
 
+    def testFetchOracleStripsWhitespace(self):
+        original = utils.web.getUrl
+        utils.web.getUrl = lambda url, **kw: b'  Berg Bedehus mot sentrum: #75 om ca. 10 min.  '
+        try:
+            result = plugin.fetchOracle('Berg')
+            self.assertEqual(result, 'Berg Bedehus mot sentrum: #75 om ca. 10 min.')
+        finally:
+            utils.web.getUrl = original
+
+    def testFetchOracleCollapseNewlines(self):
+        original = utils.web.getUrl
+        utils.web.getUrl = lambda url, **kw: b'Line one\nLine two'
+        try:
+            result = plugin.fetchOracle('test')
+            self.assertEqual(result, 'Line one Line two')
+        finally:
+            utils.web.getUrl = original
+
+
+class AtBCommandTestCase(PluginTestCase):
+    plugins = ('AtB',)
+
+    def testBussReturnsOracleAnswer(self):
+        original = utils.web.getUrl
+        utils.web.getUrl = lambda url, **kw: b'Berg Bedehus mot sentrum: #75 om ca. 10 min.'
+        try:
+            self.assertResponse('buss Berg', 'Berg Bedehus mot sentrum: #75 om ca. 10 min.')
+        finally:
+            utils.web.getUrl = original
+
+    def testBussErrorOnFailure(self):
+        original = utils.web.getUrl
+        utils.web.getUrl = lambda url, **kw: (_ for _ in ()).throw(Exception('network error'))
+        try:
+            self.assertError('buss Berg')
+        finally:
+            utils.web.getUrl = original
