@@ -29,6 +29,7 @@
 ###
 import json
 import urllib.parse
+from datetime import date, datetime, timezone
 
 import supybot.utils as utils
 from supybot.commands import *
@@ -74,12 +75,75 @@ def formatEpisode(ep):
     return ' · '.join(parts) if len(parts) > 1 else ep_code
 
 
+def dateAge(airdate):
+    """Return a human-readable age string for an ISO date string (YYYY-MM-DD).
+
+    Examples: '3 days', '2 months', '1 year', '4 years'.
+    Returns an empty string if airdate is empty or unparseable.
+    """
+    if not airdate:
+        return ''
+    try:
+        aired = datetime.strptime(airdate, '%Y-%m-%d').date()
+    except ValueError:
+        return ''
+    today = date.today()
+    delta = abs((today - aired).days)
+    if delta == 0:
+        return 'today'
+    if delta == 1:
+        return '1 day'
+    months = round(delta / 30.44)
+    if months == 0:
+        return f'{delta} days'
+    if months < 12:
+        plural = 's' if months > 1 else ''
+        return f'{months} month{plural}'
+    years = round(delta / 365.25)
+    if years < 2:
+        return '1 year'
+    return f'{years} years'
+
+
+def formatEpisodeTv(ep):
+    """Format a TVmaze episode dict in the [SxEE] Name on date (age) style.
+
+    Returns an empty string if ep is None or missing key fields.
+    """
+    if not ep:
+        return ''
+    season = ep.get('season')
+    number = ep.get('number')
+    name = ep.get('name', '')
+    airdate = ep.get('airdate', '')
+
+    if season is None:
+        return ''
+
+    if number is not None:
+        ep_code = f'[{season}x{number:02d}]'
+    else:
+        ep_code = f'[{season}x special]'
+
+    parts = [ep_code]
+    if name:
+        parts.append(name)
+    if airdate:
+        age = dateAge(airdate)
+        date_str = f'on {airdate}'
+        if age:
+            date_str += f' ({age})'
+        parts.append(date_str)
+    return ' '.join(parts)
+
+
 def parseShow(js):
     """Parse a TVmaze singlesearch response (with embedded prev/next episodes).
 
     Returns a dict with keys:
         name        — show name string
         status      — show status string (e.g. 'Running', 'Ended')
+        premiered   — premiered year string (e.g. '2022'), or empty string
         url         — TVmaze show URL string
         previous    — previous episode dict (or None)
         next        — next episode dict (or None)
@@ -90,12 +154,15 @@ def parseShow(js):
         return None
 
     embedded = js.get('_embedded', {})
+    premiered = js.get('premiered', '') or ''
+    premiered_year = premiered[:4] if premiered else ''
     return {
-        'name':     js.get('name', ''),
-        'status':   js.get('status', ''),
-        'url':      js.get('url', ''),
-        'previous': embedded.get('previousepisode'),
-        'next':     embedded.get('nextepisode'),
+        'name':      js.get('name', ''),
+        'status':    js.get('status', ''),
+        'premiered': premiered_year,
+        'url':       js.get('url', ''),
+        'previous':  embedded.get('previousepisode'),
+        'next':      embedded.get('nextepisode'),
     }
 
 
@@ -148,6 +215,48 @@ class Series(callbacks.Plugin):
             parts.append(_('No episode information available.'))
 
         irc.reply(' | '.join(parts))
+
+    @wrap(['text'])
+    @internationalizeDocstring
+    def tv(self, irc, msg, args, search):
+        """<show name>
+
+        Returns the status, premiered year, and previous/next episode of the
+        given TV series, sourced from TVmaze."""
+        url = (
+            f'{API_BASE}/singlesearch/shows'
+            f'?q={urllib.parse.quote(search)}'
+            f'&embed[]=previousepisode&embed[]=nextepisode'
+        )
+        try:
+            data = utils.web.getUrl(url)
+        except utils.web.Error:
+            irc.reply(_('Show not found.'))
+            return
+
+        try:
+            js = json.loads(data)
+        except (json.JSONDecodeError, TypeError):
+            irc.reply(_('Failed to parse response from TVmaze.'))
+            return
+
+        show = parseShow(js)
+        if show is None:
+            irc.reply(_('Show not found.'))
+            return
+
+        name = ircutils.bold(show['name'])
+        year = show['premiered']
+        status = show['status']
+        header = f'{name} {year} ({status}).' if year else f'{name} ({status}).'
+
+        prev_str = formatEpisodeTv(show['previous'])
+        next_str = formatEpisodeTv(show['next'])
+
+        prev_part = f'Previous Episode: {prev_str}' if prev_str else _('Previous Episode: none.')
+        next_part = f'Next Episode: {next_str}.' if next_str else _('Next Episode: not yet scheduled.')
+
+        irc.reply(f'{header} {prev_part}. {next_part} {show["url"]}')
 
 
 Class = Series

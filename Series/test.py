@@ -29,6 +29,8 @@
 ###
 
 import json
+from datetime import date
+from unittest.mock import patch
 
 import supybot.utils as utils
 from supybot.test import *
@@ -52,7 +54,7 @@ def makeEpisode(season=1, number=3, name='Pilot', airdate='2024-01-15'):
 
 
 def makeShow(name='Test Show', status='Running', url='https://www.tvmaze.com/shows/1/test',
-             previous=None, next_ep=None):
+             previous=None, next_ep=None, premiered='2022-01-01'):
     embedded = {}
     if previous:
         embedded['previousepisode'] = previous
@@ -62,6 +64,7 @@ def makeShow(name='Test Show', status='Running', url='https://www.tvmaze.com/sho
         'name': name,
         'status': status,
         'url': url,
+        'premiered': premiered,
         '_embedded': embedded,
     }
 
@@ -159,6 +162,97 @@ class ParseShowTestCase(SupyTestCase):
 
 
 # ---------------------------------------------------------------------------
+# Unit tests — dateAge
+# ---------------------------------------------------------------------------
+
+class DateAgeTestCase(SupyTestCase):
+
+    def _age(self, airdate, today_str):
+        today = date.fromisoformat(today_str)
+        with patch('Series.plugin.date') as mock_date:
+            mock_date.today.return_value = today
+            mock_date.fromisoformat = date.fromisoformat
+            return series_plugin.dateAge(airdate)
+
+    def testToday(self):
+        self.assertEqual(self._age('2025-06-01', '2025-06-01'), 'today')
+
+    def testOneDay(self):
+        self.assertEqual(self._age('2025-05-31', '2025-06-01'), '1 day')
+
+    def testSeveralDays(self):
+        self.assertEqual(self._age('2025-05-25', '2025-06-01'), '7 days')
+
+    def testOneMonth(self):
+        self.assertEqual(self._age('2025-05-01', '2025-06-01'), '1 month')
+
+    def testSeveralMonths(self):
+        self.assertEqual(self._age('2025-01-01', '2025-06-01'), '5 months')
+
+    def testOneYear(self):
+        self.assertEqual(self._age('2024-06-01', '2025-06-01'), '1 year')
+
+    def testSeveralYears(self):
+        self.assertEqual(self._age('2021-06-01', '2025-06-01'), '4 years')
+
+    def testFutureDate(self):
+        self.assertEqual(self._age('2025-06-08', '2025-06-01'), '7 days')
+
+    def testEmptyReturnsEmpty(self):
+        self.assertEqual(series_plugin.dateAge(''), '')
+
+    def testInvalidReturnsEmpty(self):
+        self.assertEqual(series_plugin.dateAge('not-a-date'), '')
+
+
+# ---------------------------------------------------------------------------
+# Unit tests — formatEpisodeTv
+# ---------------------------------------------------------------------------
+
+class FormatEpisodeTvTestCase(SupyTestCase):
+
+    def _fmt(self, ep, today_str='2026-01-01'):
+        today = date.fromisoformat(today_str)
+        with patch('Series.plugin.date') as mock_date:
+            mock_date.today.return_value = today
+            mock_date.fromisoformat = date.fromisoformat
+            return series_plugin.formatEpisodeTv(ep)
+
+    def testRegularEpisode(self):
+        ep = makeEpisode(season=2, number=12, name='Jedha, Kyber, Erso', airdate='2025-05-13')
+        result = self._fmt(ep)
+        self.assertIn('[2x12]', result)
+        self.assertIn('Jedha, Kyber, Erso', result)
+        self.assertIn('on 2025-05-13', result)
+
+    def testSpecialNoNumber(self):
+        ep = {'season': 1, 'name': 'Holiday Special', 'airdate': '2024-12-25'}
+        result = self._fmt(ep)
+        self.assertIn('[1x special]', result)
+        self.assertIn('Holiday Special', result)
+
+    def testNoneReturnsEmpty(self):
+        self.assertEqual(series_plugin.formatEpisodeTv(None), '')
+
+    def testMissingSeasonReturnsEmpty(self):
+        ep = {'number': 1, 'name': 'Pilot', 'airdate': '2024-01-01'}
+        self.assertEqual(series_plugin.formatEpisodeTv(ep), '')
+
+    def testAgeIncluded(self):
+        ep = makeEpisode(season=2, number=12, name='Ep', airdate='2025-05-13')
+        result = self._fmt(ep, today_str='2026-01-01')
+        # ~7.5 months back — should show months
+        self.assertRegex(result, r'\(\d+ months?\)')
+
+    def testNoAirdate(self):
+        ep = {'season': 1, 'number': 1, 'name': 'Pilot', 'airdate': ''}
+        result = series_plugin.formatEpisodeTv(ep)
+        self.assertIn('[1x01]', result)
+        self.assertIn('Pilot', result)
+        self.assertNotIn('on', result)
+
+
+# ---------------------------------------------------------------------------
 # Integration tests — bot command
 # ---------------------------------------------------------------------------
 
@@ -205,5 +299,50 @@ class SeriesCommandTestCase(PluginTestCase):
         )
         try:
             self.assertResponse('ep xyzzy no such show', 'Show not found.')
+        finally:
+            utils.web.getUrl = original
+
+    def testTvReturnsSummary(self):
+        prev = makeEpisode(season=2, number=12, name='Jedha, Kyber, Erso', airdate='2025-05-13')
+        payload = json.dumps(makeShow(
+            name='Andor', status='Ended', premiered='2022-09-21',
+            url='https://www.tvmaze.com/shows/52341/andor',
+            previous=prev,
+        )).encode()
+        original = utils.web.getUrl
+        utils.web.getUrl = lambda url, **kw: payload
+        try:
+            self.assertRegexp(
+                'tv Andor',
+                r'Andor.*2022.*Ended.*Previous Episode:.*\[2x12\].*not yet scheduled'
+            )
+        finally:
+            utils.web.getUrl = original
+
+    def testTvWithNextEpisode(self):
+        prev = makeEpisode(season=1, number=5, name='Old', airdate='2024-01-01')
+        nxt = makeEpisode(season=1, number=6, name='New', airdate='2025-09-01')
+        payload = json.dumps(makeShow(
+            name='Running Show', status='Running', premiered='2024-01-01',
+            url='https://www.tvmaze.com/shows/99/running',
+            previous=prev, next_ep=nxt,
+        )).encode()
+        original = utils.web.getUrl
+        utils.web.getUrl = lambda url, **kw: payload
+        try:
+            self.assertRegexp(
+                'tv Running Show',
+                r'Running Show.*Next Episode:.*\[1x06\]'
+            )
+        finally:
+            utils.web.getUrl = original
+
+    def testTvNotFound(self):
+        original = utils.web.getUrl
+        utils.web.getUrl = lambda url, **kw: (_ for _ in ()).throw(
+            utils.web.Error('404 Not Found')
+        )
+        try:
+            self.assertResponse('tv xyzzy no such show', 'Show not found.')
         finally:
             utils.web.getUrl = original
