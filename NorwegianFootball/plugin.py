@@ -121,7 +121,7 @@ class NorwegianFootball(callbacks.Plugin):
 
     @wrap(['text'])
     @internationalizeDocstring
-    def fotball(self, irc, msg, args, search):
+    def football(self, irc, msg, args, search):
         """<team>
 
         Shows the latest score and commentary for a Norwegian football match
