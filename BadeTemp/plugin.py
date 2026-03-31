@@ -37,8 +37,21 @@ import supybot.plugins as plugins
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 try:
+    import supybot.i18n as _i18n
     from supybot.i18n import PluginInternationalization, internationalizeDocstring
-    _ = PluginInternationalization('BadeTemp')
+    _i18nInstance = PluginInternationalization('BadeTemp')
+
+    def _(s):
+        import supybot.conf as _conf
+        try:
+            lang = _conf.supybot.plugins.BadeTemp.language()
+        except Exception:
+            lang = ''
+        lang = lang or _i18n.currentLocale
+        if _i18nInstance.currentLocaleName != lang:
+            _i18nInstance.loadLocale(lang)
+        return _i18nInstance(s)
+
 except ImportError:
     _ = lambda x: x
     internationalizeDocstring = lambda f: f

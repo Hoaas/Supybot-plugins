@@ -49,9 +49,10 @@ def configure(advanced):
 
 
 BadeTemp = conf.registerPlugin('BadeTemp')
-# This is where your configuration variables (if any) should go.  For example:
-# conf.registerGlobalValue(BadeTemp, 'someConfigVariableName',
-#     registry.Boolean(False, _("""Help for someConfigVariableName.""")))
+conf.registerGlobalValue(BadeTemp, 'language', registry.String('', """Override
+    the language for this plugin. Leave empty to use the global
+    supybot.language setting. Accepts any locale code with a matching .po
+    file, including 'no' (Norwegian)."""))
 
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

@@ -420,3 +420,28 @@ class YrCommandTestCase(PluginTestCase):
             self.assertError('hotncold')
         finally:
             utils.web.getUrl = original
+
+    # language config
+
+    def testLanguageConfigExists(self):
+        import supybot.conf as conf
+        # The language config var must be registered and default to empty string
+        self.assertEqual(conf.supybot.plugins.Yr.language(), '')
+
+    def testLanguageOverrideNoDoesNotCrash(self):
+        """Setting language to 'no' loads no.po without raising."""
+        import supybot.conf as conf
+
+        def fakeGetUrl(url, **kw):
+            if 'geonames' in url:
+                return makeGeonamesResponse(name='Oslo', adminName='Oslo',
+                                            countryName='Norway')
+            return makeForecastData(temp=5.0)
+
+        original = utils.web.getUrl
+        utils.web.getUrl = fakeGetUrl
+        try:
+            with conf.supybot.plugins.Yr.language.context('no'):
+                self.assertNotError('temp #test Oslo')
+        finally:
+            utils.web.getUrl = original

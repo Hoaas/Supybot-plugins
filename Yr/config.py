@@ -42,3 +42,7 @@ conf.registerChannelValue(Yr, 'timezone', registry.String('UTC', """Timezone
     used to display times for the 'sun' command. Must be a valid tz database
     name (e.g. 'Europe/Oslo', 'America/New_York'). Defaults to UTC, in which
     case times are shown with a '(UTC)' label."""))
+conf.registerGlobalValue(Yr, 'language', registry.String('', """Override the
+    language for this plugin. Leave empty to use the global supybot.language
+    setting. Accepts any locale code with a matching .po file, including 'no'
+    (Norwegian)."""))
