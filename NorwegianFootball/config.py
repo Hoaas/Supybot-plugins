@@ -28,11 +28,17 @@
 
 ###
 
-from supybot.test import *
+from supybot import conf, registry
+try:
+    from supybot.i18n import PluginInternationalization
+    _ = PluginInternationalization('NorwegianFootball')
+except ImportError:
+    _ = lambda x: x
 
 
-class FotballTestCase(PluginTestCase):
-    plugins = ('Fotball',)
+def configure(advanced):
+    from supybot.questions import expect, anything, something, yn
+    conf.registerPlugin('NorwegianFootball', True)
 
 
-# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
+NorwegianFootball = conf.registerPlugin('NorwegianFootball')

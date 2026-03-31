@@ -28,45 +28,26 @@
 
 ###
 
-import requests
+"""
+NorwegianFootball: Fetches live match events and scores from the NIFS football API.
+"""
 
-from supybot import utils, plugins, ircutils, callbacks
-from supybot.commands import *
-from supybot.i18n import PluginInternationalization
+import supybot
+import supybot.world as world
 
+__version__ = ""
+__author__ = supybot.Author('Terje Hoås', 'Hoaas', 'terje@robogoat.dev')
+__contributors__ = {}
+__url__ = ''
 
-_ = PluginInternationalization('Fotball')
+from . import config
+from . import plugin
+from importlib import reload
+reload(config)
+reload(plugin)
 
+if world.testing:
+    from . import test
 
-class Fotball(callbacks.Plugin):
-    """Henter siste match details fra NIFS"""
-    threaded = True
-
-    @wrap(['text'])
-    def fotball(self, irc, msg, args, search):
-        """<lag>
-        
-        Henter siste event i feeden til NIFS der matchnavn inneholder søkeord"""
-
-        url = 'https://v3api.nifs.no/matchEvents/?latest=1'
-
-        response = requests.get(url)
-        kamper = response.json()
-
-        for kamp in kamper:
-            kampnavn = kamp.get('match').get('name')
-            kommentar = kamp.get('comment')
-            if search.lower() in kampnavn.lower():
-                resultat = kamp.get('match').get('result')
-                hjemme = resultat.get('homeScore90')
-                borte = resultat.get('awayScore90')
-                if kommentar is None:
-                    irc.reply(f'{kampnavn} {hjemme} - {borte}')
-                else:
-                    irc.reply(f'{kampnavn} {hjemme} - {borte} - {kommentar}')
-                break
-
-Class = Fotball
-
-
-# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
+Class = plugin.Class
+configure = config.configure
