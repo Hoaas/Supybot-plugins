@@ -1,4 +1,3 @@
-# coding=utf8
 ###
 # Copyright (c) 2010, Terje Hoås
 # All rights reserved.
@@ -28,31 +27,192 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 ###
-import os
-
-#libraries for time_created_at
-import time
-from datetime import tzinfo, datetime, timedelta
-
 import json
-#from xml.etree import ElementTree
-import urllib.request, urllib.error, urllib.parse, urllib.request, urllib.parse, urllib.error
+import time
+from datetime import datetime, timezone
+
+import urllib.parse
 
 from supybot import dbi, utils, plugins, ircutils, callbacks
 from supybot.commands import *
+
 try:
-    from supybot.i18n import PluginInternationalization
+    from supybot.i18n import PluginInternationalization, internationalizeDocstring
     _ = PluginInternationalization('LastFM')
 except ImportError:
-    # Placeholder that allows to run the plugin on a bot
-    # without the i18n module
     _ = lambda x: x
+    internationalizeDocstring = lambda f: f
+
+API_URL = 'https://ws.audioscrobbler.com/2.0/?'
+
+
+def timeSince(s):
+    """Convert a LastFM date string (e.g. '12 Aug 2012, 17:09' UTC) to a
+    human-readable relative time string.  Returns an empty string on failure.
+    """
+    try:
+        ddate = time.strptime(s, '%d %b %Y, %H:%M')[:-2]
+    except ValueError:
+        return ''
+
+    created_at = datetime(*ddate, tzinfo=timezone.utc)
+    d = datetime.now(timezone.utc) - created_at
+
+    plural = lambda n: 's' if n > 1 else ''
+
+    if d.days:
+        return f'{d.days} day{plural(d.days)} ago'
+    if d.seconds > 3600:
+        hours = d.seconds // 3600
+        return f'{hours} hour{plural(hours)} ago'
+    if d.seconds >= 60:
+        minutes = d.seconds // 60
+        return f'{minutes} minute{plural(minutes)} ago'
+    if d.seconds > 30:
+        return 'less than a minute ago'
+    return f'less than {d.seconds} second{plural(d.seconds)} ago'
+
+
+def parseRecentTracks(text):
+    """Parse a user.getRecentTracks JSON response.
+
+    Returns a dict with keys:
+        error   — error message string if the API returned an error, else None
+        user    — LastFM username string
+        np      — True if currently playing, False otherwise
+        artist  — artist name string
+        track   — track name string
+        album   — album name string
+        mbid    — track MusicBrainz ID string (may be empty)
+        when    — raw LastFM date string if not now-playing, else None
+
+    Returns None if the JSON cannot be parsed or is missing expected fields.
+    """
+    try:
+        js = json.loads(text)
+    except (json.JSONDecodeError, TypeError):
+        return None
+
+    if 'error' in js:
+        return {'error': js.get('message', 'Unknown error')}
+
+    try:
+        recenttracks = js['recenttracks']
+        last_track = recenttracks['track']
+        user = recenttracks['@attr']['user']
+    except (KeyError, TypeError):
+        return None
+
+    if isinstance(last_track, list):
+        if not last_track:
+            return {'error': f'{user} has no recent tracks.'}
+        last_track = last_track[0]
+
+    try:
+        artist = last_track['artist']['#text']
+        track = last_track['name']
+        album = last_track['album']['#text']
+        mbid = last_track.get('mbid', '')
+    except (KeyError, TypeError):
+        return None
+
+    if not artist or not track or not user:
+        return None
+
+    try:
+        np = last_track['@attr']['nowplaying']
+    except KeyError:
+        np = False
+
+    when = None
+    if not np:
+        try:
+            when = last_track['date']['#text']
+        except (KeyError, TypeError):
+            when = None
+
+    return {
+        'error':  None,
+        'user':   user,
+        'np':     np,
+        'artist': artist,
+        'track':  track,
+        'album':  album,
+        'mbid':   mbid,
+        'when':   when,
+    }
+
+
+def parsePlayInfo(js):
+    """Parse a track.getInfo JSON response and return a formatted extras string.
+
+    The string includes play count, loved status, and duration.  Returns an
+    empty string if the response contains an error or missing fields.
+    """
+    if not isinstance(js, dict) or 'error' in js:
+        return ''
+
+    track = js.get('track')
+    if not track:
+        return ''
+
+    play_count = track.get('userplaycount')
+    loved = track.get('userloved')
+    duration = track.get('duration')
+
+    plural = lambda n: 's' if int(n) > 1 else ''
+    heart = lambda h: ircutils.bold(' <3') if h == '1' else ''
+
+    minutes = seconds = None
+    if duration:
+        total_secs = int(duration) // 1000
+        minutes = total_secs // 60
+        seconds = total_secs % 60
+
+    retvalue = ''
+    if play_count or loved == '1':
+        retvalue += ' ['
+        if play_count:
+            retvalue += f'{play_count} play{plural(play_count)}'
+        if loved:
+            retvalue += heart(loved)
+        retvalue += ']'
+    if minutes is not None:
+        retvalue += f' [{minutes}:{seconds:02d}]'
+    return retvalue
+
+
+def parseTopTags(js, maxtags=4):
+    """Parse an artist.getTopTags JSON response and return a comma-separated
+    tag string, or an empty string on error.
+    """
+    if not isinstance(js, dict) or 'error' in js:
+        return ''
+
+    toptags = js.get('toptags', {})
+    if not toptags:
+        return ''
+    tags_data = toptags.get('tag')
+    if not tags_data:
+        return ''
+
+    if isinstance(tags_data, dict):
+        return tags_data.get('name', '')
+
+    names = []
+    for tag in tags_data[:maxtags]:
+        name = tag.get('name')
+        if name:
+            names.append(name)
+    return ', '.join(names)
+
 
 class LastFMNickRecord(dbi.Record):
     __fields__ = [
         ('nick', eval),
         ('username', eval),
-        ]
+    ]
+
 
 class DbiLastFMNickDB(plugins.DbiChannelDB):
     class DB(dbi.DB):
@@ -64,30 +224,27 @@ class DbiLastFMNickDB(plugins.DbiChannelDB):
 
         def remove(self, nick):
             size = self.size()
-            for i in range(1, size+1):
+            for i in range(1, size + 1):
                 u = self.get(i)
                 if u.nick == nick:
-                    self.remove(i)
+                    super(self.__class__, self).remove(i)
                     return True
             return False
 
         def getusername(self, nick):
             size = self.size()
-            for i in range(1, size+1):
+            for i in range(1, size + 1):
                 u = self.get(i)
                 if u.nick == nick:
                     return u.username, True
             return nick, False
 
+
 LASTFMNICKDB = plugins.DB('LastFM', {'flat': DbiLastFMNickDB})
 
 
-apikey = 'Not set'
-url ='http://ws.audioscrobbler.com/2.0/?'
-
 class LastFM(callbacks.Plugin):
-    """Simply returns current playing track for a LastFM user. If no track is
-    currently playing the last played track will be displayed."""
+    """Returns the current or last played track for a LastFM user."""
     threaded = True
 
     def __init__(self, irc):
@@ -95,306 +252,178 @@ class LastFM(callbacks.Plugin):
         self.__parent.__init__(irc)
         self.db = LASTFMNICKDB()
 
+    def _apikey(self):
+        key = self.registryValue('apikey')
+        if not key or key == 'Not set':
+            raise callbacks.Error(
+                _("API key not set. See 'config help supybot.plugins.LastFM.apikey'.")
+            )
+        return key
+
     @wrap(['anything', optional('anything')])
+    @internationalizeDocstring
     def add(self, irc, msg, args, username, nick):
         """<username> [nick]
 
-        Links the callers nick to <username> on LastFM. If [nick] is given that is linked to <username> instead."""
+        Links the caller's nick to <username> on LastFM. If [nick] is given,
+        that nick is linked instead."""
         if not nick:
             nick = msg.nick
         channel = msg.args[0]
 
         oldname, username_in_db = self.db.getusername(channel, nick)
-        if oldname != username:
-            if self.db.remove(channel, nick):
-                #irc.reply('Naw, sorry. Changing username is temp. disabled.')
-                return
-                #irc.reply('Updating LastFM nick for user %s from %s to %s.' % (nick, oldname, username))
-        irc.reply('Storing LastFM nick %s for user %s.' % (username, nick))
-        self.db.add(channel, nick, username)
+        if username_in_db and oldname != username:
+            self.db.remove(channel, nick)
 
-    @wrap([getopts({'allatonce':'', 'skipplays':''})])
+        self.db.add(channel, nick, username)
+        irc.reply(_('Storing LastFM nick %s for user %s.') % (username, nick))
+
+    @wrap([getopts({'allatonce': '', 'skipplays': ''})])
+    @internationalizeDocstring
     def whosplaying(self, irc, msg, args, opts):
         """[--allatonce] [--skipplays]
 
-        Currently playing track for all nicks in channel, if any."""
-        self.set_apikey()
+        Shows the currently playing track for all nicks in the channel."""
+        apikey = self._apikey()
         channel = msg.args[0]
 
-        atonce = True
-        play_now = True
+        allatonce = False
+        skipplays = False
         for key, value in opts:
             if key == 'allatonce':
-                atonce = False
+                allatonce = True
             if key == 'skipplays':
-                play_now = False
+                skipplays = True
 
         playing = []
-        # Copy the current users in the channel to avoid
-        # RuntimeError: Set changed size during iteration
-        users = []
-        for u in irc.state.channels[msg.args[0]].users:
-            users.append(u)
+        users = list(irc.state.channels[channel].users)
 
         for nick in users:
-            nick, username_in_db = self.db.getusername(channel, nick)
+            username, username_in_db = self.db.getusername(channel, nick)
             if not username_in_db:
                 continue
-            lp = self.last_played(nick, plays = play_now)
-            if lp.find(' np. ') != -1: # if np. exists in string
+            lp = self._lastPlayed(username, apikey, fetchPlays=not skipplays)
+            if lp and ' np. ' in lp:
                 playing.append(lp)
-                if atonce:
+                if not allatonce:
                     irc.reply(lp)
 
-        if len(playing) == 0:
-            irc.reply('No users in the channel currently scrobbling.')
+        if not playing:
+            irc.reply(_('No users in the channel currently scrobbling.'))
             return
-        if not atonce:
+        if allatonce:
             for output in playing:
                 irc.reply(output)
 
-    def set_apikey(self):
-        self.apikey = self.registryValue('apikey')
-        if not self.apikey or self.apikey == "Not set":
-            raise Exception('Apikey not set. Check out config help supybot.plugins.LastFM.apikey')
-
-    @wrap([getopts({'notags':''}), optional('text')])
+    @wrap([getopts({'notags': ''}), optional('text')])
+    @internationalizeDocstring
     def lastfm(self, irc, msg, args, options, user):
-        """[--notags][user]
+        """[--notags] [user]
 
-        Returns last played track for user. If no username is supplies, the
-        nick of the one calling the command will be attempted."""
-        
+        Returns the last played track for user. If no username is given, the
+        nick of the caller is used."""
         if not user:
             user = msg.nick
         channel = msg.args[0]
-        user, username_in_db = self.db.getusername(channel, user)
+        user, _in_db = self.db.getusername(channel, user)
 
-        notags = True
+        fetchplays = True
         if options:
-            for (key, value) in options:
+            for key, _value in options:
                 if key == 'notags':
-                   notags = False
+                    fetchplays = False
 
-        reply = self.last_played(user, plays=notags)
+        apikey = self._apikey()
+        reply = self._lastPlayed(user, apikey, fetchPlays=fetchplays)
         if reply:
             irc.reply(reply)
 
-    def last_played(self, user, plays = True):
-        self.set_apikey()
-        data = urllib.parse.urlencode(
-            {'user': user,
-            'limit' : 1,
-            'api_key': self.apikey,
+    def _lastPlayed(self, user, apikey, fetchPlays=True):
+        """Fetch and format the last/now-playing track for a LastFM user."""
+        params = urllib.parse.urlencode({
+            'user': user,
+            'limit': 1,
+            'api_key': apikey,
             'format': 'json',
-            'method': 'user.getRecentTracks'}
-        ).encode('utf-8')
-        text = utils.web.getUrl(url, data=data)
-        text = text.decode()
+            'method': 'user.getRecentTracks',
+        })
+        text = utils.web.getUrl(API_URL, data=params.encode()).decode()
 
-        other, user, np, artist, track, plays, when = self._parseJson(text, plays)
-        if other:
-            if other == -1:
-                return
-            return other
-        now = lambda n: 'np.' if n else 'last played'
-        time_since = lambda w: ' (%s)' % ircutils.bold(w) if w else ''
-        reply = '%s %s %s - %s%s%s' % (user, now(np), artist, track, plays, time_since(when))
-        return reply
+        data = parseRecentTracks(text)
+        if data is None:
+            self.log.warning('LastFM: failed to parse recenttracks response for %s', user)
+            return None
+        if data.get('error'):
+            return data['error']
 
-    #def _parseXml(self, text):
-    #    tree = ElementTree.fromstring(text)
-    #    recenttracks = tree.find('.//recenttracks')
-    #    last_track = recenttracks.find('.//track')
-    #    artist = last_track.find('.//artist').text
-    #    album = last_track.find('.//album').text
-    #    track = last_track.find('.//name').text
+        now_or_last = 'np.' if data['np'] else 'last played'
 
-    #    user = recenttracks.attrib['user']
-    #    #user = attr.find('.//user')
-    #    return None, user, False, artist, track, "", None
+        when = ''
+        if not data['np'] and data['when']:
+            rel = timeSince(data['when'])
+            if rel:
+                when = f' ({ircutils.bold(rel)})'
 
-    # Unknown if this works. Not tested.
-    def _parseJson(self, text, plays): # Ok, wrongly named. This method actually does another call if plays is True
-        js = json.loads(text)
-        try:
-            js['error']
-            return js['message'], None, None, None, None, None, None
-        except: pass
+        plays = ''
+        if fetchPlays:
+            plays = self._fetchPlayInfo(
+                data['mbid'], data['artist'], data['track'],
+                data['album'], data['user'], apikey,
+            )
 
-        try:
-            last_track = js['recenttracks']['track'] # Might always happen after the API update
-        except:
-            return js['recenttracks']['user'] + ' has no recent tracks.', None, None, None, None, None, None
+        return f'{data["user"]} {now_or_last} {data["artist"]} - {data["track"]}{plays}{when}'
 
-        user = js['recenttracks']['@attr']['user']
-        # Incase there is a list of tracks
-        if type(last_track) == list:
-            if len(last_track) == 0:
-                return user + ' has no recent tracks.', None, None, None, None, None, None
-            last_track = last_track[0]
-
-        artist = last_track['artist']['#text']
-        album = last_track['album']['#text']
-        track = last_track['name']
-
-        try:
-            np = last_track['@attr']['nowplaying']
-        except:
-            np = False
-
-        when = False
-        if not np:
-            when = last_track['date']['#text']
-            when = self._time_created_at(when) # Remove this line to output
-                                               # date in UTC instead.
-        if plays:
-            plays = self.num_of_plays(last_track['mbid'], artist, track, album, user)
-        if not plays:
-            plays = ''
-
-        if not artist or not track or not user:
-            return -1
-        return None, user, np, artist, track, plays, when
-
-
-    def get_tags(self, artist, mbid):
-        # Need either mbid or both artist and album.
-        if mbid == '' and artist == '':
-            return
-        if mbid is None:
-            mbid = ''
-        data = urllib.parse.urlencode(
-            {'artist': artist,
+    def _fetchPlayInfo(self, mbid, artist, track, album, user, apikey):
+        """Fetch play count, loved status and duration from track.getInfo."""
+        params = urllib.parse.urlencode({
             'mbid': mbid,
-            'api_key': self.apikey,
-            'format': 'json',
-            'method': 'artist.getTopTags'
-            }
-        )
-
-        try:
-            text = utils.web.getUrl(url, data=data).decode()
-        except:
-            return
-        js = json.loads(text)
-        tags = []
-        toptags = js.get('toptags', '')
-        if not toptags:
-            self.log.info('Failed on url: ' + url + data)
-            return
-        toptags = toptags.get('tag')
-        if not toptags:
-            self.log.info('Failed on url: ' + url + data)
-            return
-
-        maxtags = 4
-        i = 0
-
-        if type(toptags) == dict:
-            tags = toptags.get('name')
-            return tags
-
-        for tag in toptags:
-            tags.append(tag.get('name'))
-            i = i + 1
-            if i >= maxtags:
-                break
-        tags = ', '.join(tags)
-        return tags
-
-    def num_of_plays(self, mbid_track, artist, track, album, user):
-        data = urllib.parse.urlencode(
-            {'mbid': mbid_track,
             'track': track,
             'artist': artist,
             'username': user,
             'autocorrect': 0,
-            'api_key': self.apikey,
+            'api_key': apikey,
             'format': 'json',
-            'method': 'track.getInfo'}
-        ).encode('utf-8')
+            'method': 'track.getInfo',
+        })
         try:
-            text = utils.web.getUrl(url, data=data).decode()
-        except:
-            self.log.info('LastFM failed to access API in num_of_plays.')
-            return
+            text = utils.web.getUrl(API_URL, data=params.encode()).decode()
+            js = json.loads(text)
+        except Exception:
+            self.log.info('LastFM: failed to fetch track.getInfo for %s - %s', artist, track)
+            return ''
 
-        js = json.loads(text)
+        play_info = parsePlayInfo(js)
+
+        # Append genre tags from artist.getTopTags
+        mbid_artist = ''
         try:
-            js['error']
-            return
-        except: pass
+            mbid_artist = js['track']['artist']['mbid']
+        except (KeyError, TypeError):
+            pass
+        tags = self._fetchTags(artist, mbid_artist, apikey)
+        if tags:
+            play_info += f' [{tags}]'
 
-        track = js.get('track')
-        if not track:
-            return
-        play_count = track.get('userplaycount')
-        loved = track.get('userloved')
-        duration = track.get('duration')
-        if duration:
-            duration = int(duration) / 1000
-            minutes = int(duration / 60)
-            seconds = int(duration % 60)
+        return play_info
 
-        plural = lambda n: 's' if int(n) > 1 else ''
-
-        # If l is 1, reply <3.
-        heart = lambda h: ircutils.bold(' <3') if h == '1' else ''
-        tags = lambda t: ' [%s]' % t if t else ''
-
-        mbid_artist = track.get('artist').get('mbid')
-        t = self.get_tags(artist, mbid_artist)
-
-        retvalue = ''
-
-        # Things to output:
-        # Play count, loved, tags and duration
-        if play_count or loved == '1':
-            retvalue += ' ['
-            if play_count:
-                retvalue += '%s play%s' % (play_count, plural(play_count))
-            if loved:
-                retvalue += '%s' % heart(loved)
-            retvalue += ']'
-        if t:
-            retvalue += tags(t)
-        if duration:
-            retvalue += ' [%d:%02d]' % (minutes, seconds)
-        if retvalue != '':
-            return retvalue
-
-
-    def _time_created_at(self, s):
-        """
-        recieving text element of 'created_at' in the response of LastFM API,
-        returns relative time string from now.
-        """
-
-        plural = lambda n: n > 1 and "s" or ""
-
-        # LastFM returns dates in this format: 12 Aug 2012, 17:09
-        # and it is in GMT
+    def _fetchTags(self, artist, mbid, apikey):
+        """Fetch top tags for an artist and return a comma-separated string."""
+        if not artist and not mbid:
+            return ''
+        params = urllib.parse.urlencode({
+            'artist': artist,
+            'mbid': mbid or '',
+            'api_key': apikey,
+            'format': 'json',
+            'method': 'artist.getTopTags',
+        })
         try:
-            ddate = time.strptime(s, "%d %b %Y, %H:%M")[:-2]
-        except ValueError:
-            return "", ""
+            text = utils.web.getUrl(API_URL, data=params.encode()).decode()
+            js = json.loads(text)
+        except Exception:
+            self.log.info('LastFM: failed to fetch artist.getTopTags for %s', artist)
+            return ''
+        return parseTopTags(js)
 
-        created_at = datetime(*ddate, tzinfo=None)
-        d = datetime.utcnow() - created_at
-
-        if d.days:
-            rel_time = "%s days ago" % d.days
-        elif d.seconds > 3600:
-            hours = d.seconds / 3600
-            rel_time = "%s hour%s ago" % (int(hours), plural(hours))
-        elif 60 <= d.seconds < 3600:
-            minutes = d.seconds / 60
-            rel_time = "%s minute%s ago" % (int(minutes), plural(minutes))
-        elif 30 < d.seconds < 60:
-            rel_time = "less than a minute ago"
-        else:
-            rel_time = "less than %s second%s ago" % (int(d.seconds), plural(d.seconds))
-        return  rel_time
 
 Class = LastFM
