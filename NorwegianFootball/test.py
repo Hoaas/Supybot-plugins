@@ -215,7 +215,7 @@ class NorwegianFootballCommandTestCase(PluginTestCase):
         utils.web.getUrl = lambda url, **kw: data
         try:
             self.assertResponse(
-                'football Rosenborg',
+                'fotball Rosenborg',
                 'Rosenborg - Molde 1 - 0 - Rosenborg scores!'
             )
         finally:
@@ -228,7 +228,7 @@ class NorwegianFootballCommandTestCase(PluginTestCase):
         original = utils.web.getUrl
         utils.web.getUrl = lambda url, **kw: data
         try:
-            self.assertResponse('football Rosenborg', 'Rosenborg - Molde 2 - 0')
+            self.assertResponse('fotball Rosenborg', 'Rosenborg - Molde 2 - 0')
         finally:
             utils.web.getUrl = original
 
@@ -239,7 +239,7 @@ class NorwegianFootballCommandTestCase(PluginTestCase):
         original = utils.web.getUrl
         utils.web.getUrl = lambda url, **kw: data
         try:
-            self.assertResponse('football Brann', 'No match found')
+            self.assertResponse('fotball Brann', 'No match found')
         finally:
             utils.web.getUrl = original
 
@@ -252,7 +252,7 @@ class NorwegianFootballCommandTestCase(PluginTestCase):
         original = utils.web.getUrl
         utils.web.getUrl = lambda url, **kw: data
         try:
-            msg = self.getMsg('football Rosenborg')
+            msg = self.getMsg('fotball Rosenborg')
             reply = msg.args[1]
             self.assertIn('Rosenborg - Molde 1 - 0 - Mål!', reply)
             self.assertIn('Brann - Rosenborg II 2 - 1', reply)

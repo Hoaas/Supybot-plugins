@@ -116,16 +116,17 @@ def findMatches(search, data):
 
 
 class NorwegianFootball(callbacks.Plugin):
-    """Fetches live match events and scores from the NIFS football API."""
+    """Fetches live match events and scores from the NIFS football API.
+    Data is sourced from Norway and match names and commentary are in Norwegian."""
     threaded = True
 
     @wrap(['text'])
     @internationalizeDocstring
-    def football(self, irc, msg, args, search):
+    def fotball(self, irc, msg, args, search):
         """<team>
 
         Shows the latest score and commentary for a Norwegian football match
-        from NIFS. Searches match names for the given team name."""
+        from NIFS. Match names and commentary are in Norwegian."""
         url = 'https://v3api.nifs.no/matchEvents/?latest=1'
         data = utils.web.getUrl(url)
         results = findMatches(search, data)
