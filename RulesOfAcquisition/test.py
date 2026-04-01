@@ -1,4 +1,3 @@
-# coding=utf8
 ###
 # Copyright (c) 2012, Terje Hoås
 # All rights reserved.
@@ -31,8 +30,34 @@
 
 from supybot.test import *
 
-class RulesOfAcquisitionTestCase(PluginTestCase):
+from . import plugin as roa_plugin
+
+
+class RulesOfAcquisitionHelperTestCase(SupyTestCase):
+    def testRulesListNonEmpty(self):
+        self.assertTrue(len(roa_plugin.rules) > 0)
+
+    def testKnownRuleExists(self):
+        rule1 = [r for r in roa_plugin.rules if r[0] == 1]
+        self.assertEqual(len(rule1), 1)
+        self.assertIn('money', rule1[0][1].lower())
+
+    def testKeywordSearch(self):
+        hits = [r for r in roa_plugin.rules if 'profit' in r[1].lower()]
+        self.assertTrue(len(hits) > 0)
+
+
+class RulesOfAcquisitionCommandTestCase(PluginTestCase):
     plugins = ('RulesOfAcquisition',)
 
+    def testRuleByNumber(self):
+        self.assertRegexp('rule 1', r'Rule of Acquisition #1:')
 
-# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
+    def testRuleByKeyword(self):
+        self.assertRegexp('rule profit', r'Rule of Acquisition')
+
+    def testRuleNotFound(self):
+        self.assertRegexp('rule 99999', r'not found')
+
+    def testRandomRule(self):
+        self.assertNotError('rule')
