@@ -1,0 +1,9 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Limnoria\n"
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+#: plugin.py
+msgid "[<week number>]\n\nReturns the current ISO week number, or the start and end date of the given week number."
+msgstr "[<week number>]\n\nReturns the current ISO week number, or the start and end date of the given week number."

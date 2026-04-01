@@ -33,10 +33,8 @@ import supybot.registry as registry
 try:
     from supybot.i18n import PluginInternationalization
     _ = PluginInternationalization('Week')
-except:
-    # Placeholder that allows to run the plugin on a bot
-    # without the i18n module
-    _ = lambda x:x
+except ImportError:
+    _ = lambda x: x
 
 def configure(advanced):
     # This will be called by supybot to configure this module.  advanced is
@@ -48,9 +46,3 @@ def configure(advanced):
 
 
 Week = conf.registerPlugin('Week')
-# This is where your configuration variables (if any) should go.  For example:
-# conf.registerGlobalValue(Week, 'someConfigVariableName',
-#     registry.Boolean(False, _("""Help for someConfigVariableName.""")))
-
-
-# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
