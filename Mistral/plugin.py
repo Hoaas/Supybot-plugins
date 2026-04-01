@@ -327,36 +327,6 @@ class Mistral(callbacks.Plugin):
         context_parts.append(f"Current question: {text}")
         return "\n".join(context_parts)
 
-    @wrap(['text'])
-    def mistral(self, irc, msg, args, text):
-        """<text>
-
-        Sends <text> to Mistral AI and returns the response. Uses web search for current information."""
-
-        if not self.client:
-            irc.reply(_("Error: Mistral client not configured. Please set the API key."))
-            return
-
-        if not self.agent and self.registryValue('enableWebSearch'):
-            has_beta = getattr(self, 'has_beta', False)
-            has_agents = getattr(self, 'has_agents', False)
-            has_conversations = getattr(self, 'has_conversations', False)
-            try:
-                import mistralai as _m_pkg
-                sdk_ver = getattr(_m_pkg, '__version__', '<unknown>')
-            except ImportError:
-                sdk_ver = '<not-importable>'
-
-            diag = (
-                f"Mistral websearch agent not available. "
-                f"enableWebSearch=True; agent=None; has_beta={has_beta}; "
-                f"has_agents={has_agents}; has_conversations={has_conversations}; "
-                f"sdk_version={sdk_ver}. "
-                f"Check bot logs or ensure 'mistralai[agents]' is installed and the API key has agent permissions."
-            )
-            irc.reply(f"Error: {diag}")
-            return
-
     def _build_conversation_instructions(self, channel):
         """Build the per-conversation instructions string for *channel*.
 
@@ -413,16 +383,48 @@ class Mistral(callbacks.Plugin):
                         "type": "message.input",
                     }
                 ]
-                response = self.client.beta.conversations.start(
-                    agent_id=self.agent.id,
-                    inputs=inputs_payload,
-                    instructions=conversation_instructions,
-                    stream=False,
-                )
-                response_text = extract_response_text(response)
-                if response_text is None:
-                    self.log.error("extract_response_text returned None for response: %s", repr(response))
-                sources = extract_sources(response)
+                try:
+                    response = self.client.beta.conversations.start(
+                        agent_id=self.agent.id,
+                        inputs=inputs_payload,
+                        instructions=conversation_instructions,
+                        stream=False,
+                    )
+                except Exception as agent_err:
+                    err_str = str(agent_err)
+                    if '404' in err_str or 'not found' in err_str.lower():
+                        self.log.warning(
+                            "Agent %s not found (404); clearing cached agent and falling back to chat.complete.",
+                            self.agent.id,
+                        )
+                        self.agent = None
+                        self._persist_agent_id('')
+                    else:
+                        raise
+                if self.agent is None:
+                    # Fell back after 404 — use chat.complete for this call.
+                    lang = self.registryValue('language', channel)
+                    lang_instruction = (
+                        f"Always reply in the following language: {lang}."
+                        if lang else
+                        "Reply in the same language the user wrote in."
+                    )
+                    system_prompt = f"{self._build_agent_instructions()} {lang_instruction}"
+                    response = self.client.chat.complete(
+                        model=self.registryValue('model'),
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": context_message}
+                        ],
+                        temperature=self.registryValue('temperature')
+                    )
+                    response_text = response.choices[0].message.content if response.choices else None
+                    sources = []
+                else:
+                    response_text = extract_response_text(response)
+                    if response_text is None:
+                        self.log.error("extract_response_text returned None for response: %s", repr(response))
+                    sources = extract_sources(response)
             else:
                 lang = self.registryValue('language', channel)
                 if lang:
