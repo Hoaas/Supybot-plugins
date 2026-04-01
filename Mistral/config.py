@@ -32,17 +32,11 @@ from supybot import conf, registry
 try:
     from supybot.i18n import PluginInternationalization
     _ = PluginInternationalization('Mistral')
-except:
-    # Placeholder that allows to run the plugin on a bot
-    # without the i18n module
+except ImportError:
     _ = lambda x: x
 
 
 def configure(advanced):
-    # This will be called by supybot to configure this module.  advanced is
-    # a bool that specifies whether the user identified themself as an advanced
-    # user or not.  You should effect your configuration by manipulating the
-    # registry as appropriate.
     from supybot.questions import expect, anything, something, yn
     conf.registerPlugin('Mistral', True)
 
@@ -50,33 +44,42 @@ def configure(advanced):
 Mistral = conf.registerPlugin('Mistral')
 
 conf.registerGlobalValue(Mistral, 'apiKey',
-    registry.String('', _("""Your Mistral API key. You can get one from 
+    registry.String('', _("""Your Mistral API key. You can get one from
     https://console.mistral.ai/. This is required for the plugin to work."""),
     private=True))
 
 conf.registerGlobalValue(Mistral, 'model',
-    registry.String('mistral-medium-2505', _("""The Mistral model to use. 
+    registry.String('mistral-medium-2505', _("""The Mistral model to use.
     Default is mistral-medium-2505.""")))
 
 conf.registerGlobalValue(Mistral, 'temperature',
-    registry.Float(0.7, _("""Temperature for response generation. 
+    registry.Float(0.7, _("""Temperature for response generation.
     Lower values make responses more focused and deterministic.""")))
 
 conf.registerGlobalValue(Mistral, 'maxResponseLength',
-    registry.PositiveInteger(400, _("""Maximum length of responses in characters. 
+    registry.PositiveInteger(400, _("""Maximum length of responses in characters.
     Responses longer than this will be truncated for IRC compatibility.""")))
 
 conf.registerGlobalValue(Mistral, 'contextHistory',
-    registry.PositiveInteger(10, _("""Number of recent chat messages to include 
+    registry.PositiveInteger(10, _("""Number of recent chat messages to include
     as context when making requests to Mistral.""")))
 
 conf.registerGlobalValue(Mistral, 'enableWebSearch',
-    registry.Boolean(True, _("""Whether to enable web search capabilities. 
+    registry.Boolean(True, _("""Whether to enable web search capabilities.
     When enabled, Mistral can search the web for current information.""")))
 
 conf.registerGlobalValue(Mistral, 'agentId',
-    registry.String('', _("""Optional: a specific Mistral Agent ID to use for websearch.
-    If set, the plugin will try to use this agent instead of creating or searching by name.
-    Example: ag_<agent_id>""")))
+    registry.String('', _("""Mistral Agent ID to use for websearch. Set automatically
+    after the first successful agent create or lookup. You can also set this manually
+    to pin a specific agent. Example: ag_<agent_id>""")))
 
-# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
+conf.registerGlobalValue(Mistral, 'promptTemplate',
+    registry.String('small_channel', _("""Name of the prompt template file to use as
+    the agent's system instructions. Templates are stored as .txt files in the plugin's
+    prompts/ directory. Bundled templates: small_channel, large_channel.
+    Change takes effect after 'mistralreload'.""")))
+
+conf.registerChannelValue(Mistral, 'language',
+    registry.String('', _("""Language for bot replies in this channel. Use an IETF
+    language tag such as 'en', 'no', 'de', 'fr'. Leave empty to auto-detect from
+    the user's message (recommended).""")))

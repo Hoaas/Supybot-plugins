@@ -1,0 +1,17 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Limnoria\n"
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+#: plugin.py
+msgid "<text>\n\nSends <text> to Mistral AI and returns the response. Uses web search for current information."
+msgstr "<text>\n\nSends <text> to Mistral AI and returns the response. Uses web search for current information."
+
+#: plugin.py
+msgid "Error: Mistral client not configured. Please set the API key."
+msgstr "Error: Mistral client not configured. Please set the API key."
+
+#: plugin.py
+msgid "Error: No response from Mistral AI."
+msgstr "Error: No response from Mistral AI."
