@@ -1,0 +1,37 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Limnoria\n"
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+#: plugin.py
+msgid "<navn>\n\nReturnerer statistikk om et norsk navn fra Statistisk sentralbyrå."
+msgstr "<name>\n\nReturns statistics about a Norwegian name from Statistics Norway (ssb.no)."
+
+#: plugin.py
+msgid "No results found for that name"
+msgstr "No results found for that name"
+
+#: plugin.py
+msgid "last name"
+msgstr "last name"
+
+#: plugin.py
+msgid "first name (with middle name)"
+msgstr "first name (with middle name)"
+
+#: plugin.py
+msgid "first name (only)"
+msgstr "first name (only)"
+
+#: plugin.py
+msgid "middle + last name"
+msgstr "middle + last name"
+
+#: plugin.py
+msgid "M"
+msgstr "M"
+
+#: plugin.py
+msgid "F"
+msgstr "F"
