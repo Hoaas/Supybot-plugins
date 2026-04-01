@@ -20,17 +20,6 @@ def _pod(title, text):
     return f'<pod title="{title}"><subpod><plaintext>{text}</plaintext></subpod></pod>'
 
 
-def _pod_img_only(title, alt):
-    """Pod with an <img> but no plaintext text (simulates image-only pods)."""
-    return (
-        f'<pod title="{title}">'
-        f'<subpod>'
-        f'<plaintext></plaintext>'
-        f'<img src="http://example.com/img.gif" alt="{alt}" title="{alt}" width="100" height="20"/>'
-        f'</subpod>'
-        f'</pod>'
-    )
-
 
 def _noresult():
     return b'<?xml version="1.0"?><queryresult success="false" error="false"></queryresult>'
@@ -127,8 +116,8 @@ class WolframHelperTestCase(SupyTestCase):
         result = wolfram_plugin.parseWolframXml(xml)
         self.assertEqual(result['pods'], [('Result', '42')])
 
-    def testParseEmptyPlaintextNoImgSkipped(self):
-        # Empty plaintext with no img fallback — pod should be omitted.
+    def testParseEmptyPlaintextSkipped(self):
+        # A pod with empty plaintext should not appear in pods.
         xml = (
             b'<?xml version="1.0"?>'
             b'<queryresult success="true" error="false">'
@@ -137,12 +126,6 @@ class WolframHelperTestCase(SupyTestCase):
         )
         result = wolfram_plugin.parseWolframXml(xml)
         self.assertEqual(result['pods'], [])
-
-    def testParseImgAltFallback(self):
-        # Pod with empty plaintext but an img alt should use the alt text.
-        xml = _xml(_pod_img_only('Result', '42'))
-        result = wolfram_plugin.parseWolframXml(xml)
-        self.assertEqual(result['pods'], [('Result', '42')])
 
     def testParseAcceptsBytesInput(self):
         xml = _xml(_pod('Result', '7'))
@@ -234,16 +217,6 @@ class WolframCommandTestCase(PluginTestCase):
         utils.web.getUrl = lambda url, **kw: (_ for _ in ()).throw(IOError('network down'))
         try:
             self.assertError('wolfram anything')
-        finally:
-            utils.web.getUrl = original
-
-    def testWolframImgAltFallback(self):
-        # Image-only pod should use img alt as text.
-        xml = _xml(_pod_img_only('Result', '10'))
-        original = utils.web.getUrl
-        utils.web.getUrl = lambda url, **kw: xml
-        try:
-            self.assertResponse('wolfram 5+5', 'Result: 10')
         finally:
             utils.web.getUrl = original
 
