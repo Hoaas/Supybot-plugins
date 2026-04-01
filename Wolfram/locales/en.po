@@ -1,0 +1,29 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Limnoria\n"
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+#: plugin.py
+msgid "[--lines <num>] <query>\n\nAsk Wolfram Alpha a question. Uses the Wolfram Alpha API.\n--lines sets the maximum number of results to return (default 2)."
+msgstr "[--lines <num>] <query>\n\nAsk Wolfram Alpha a question. Uses the Wolfram Alpha API.\n--lines sets the maximum number of results to return (default 2)."
+
+#: plugin.py
+msgid "API key not set. See 'config help supybot.plugins.Wolfram.apikey'."
+msgstr "API key not set. See 'config help supybot.plugins.Wolfram.apikey'."
+
+#: plugin.py
+msgid "Failed to contact Wolfram Alpha."
+msgstr "Failed to contact Wolfram Alpha."
+
+#: plugin.py
+msgid "Error: %s"
+msgstr "Error: %s"
+
+#: plugin.py
+msgid "Did you mean: %s?"
+msgstr "Did you mean: %s?"
+
+#: plugin.py
+msgid "No results found."
+msgstr "No results found."

@@ -1,0 +1,13 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Limnoria\n"
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+#: plugin.py
+msgid "<location>\n\nShows bathing water temperatures for locations around Norway. Data is sourced from Yr.no and is Norway-only."
+msgstr "<location>\n\nShows bathing water temperatures for locations around Norway. Data is sourced from Yr.no and is Norway-only."
+
+#: plugin.py
+msgid "No regions found with that name"
+msgstr "No regions found with that name"

@@ -1,0 +1,25 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Limnoria\n"
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+#: plugin.py
+msgid "Not a valid regex for hostmask."
+msgstr "Not a valid regex for hostmask."
+
+#: plugin.py
+msgid "Regex already in database."
+msgstr "Regex already in database."
+
+#: plugin.py
+msgid "[<channel>] <nick|hostmask>\n\nAdds the nick's hostmask (or a literal hostmask/regex) to the auto-op list for the channel."
+msgstr "[<channel>] <nick|hostmask>\n\nAdds the nick's hostmask (or a literal hostmask/regex) to the auto-op list for the channel."
+
+#: plugin.py
+msgid "[<channel>] <nick|hostmask>\n\nAdds the nick's hostmask (or a literal hostmask/regex) to the auto-halfop list for the channel."
+msgstr "[<channel>] <nick|hostmask>\n\nAdds the nick's hostmask (or a literal hostmask/regex) to the auto-halfop list for the channel."
+
+#: plugin.py
+msgid "[<channel>] <nick|hostmask>\n\nAdds the nick's hostmask (or a literal hostmask/regex) to the auto-voice list for the channel."
+msgstr "[<channel>] <nick|hostmask>\n\nAdds the nick's hostmask (or a literal hostmask/regex) to the auto-voice list for the channel."

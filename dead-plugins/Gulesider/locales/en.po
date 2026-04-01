@@ -1,0 +1,17 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Limnoria\n"
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+#: plugin.py
+msgid "<name | number>\n\nLooks up a name or phone number in gulesider.no. When given a number, also checks a local copy of nummerliste.txt from telefonterror.no."
+msgstr "<name | number>\n\nLooks up a name or phone number in gulesider.no. When given a number, also checks a local copy of nummerliste.txt from telefonterror.no."
+
+#: plugin.py
+msgid "according to telefonterror.no"
+msgstr "according to telefonterror.no"
+
+#: plugin.py
+msgid "No hits."
+msgstr "No hits."

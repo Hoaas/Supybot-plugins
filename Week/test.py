@@ -28,10 +28,60 @@
 
 ###
 
+from datetime import date
+
 from supybot.test import *
 
-class WeekTestCase(PluginTestCase):
+from . import plugin as weekPlugin
+
+
+class WeekHelperTestCase(SupyTestCase):
+    """Unit tests for the weekStartDate module-level helper function."""
+
+    def testMondayWeek1_2024(self):
+        # 2024-01-01 is week 1, and the Monday of that week is 2024-01-01
+        result = weekPlugin.weekStartDate(2024, 1)
+        self.assertEqual(result, date(2024, 1, 1))
+
+    def testSundayInWeek(self):
+        # The end of week 1 2024 should be 2024-01-07 (Sunday)
+        start = weekPlugin.weekStartDate(2024, 1)
+        from datetime import timedelta
+        end = start + timedelta(6)
+        self.assertEqual(end, date(2024, 1, 7))
+
+    def testWeek10_2024(self):
+        # Week 10 of 2024 starts on Monday 2024-03-04
+        result = weekPlugin.weekStartDate(2024, 10)
+        self.assertEqual(result, date(2024, 3, 4))
+
+    def testWeek52_2020(self):
+        # 2020 has 53 ISO weeks; week 52 starts 2020-12-21
+        result = weekPlugin.weekStartDate(2020, 52)
+        self.assertEqual(result, date(2020, 12, 21))
+
+    def testWeek53_2020(self):
+        # 2020 week 53 starts 2020-12-28
+        result = weekPlugin.weekStartDate(2020, 53)
+        self.assertEqual(result, date(2020, 12, 28))
+
+    def testWeek1_2015(self):
+        # 2015-01-01 is in week 1; Monday of that week is 2014-12-29
+        result = weekPlugin.weekStartDate(2015, 1)
+        self.assertEqual(result, date(2014, 12, 29))
+
+
+class WeekCommandTestCase(PluginTestCase):
     plugins = ('Week',)
 
+    def testWeekNoArgs(self):
+        self.assertNotError('week')
 
-# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
+    def testWeekResponseIsNumber(self):
+        self.assertRegexp('week', r'^\d+$')
+
+    def testWeekWithNumber(self):
+        self.assertRegexp('week 10', r'^\d{4}-\d{2}-\d{2} - \d{4}-\d{2}-\d{2}$')
+
+    def testWeekWithNumberNotError(self):
+        self.assertNotError('week 1')

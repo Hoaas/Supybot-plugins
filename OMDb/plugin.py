@@ -29,7 +29,7 @@
 ###
 
 import json
-import urllib
+import urllib.parse
 
 import supybot.utils as utils
 from supybot.commands import *
@@ -37,95 +37,118 @@ import supybot.plugins as plugins
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 try:
-    from supybot.i18n import PluginInternationalization
+    from supybot.i18n import PluginInternationalization, internationalizeDocstring
     _ = PluginInternationalization('OMDb')
 except ImportError:
-    # Placeholder that allows to run the plugin on a bot
-    # without the i18n module
     _ = lambda x: x
+    internationalizeDocstring = lambda f: f
+
+
+def metacolor(score):
+    """Return score string coloured for Metacritic (green ≥60, yellow ≥40, red <40)."""
+    if not score or not score.isdigit():
+        return score or 'N/A'
+    scoreNum = int(score)
+    if scoreNum >= 60:
+        return ircutils.mircColor(f'{score}%', 'Green')
+    if scoreNum >= 40:
+        return ircutils.mircColor(f'{score}%', 'Yellow')
+    return ircutils.mircColor(f'{score}%', 'Red')
+
+
+def imdbcolor(score):
+    """Return score string coloured for IMDb (green ≥8, yellow ≥6, orange ≥4, red <4)."""
+    try:
+        scoreNum = float(score)
+    except (ValueError, TypeError):
+        return score or 'N/A'
+    if scoreNum >= 8.0:
+        return ircutils.mircColor(score, 'Green')
+    if scoreNum >= 6.0:
+        return ircutils.mircColor(score, 'Yellow')
+    if scoreNum >= 4.0:
+        return ircutils.mircColor(score, 'Orange')
+    return ircutils.mircColor(score, 'Red')
+
+
+def rtcolor(score):
+    """Return score string coloured for Rotten Tomatoes (green ≥60 = Fresh, red <60 = Rotten)."""
+    scoreStr = score.rstrip('%') if score else ''
+    if not scoreStr.isdigit():
+        return score or 'N/A'
+    scoreNum = int(scoreStr)
+    if scoreNum >= 60:
+        return ircutils.mircColor(score, 'Green')
+    return ircutils.mircColor(score, 'Red')
+
+
+def getRating(ratings, source):
+    """Return the Value for a given Source in the Ratings list, or None."""
+    for entry in ratings:
+        if entry.get('Source') == source:
+            return entry.get('Value')
+    return None
+
+
+def formatResult(j):
+    """Format an OMDb JSON result dict into an IRC reply string."""
+    ratings = j.get('Ratings') or []
+    metascore = getRating(ratings, 'Metacritic')
+    if metascore:
+        # Metacritic returns e.g. "74/100" — extract the numerator
+        metascore = metascore.split('/')[0]
+    rtScore = getRating(ratings, 'Rotten Tomatoes')
+    imdbRating = j.get('imdbRating')
+
+    parts = [
+        ircutils.bold(j.get('Title', 'N/A')),
+        f"({j.get('Year', 'N/A')})",
+        j.get('Genre', 'N/A'),
+        f"Metacritic: [{metacolor(metascore)}]",
+        f"RT: [{rtcolor(rtScore)}]",
+        f"IMDb: [{imdbcolor(imdbRating)}]",
+        f"Actors: [{j.get('Actors', 'N/A')}]",
+        j.get('Plot', 'N/A'),
+    ]
+    return ' '.join(parts)
 
 
 class OMDb(callbacks.Plugin):
-    """Information about movies (and maybe series?) from omdbapi.com, which, at the time of writing, can get info from Metacritic, Rotten Tomatoes and IMDb."""
+    """Looks up movie and series information from omdbapi.com, including Metacritic, Rotten Tomatoes, and IMDb ratings."""
     threaded = True
 
-    url = "http://www.omdbapi.com/?"
-
-    @wrap([getopts({'year':'int'}),'text'])
+    @wrap([getopts({'year': 'int'}), 'text'])
+    @internationalizeDocstring
     def omdb(self, irc, msg, args, opts, movie):
-        """[--year <int>] <movie>
-        Shows some information about the given movie title.
-        """
+        """[--year <year>] <movie>
 
+        Shows information about the given movie or series title, including
+        Metacritic, Rotten Tomatoes, and IMDb ratings."""
         apikey = self.registryValue('apikey')
-        if not apikey or apikey == "Not set":
-            irc.reply("API key not set. See 'config help supybot.plugins.OMDb.apikey'.")
+        if not apikey or apikey == 'Not set':
+            irc.reply(_("API key not set. See 'config help supybot.plugins.OMDb.apikey'."))
             return
 
-        url = self.url
-        url += "apikey=" + apikey
-        url += "&t=" + urllib.parse.quote(movie)
-        url += "&plot=short"
-        url += "&tomatoes=true"
-        url += "&r=json"
+        params = {
+            'apikey': apikey,
+            't': movie,
+            'plot': 'short',
+            'r': 'json',
+        }
+        opts = dict(opts)
+        year = opts.get('year')
+        if year:
+            params['y'] = year
 
-        if opts:
-            opts = dict(opts)
-            year = opts.get('year')
-            if year:
-                url += "&y=" + str(year)
-
+        url = f'https://www.omdbapi.com/?{urllib.parse.urlencode(params)}'
         jsonstr = utils.web.getUrl(url).decode()
         j = json.loads(jsonstr)
-        error = j.get("Error")
+
+        error = j.get('Error')
         if error:
             irc.reply(error)
             return
-        retval = "[{0}] ({1}) {2} Metacritic: [{3}] RT: [{4} / {5}] IMDb: [{6}] Actors: [{7}] {8}".format(
-                ircutils.bold(j.get("Title")),
-                j.get("Year"),
-                j.get("Genre"),
-                self.metacolor(j.get("Metascore")),
-                self.rtcolor(j.get("tomatoMeter")),
-                self.rtcolor(j.get("tomatoUserMeter")),
-                self.imdbcolor(j.get("imdbRating")),
-                j.get("Actors"),
-                j.get("Plot")
-            )
-        irc.reply(retval)
-    
-    def metacolor(self, score):
-        if not score.isdigit():
-            return score
-        scoreNum = int(score)
-        if scoreNum >= 60:
-            return ircutils.mircColor(score + "%", "Green")
-        if scoreNum >= 40:
-            return ircutils.mircColor(score + "%", "Yellow")
-        else:
-            return ircutils.mircColor(score + "%", "Red")
-    
-    def imdbcolor(self, score):
-        try:
-            scoreNum = float(score)
-        except:
-            return score
-        if (scoreNum) >= 8.0:
-            return ircutils.mircColor(score, "Green")
-        if (scoreNum) >= 6.0:
-            return ircutils.mircColor(score, "Yellow")
-        if (scoreNum) >= 4.0:
-            return ircutils.mircColor(score, "Orange")
-        else:
-            return ircutils.mircColor(score, "Red")
 
-    def rtcolor(self, score):
-        if not score.isdigit():
-            return score
-        scoreNum = int(score)
-        if scoreNum  > 59:
-            return ircutils.mircColor(score + "%", "Red")
-        else:
-            return ircutils.mircColor(score + "%", "Green")
-    
+        irc.reply(formatResult(j))
+
 Class = OMDb

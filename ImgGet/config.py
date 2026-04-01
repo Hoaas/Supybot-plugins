@@ -1,4 +1,3 @@
-# coding=utf8
 ###
 # Copyright (c) 2010, Terje Hoås
 # All rights reserved.
@@ -33,27 +32,20 @@ import supybot.conf as conf
 import supybot.registry as registry
 
 def configure(advanced):
-    # This will be called by supybot to configure this module.  advanced is
-    # a bool that specifies whether the user identified himself as an advanced
-    # user or not.  You should effect your configuration by manipulating the
-    # registry as appropriate.
     from supybot.questions import expect, anything, something, yn
     conf.registerPlugin('ImgGet', True)
 
 
 ImgGet = conf.registerPlugin('ImgGet')
-# This is where your configuration variables (if any) should go.  For example:
-# conf.registerGlobalValue(ImgGet, 'someConfigVariableName',
-#     registry.Boolean(False, """Help for someConfigVariableName."""))
 
-conf.registerChannelValue(ImgGet, 'sizelimit', 
-    registry.Integer(20, """Size limit on images in MiB. 
+conf.registerChannelValue(ImgGet, 'sizelimit',
+    registry.Integer(20, """Size limit on images in MiB.
     Limit is checked in the http header, and might not be correct or present."""))
 conf.registerChannelValue(ImgGet, 'timelimit',
-    registry.Integer(5, """Time limit (in seconds) on downloading images before 
+    registry.Integer(5, """Time limit (in seconds) on downloading images before
     a link to the mirror is given, if any."""))
 conf.registerChannelValue(ImgGet, 'speedlimit',
-    registry.Integer(100, """Speed limit (in KiB) on downloading images before 
+    registry.Integer(100, """Speed limit (in KiB) on downloading images before
     a link to the mirror is given, if any."""))
 conf.registerChannelValue(ImgGet, 'mirror',
     registry.Boolean(True, """If the bot should respond with a mirror url at all."""))
@@ -61,7 +53,4 @@ conf.registerChannelValue(ImgGet, 'mirrorurl',
     registry.String("Not set", """URL to the location of the mirror images."""))
 conf.registerChannelValue(ImgGet, 'outputInfo',
     registry.Boolean(True, """Outputs resolution and size of the image."""))
-conf.registerChannelValue(ImgGet, 'numUrls', 
-    registry.Integer(3, """Number of urls the 'gis' command should output."""))
 
-# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

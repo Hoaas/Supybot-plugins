@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools"]
+
+[project]
+name = "limnoria-mistral"
+version = "0.0.0"
+authors = [
+    { name = "Terje Hoås" },
+]
+readme = "README.md"
+dependencies = [
+    "limnoria",
+    "mistralai",
+]
+classifiers = [
+    'Environment :: Plugins',
+    'Programming Language :: Python :: 3',
+    'Topic :: Communications :: Chat',
+]
+
+[project.entry-points.'limnoria.plugins']
+Mistral = "limnoria_mistral"
+
+[tool.setuptools.package-dir]
+"limnoria_mistral" = "."
+
+[tool.setuptools.package-data]
+"limnoria_mistral" = ["locales/*.po", "prompts/*.txt"]

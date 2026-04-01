@@ -28,10 +28,55 @@
 
 ###
 
+import supybot.utils as utils
 from supybot.test import *
 
-class WTFSIMFDTestCase(PluginTestCase):
+# Fixture HTML for whatthefuckshouldimakefordinner.com
+# The parser does:
+#   1. find '<dl>' -> skip 4 chars -> read until '</dl>' = insult
+#   2. find next '<dl>' -> find '<a href="' -> skip 9 chars -> read until '"' = dinnerurl
+#   3. find '>' -> skip 1 char -> read until '</a>' = dinner name
+DINNER_HTML = b"""<html><body>
+<dl>How about some fucking</dl>
+<dl><a href="http://example.com/spaghetti">Spaghetti Bolognese</a></dl>
+</body></html>"""
+
+
+class WTFSIMFDHelperTestCase(SupyTestCase):
+    """Tests for HTML parsing logic used by the WTFSIMFD plugin."""
+
+    def testDinnerParsing(self):
+        html = DINNER_HTML.decode(errors='ignore')
+        html = html[html.find('<dl>')+4:]
+        insult = html[:html.find('</dl>')].strip()
+        self.assertEqual(insult, 'How about some fucking')
+
+    def testDinnerUrlParsing(self):
+        html = DINNER_HTML.decode(errors='ignore')
+        html = html[html.find('<dl>')+4:]
+        # skip insult block
+        html = html[html.find('<dl>')+4:]
+        html = html[html.find('<a href="')+9:]
+        dinnerurl = html[:html.find('"')].strip()
+        self.assertEqual(dinnerurl, 'http://example.com/spaghetti')
+
+    def testDinnerNameParsing(self):
+        html = DINNER_HTML.decode(errors='ignore')
+        html = html[html.find('<dl>')+4:]
+        html = html[html.find('<dl>')+4:]
+        html = html[html.find('<a href="')+9:]
+        html = html[html.find('>')+1:]
+        dinner = html[:html.find('</a>')].strip()
+        self.assertEqual(dinner, 'Spaghetti Bolognese')
+
+
+class WTFSIMFDCommandTestCase(PluginTestCase):
     plugins = ('WTFSIMFD',)
 
-
-# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
+    def testDinner(self):
+        original = utils.web.getUrl
+        utils.web.getUrl = lambda url, **kw: DINNER_HTML
+        try:
+            self.assertRegexp('dinner', r'How about some fucking Spaghetti Bolognese\. \(http://example\.com/spaghetti\)')
+        finally:
+            utils.web.getUrl = original

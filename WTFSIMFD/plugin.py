@@ -1,4 +1,3 @@
-# coding=utf8
 ###
 # Copyright (c) 2010, Terje Hoås
 # All rights reserved.
@@ -28,83 +27,40 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 ###
-import urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse
-
-import sys
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 
+try:
+    from supybot.i18n import PluginInternationalization
+    _ = PluginInternationalization('WTFSIMFD')
+except ImportError:
+    _ = lambda x: x
+
 
 class WTFSIMFD(callbacks.Plugin):
-    """Can get a random suggestion from WhatTheFuckShouldIMakeForDinner.com
-    aswell as outputting an URL for todays FoodPornDaily.com"""
+    """Fetches a random dinner suggestion from WhatTheFuckShouldIMakeForDinner.com."""
     threaded = True
-    
+
     def dinner(self, irc, msg, args):
-        """
+        """takes no arguments
 
-        What The Fuck Should I Make For Dinner? HOW ABOUT SOME FUCKING ...
+        Fetches a random dinner suggestion from WhatTheFuckShouldIMakeForDinner.com.
         """
-        
-        url = "http://www.whatthefuckshouldimakefordinner.com/"
+        url = 'http://www.whatthefuckshouldimakefordinner.com/'
         html = utils.web.getUrl(url).decode(errors='ignore')
-        html = html[html.find("<dl>")+4:]
-        insult = html[:html.find("</dl>")].strip()
-        
-        html = html[html.find("<dl>")+4:]
-        html = html[html.find("<a href=\"")+9:]
-        dinnerurl = html[:html.find("\"")].strip()
-        
-        html = html[html.find(">")+1:]
-        dinner = html[:html.find("</a>")].strip()
-        irc.reply(insult + " " + dinner + ". (" + dinnerurl + ")")
+        html = html[html.find('<dl>')+4:]
+        insult = html[:html.find('</dl>')].strip()
+
+        html = html[html.find('<dl>')+4:]
+        html = html[html.find('<a href="')+9:]
+        dinnerurl = html[:html.find('"')].strip()
+
+        html = html[html.find('>')+1:]
+        dinner = html[:html.find('</a>')].strip()
+        irc.reply(f'{insult} {dinner}. ({dinnerurl})')
     dinner = wrap(dinner)
-    
-    def fp(self, irc, msg, args):
-        """
 
-        Gets the picture of todays food from foodporndaily.com
-        """
-   	
-        url = "http://foodporndaily.com/"
-        html = utils.web.getUrl(url).decode(errors='ignore')
-        st = 'img id="mainPhoto" src="'
-        html = html[html.find(st)+len(st):]
-        imageurl = html[:html.find('"')]
-
-#        # This part is for shortening the url. Not really needed.
-#        url = "http://is.gd/api.php?longurl=" + imageurl
-#        print "Trying to shorten url using " + url
-#        try:
-#            req = urllib2.Request(url)
-#            f = urllib2.urlopen(req)
-#            imageurl = f.read()
-#        except:
-#            print "Failed to shorten url: " + url
-#            return
-#        # This part is all for downloading the images, using the ImgGet plugin, if loaded.
-#    	imgget = False
-#    	try:
-#    		sys.modules['ImgGet']
-#    		imgget = True
-#    	except:
-#    		pass
-#    	if imgget:
-#            try:
-#                connection = urllib.urlopen(imageurl)
-#                # Try to get content-type from header
-#                contenttype = connection.info().getheader("Content-Type")
-#	            # If we actually have a type, and it claims to be an image, we continue.
-#            except:
-#                print "Could not open connection or get header from " + url
-#            if contenttype and contenttype.startswith('image'):
-#                # print sys.modules['ImgGet']._downloadImg(irc, imageurl, irc.nick, msg.args[0].lower(), connection, contenttype)
-        irc.reply(imageurl)
-    fp = wrap(fp)
 Class = WTFSIMFD
-
-
-# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:

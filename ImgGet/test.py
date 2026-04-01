@@ -30,8 +30,43 @@
 
 from supybot.test import *
 
-class ImgGetTestCase(PluginTestCase):
+from . import plugin as imgget_plugin
+
+
+class ImgGetHelperTestCase(SupyTestCase):
+    """Unit tests for pure helper functions that need no IRC context."""
+
+    def setUp(self):
+        # Call sizeof_fmt as an unbound method (it takes self + num).
+        self._fmt = imgget_plugin.ImgGet.sizeof_fmt
+
+    def testSizeofFmtNone(self):
+        self.assertEqual(self._fmt(None, None), 'Unknown size')
+
+    def testSizeofFmtBytes(self):
+        self.assertEqual(self._fmt(None, 512), '512.0 bytes')
+
+    def testSizeofFmtKiB(self):
+        self.assertEqual(self._fmt(None, 1024), '1.0 KiB')
+
+    def testSizeofFmtMiB(self):
+        self.assertEqual(self._fmt(None, 1024 * 1024), '1.0 MiB')
+
+    def testSizeofFmtGiB(self):
+        self.assertEqual(self._fmt(None, 1024 ** 3), '1.0 GiB')
+
+    def testSizeofFmtTiB(self):
+        self.assertEqual(self._fmt(None, 1024 ** 4), '1.0 TiB')
+
+    def testSizeofFmtStringInput(self):
+        # Should coerce string '2048' to int correctly.
+        self.assertEqual(self._fmt(None, '2048'), '2.0 KiB')
+
+
+class ImgGetCommandTestCase(PluginTestCase):
     plugins = ('ImgGet',)
 
-
-# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
+    def testPluginLoads(self):
+        # The plugin has no user-facing commands (only doPrivmsg);
+        # confirm it loads without error by listing plugins.
+        self.assertNotError('list')

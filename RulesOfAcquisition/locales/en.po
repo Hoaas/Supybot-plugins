@@ -1,0 +1,47 @@
+# RulesOfAcquisition plugin in Limnoria.
+# Copyright (C) 2012 Terje Hoås
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: RulesOfAcquisition plugin for Limnoria\n"
+"POT-Creation-Date: 2026-04-01 00:00+0000\n"
+"PO-Revision-Date: 2026-04-01 00:00+0000\n"
+"Last-Translator: Terje Hoås <terje@robogoat.dev>\n"
+"Language-Team: \n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: pygettext.py 1.5\n"
+
+#: plugin.py:47
+msgid ""
+"Looks up Ferengi Rules of Acquisition from Star Trek by number or\n"
+"    keyword, and returns a random rule when called with no arguments."
+msgstr ""
+"Looks up Ferengi Rules of Acquisition from Star Trek by number or\n"
+"    keyword, and returns a random rule when called with no arguments."
+
+#: plugin.py:52
+msgid ""
+"[<number> | <search term>]\n"
+"\n"
+"        Returns a Rule of Acquisition (aphorisms, guidelines and principles\n"
+"        that provide the foundation of business in Ferengi culture). With no\n"
+"        argument a random rule is returned. A search term that matches\n"
+"        multiple rules returns a random one of those."
+msgstr ""
+"[<number> | <search term>]\n"
+"\n"
+"        Returns a Rule of Acquisition (aphorisms, guidelines and principles\n"
+"        that provide the foundation of business in Ferengi culture). With no\n"
+"        argument a random rule is returned. A search term that matches\n"
+"        multiple rules returns a random one of those."
+
+#: plugin.py:65
+msgid "404 - Rule not found."
+msgstr "404 - Rule not found."
+
+#: plugin.py:70
+msgid "404 - Rule not found."
+msgstr "404 - Rule not found."

@@ -10,6 +10,7 @@ authors = [
 readme = "README.md"
 dependencies = [
     "limnoria",
+    "Pillow",
 ]
 classifiers = [
     'Environment :: Plugins',

@@ -1,4 +1,3 @@
-# coding=utf8
 ###
 # Copyright (c) 2012, Terje Hoås
 # All rights reserved.
@@ -26,49 +25,105 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+
 ###
 
 import json
+import urllib.parse
 
-import re
-import urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
-from supybot.i18n import PluginInternationalization, internationalizeDocstring
+try:
+    import supybot.i18n as _i18n
+    from supybot.i18n import PluginInternationalization, internationalizeDocstring
+    _i18nInstance = PluginInternationalization('SSB')
 
-_ = PluginInternationalization('SSB')
+    def _(s):
+        import supybot.conf as _conf
+        try:
+            lang = _conf.supybot.plugins.SSB.language()
+        except Exception:
+            lang = ''
+        lang = lang or _i18n.currentLocale
+        if _i18nInstance.currentLocaleName != lang:
+            _i18nInstance.loadLocale(lang)
+        return _i18nInstance(s)
 
-@internationalizeDocstring
+except ImportError:
+    _ = lambda x: x
+    internationalizeDocstring = lambda f: f
+
+
+_TYPE_LABELS = {
+    'family':          lambda: _('last name'),
+    'firstgiven':      lambda: _('first name (with middle name)'),
+    'onlygiven':       lambda: _('first name (only)'),
+    'middleandfamily': lambda: _('middle + last name'),
+}
+
+_GENDER_LABELS = {
+    'M': lambda: _('M'),
+    'F': lambda: _('F'),
+}
+
+
+def formatNameResults(data):
+    """Parse the SSB nameSearch API response and return a formatted string.
+
+    data may be JSON bytes or a string. Returns a pipe-separated string of
+    groups, each in the form 'NAME: count type, count type', or None if no
+    docs are found. Gender is shown in parentheses for given names only.
+    """
+    if isinstance(data, bytes):
+        data = data.decode()
+    parsed = json.loads(data)
+    docs = parsed.get('response', {}).get('docs', [])
+    if not docs:
+        return None
+
+    # Group docs by name, preserving first-appearance order.
+    groups = {}
+    for d in docs:
+        name = d.get('name') or ''
+        groups.setdefault(name, []).append(d)
+
+    group_parts = []
+    for name, entries in groups.items():
+        entry_parts = []
+        for d in entries:
+            count = d.get('count')
+            type_key = d.get('type', '')
+            gender_key = d.get('gender', '')
+            label = _TYPE_LABELS.get(type_key, lambda: type_key)()
+            gender_label = _GENDER_LABELS.get(gender_key)
+            if gender_label is not None:
+                entry_parts.append(f'{count} {label} ({gender_label()})')
+            else:
+                entry_parts.append(f'{count} {label}')
+        group_parts.append(f'{name}: {", ".join(entry_parts)}')
+
+    return ' | '.join(group_parts)
+
+
 class SSB(callbacks.Plugin):
-    """Add the help for "@plugin help SSB" here
-    This should describe *how* to use this plugin."""
+    """Looks up Norwegian name statistics from Statistics Norway (ssb.no)."""
     threaded = True
 
+    @wrap(['text'])
+    @internationalizeDocstring
     def navn(self, irc, msg, args, name):
         """<navn>
-        Returnerer info om navnet."""
-        url = 'https://www.ssb.no/_/service/mimir/nameSearch?name='
-        url += urllib.parse.quote(name)
 
-        data = utils.web.getUrl(url).decode()
-
-        data = json.loads(data)
-
-        docs = data.get('response').get('docs')
-
-        text = ''
-        for d in docs:
-            text += '{0} ({1} {2})'.format(d.get("count"), d.get("gender"), d.get("type"))
-            text += ', '
-
-        text = text[:-2]
-        irc.reply(text)
-    navn = wrap(navn, ['text'])
+        Returnerer statistikk om et norsk navn fra Statistisk sentralbyrå."""
+        url = f'https://www.ssb.no/_/service/mimir/nameSearch?name={urllib.parse.quote(name)}'
+        data = utils.web.getUrl(url)
+        result = formatNameResults(data)
+        if result:
+            irc.reply(result)
+        else:
+            irc.reply(_('No results found for that name'))
 
 Class = SSB
-
-
-# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:

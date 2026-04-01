@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools"]
+
+[project]
+name = "limnoria-norwegianfootball"
+version = "0.0.0"
+authors = [
+    { name = "Terje Hoås" },
+]
+readme = "README.md"
+dependencies = [
+    "limnoria",
+]
+classifiers = [
+    'Environment :: Plugins',
+    'Programming Language :: Python :: 3',
+    'Topic :: Communications :: Chat',
+]
+
+[project.entry-points.'limnoria.plugins']
+NorwegianFootball = "limnoria_norwegianfootball"
+
+[tool.setuptools.package-dir]
+"limnoria_norwegianfootball" = "."
+
+[tool.setuptools.package-data]
+"limnoria_norwegianfootball" = ["locales/*.po"]

@@ -1,0 +1,13 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Limnoria\n"
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+#: plugin.py
+msgid "<team>\n\nShows the latest score and commentary for a Norwegian football match from NIFS. Match names and commentary are in Norwegian."
+msgstr "<team>\n\nShows the latest score and commentary for a Norwegian football match from NIFS. Match names and commentary are in Norwegian."
+
+#: plugin.py
+msgid "No match found"
+msgstr "No match found"

@@ -1,0 +1,1 @@
+mistralai[agents]>=1.12.3

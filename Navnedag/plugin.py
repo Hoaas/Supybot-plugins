@@ -38,25 +38,8 @@ try:
     from supybot.i18n import PluginInternationalization
     _ = PluginInternationalization('Navnedag')
 except ImportError:
-    # Placeholder that allows to run the plugin on a bot
-    # without the i18n module
     _ = lambda x: x
 
-
-class Navnedag(callbacks.Plugin):
-    """Displays the nameday for the current (or given date) in Norway. In norwegian."""
-    pass
-
-    def navnedag(self, irc, msg, args):
-        """
-        Returnerer info om hvem som har navnedag i dag."""
-        now = datetime.datetime.now()
-        info = namedata['{0:02}-{1:02}'.format(now.month, now.day)]
-        retstr = info[0]
-        if (info[1] != ''):
-            retstr += '. ' + info[1]
-        irc.reply(retstr)
-    navnedag = wrap(navnedag)
 
 namedata = {'01-01': ['Jesus[trenger referanse]', '- 1. nyttårsdag, Jesu navnedag'],
     '01-02': ['Dagfinn og Dagfrid', ''],
@@ -193,7 +176,7 @@ namedata = {'01-01': ['Jesus[trenger referanse]', '- 1. nyttårsdag, Jesu navned
     '05-12': ['Normann og Norvald', ''],
     '05-13': ['Linda, Line og Linn', 'Line ble flyttet hit fra 20. januar i revisjonen fra 1998.'],
     '05-14': ['Kristian, Kristen og Karsten', 'Navnedagen etter det som ble kalt Christiansdag i Danmark etter kongen Christian 10 som ble innsatt denne dagen i 1912'],
-    '05-15': ['Hallvard og Halvor', '- etter Hallvardsmesse, ’Hallsok’: Hallvard Vebjørnsson fra Lier , St.Hallvard, er Oslos - og de forfulgtes - skytshelgen, (1020-1043), drept med pileskudd og senket i fjorden da han ville berge en gravid kvinne fra overfall'],
+    '05-15': ['Hallvard og Halvor', '- etter Hallvardsmesse, \u2018Hallsok\u2019: Hallvard Vebjørnsson fra Lier , St.Hallvard, er Oslos - og de forfulgtes - skytshelgen, (1020-1043), drept med pileskudd og senket i fjorden da han ville berge en gravid kvinne fra overfall'],
     '05-16': ['Sara og Siren', ''],
     '05-17': ['Harald og Ragnhild', '- valgt navnedag for Kong Olav Vs sønn og eldste datter som symbol for 17. mai.'],
     '05-18': ['Eirik, Erik og Erika', '- etter Eriksmesse: Erik Jedvardsson , Erik IX, Sveriges skytshelgen, drept i Uppsala av den danske prins Magnus i 1160'],
@@ -206,7 +189,7 @@ namedata = {'01-01': ['Jesus[trenger referanse]', '- 1. nyttårsdag, Jesu navned
     '05-25': ['Ragna og Ragnar', ''],
     '05-26': ['Annbjørg og Annlaug', ''],
     '05-27': ['Katinka og Cato', ''],
-    '05-28': ['Vilhelm, William og Willy', '- fra det gamle ’Vilhelmsføre’ Navnedagen er etter Vilhelm av Aquitania, (Vilhelm av Gellone), han kunne gå gjennom ild uten skade, da han døde 28.mai 812 ringte alle klostrets klokker av seg selv.[15]'],
+    '05-28': ['Vilhelm, William og Willy', '- fra det gamle \u2018Vilhelmsføre\u2019 Navnedagen er etter Vilhelm av Aquitania, (Vilhelm av Gellone), han kunne gå gjennom ild uten skade, da han døde 28.mai 812 ringte alle klostrets klokker av seg selv.[15]'],
     '05-29': ['Magnar og Magnhild', '- etter den tidligere navnedagen for Maximus som har samme betydning som Magn- på norrønt, Maximinus var biskop i Trier på 300-tallet, etter sagnet møtte han en bjørn på vei til Rom, roet den ned og red på den inn i byen.[16]'],
     '05-30': ['Gard og Geir', ''],
     '05-31': ['Pernille og Preben', '- etter den hellige Petronilla, pilegrimers skytshelgen[17]'],
@@ -226,7 +209,7 @@ namedata = {'01-01': ['Jesus[trenger referanse]', '- 1. nyttårsdag, Jesu navned
     '06-14': ['Erlend og Erland', ''],
     '06-15': ['Vigdis og Viggo', '- etter navnelikhet med Vitus, helgen som led martyrdøden under Diocletians forfølgelser. Han var en av de fjorten nødhjelpere og kunne hjelpe barn og unge mot epilepsi og kramper.'],
     '06-16': ['Torhild, Toril og Tiril', 'Tiril ble tatt inn i revisjonen fra 1998.'],
-    '06-17': ['Botolv og Bodil', '- etter Botolf av Icanho (i Suffolk) død 680, lærd klostergrunnlegger i ’Botolps Town’= Boston England'],
+    '06-17': ['Botolv og Bodil', '- etter Botolf av Icanho (i Suffolk) død 680, lærd klostergrunnlegger i \u2018Botolps Town\u2019= Boston England'],
     '06-18': ['Bjarne og Bjørn', ''],
     '06-19': ['Erling og Elling', ''],
     '06-20': ['Salve, Sølve og Sølvi', 'Salve ble tatt inn i revisjonen fra 1998. Navnedagen etter pave Sylverius død 537,[19]'],
@@ -280,7 +263,7 @@ namedata = {'01-01': ['Jesus[trenger referanse]', '- 1. nyttårsdag, Jesu navned
     '08-07': ['Didrik og Doris  '],
     '08-08': ['Evy og Yvonne', ''],
     '08-09': ['Ronald og Ronny', ''],
-    '08-10': ['Lorents, Lars og Lasse', '- etter diakonen Sankt Laurentius’ dag, han døde 258, ble brent over en rist'],
+    '08-10': ['Lorents, Lars og Lasse', '- etter diakonen Sankt Laurentius\u2019 dag, han døde 258, ble brent over en rist'],
     '08-11': ['Torvald og Tarald', ''],
     '08-12': ['Klara og Camilla', '- etter minnedagen for den hellige Klara av Assisi død 1253, hun grunnla klarissenes orden sammen med Frans av Assisi'],
     '08-13': ['Anny, Anine og Ann', 'Anine ble tatt inn i revisjonen fra 1998.'],
@@ -318,7 +301,7 @@ namedata = {'01-01': ['Jesus[trenger referanse]', '- 1. nyttårsdag, Jesu navned
     '09-14': ['Ingebjørg og Ingeborg', ''],
     '09-15': ['Aslak og Eskil', '- etter Eskil (biskop) (ca. 1100 - 1182), erkebiskop i Lund i datidens Danmark, nå i Sverige fra 1137 til 1177 og kjent som en stor kirke- og klosterbygger, hans minnedag er egentlig 6. september. Han er oppkalt etter Eskil[30] som ga navn til Eskilstuna'],
     '09-16': ['Lillian og Lilly', ''],
-    '09-17': ['Hildebjørg og Hildegunn', '- etter minnedagen for Hildegard av Bingen tysk abbedisse, fikk syner, skrev sanger som er blitt ’moderne’ idag, ga ut bøker med mange visjoner, død 1179.'],
+    '09-17': ['Hildebjørg og Hildegunn', '- etter minnedagen for Hildegard av Bingen tysk abbedisse, fikk syner, skrev sanger som er blitt \u2018moderne\u2019 idag, ga ut bøker med mange visjoner, død 1179.'],
     '09-18': ['Henriette og Henry', ''],
     '09-19': ['Konstanse og Connie', '- etter den hellige Constantia,[31], drept som martyr i år 67 under keiser Nero'],
     '09-20': ['Tobias og Tage', '- Tobias, fra den apokryfe Tobits bok, varslet ødeleggelsen av Ninive i 612 f Kr.'],
@@ -335,7 +318,7 @@ namedata = {'01-01': ['Jesus[trenger referanse]', '- 1. nyttårsdag, Jesu navned
     '10-01': ['Rebekka og Remi', '- navnedag etter Sankt Remigius, biskop av Reims, han omvendte kong Klodvig I i 496, se Klosterkirken Saint-Remi'],
     '10-02': ['Live og Liv', ''],
     '10-03': ['Evald og Evelyn', '- Evald den lyse og Evald den mørke,[32] skytshelgener for Westfalen 600-tallet'],
-    '10-04': ['Frans og Frank', '- Frans av Assisis dag, han stiftet fransiskanerordenen, død 1226, skytshelgen for fattige, for dyr - derav ’Dyrebeskyttelsens dag’ i dag'],
+    '10-04': ['Frans og Frank', '- Frans av Assisis dag, han stiftet fransiskanerordenen, død 1226, skytshelgen for fattige, for dyr - derav \u2018Dyrebeskyttelsens dag\u2019 i dag'],
     '10-05': ['Brynjar, Boye og Bo', 'Boye ble tatt inn i revisjonen fra 1998.'],
     '10-06': ['Målfrid og Møyfrid', ''],
     '10-07': ['Birgitte, Birgit og Berit', '- primstavens Britemesse for Birgitta av Vadstena, død 1373, grunnla Birgittinerordenen. Sveriges skytshelgen og en av Europas Vernehelgener'],
@@ -423,6 +406,24 @@ namedata = {'01-01': ['Jesus[trenger referanse]', '- 1. nyttårsdag, Jesu navned
     '12-28': ['Unni, Une og Unn', 'Une ble tatt inn i revisjonen fra 1998.'],
     '12-29': ['Vidar og Vemund', ''],
     '12-30': ['David, Diana og Dina', 'Dina ble tatt inn i revisjonen fra 1998.'],
-    '12-31': ['Sylfest, Sylvia og Sylvi', '- etter pave Silvester I.(Sylvester) som innviet Peterskirken, dette er hans dødsdag i år 335 og i mange europeiske land kalles denne dag derfor ’Silvesteraften’ , i Norge ’Sylfestkvelden’']}
+    '12-31': ['Sylfest, Sylvia og Sylvi', '- etter pave Silvester I.(Sylvester) som innviet Peterskirken, dette er hans dødsdag i år 335 og i mange europeiske land kalles denne dag derfor \u2018Silvesteraften\u2019 , i Norge \u2018Sylfestkvelden\u2019']}
+
+
+class Navnedag(callbacks.Plugin):
+    """Displays the nameday for the current (or given date) in Norway. In norwegian."""
+    threaded = True
+
+    def navnedag(self, irc, msg, args):
+        """takes no arguments
+
+        Returns the nameday entry for today in Norway.
+        """
+        now = datetime.datetime.now()
+        info = namedata[f'{now.month:02}-{now.day:02}']
+        retstr = info[0]
+        if len(info) > 1 and info[1] != '':
+            retstr += '. ' + info[1]
+        irc.reply(retstr)
+    navnedag = wrap(navnedag)
 
 Class = Navnedag

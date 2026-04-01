@@ -1,0 +1,16 @@
+# Olympics plugin - English strings
+# Copyright (c) 2016, Terje Hoås
+msgid ""
+msgstr ""
+"Project-Id-Version: Olympics\n"
+"POT-Creation-Date: 2026-04-01\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en\n"
+
+msgid "takes no arguments"
+msgstr "takes no arguments"
+
+msgid "Return the top medal winners for the current Olympics."
+msgstr "Return the top medal winners for the current Olympics."

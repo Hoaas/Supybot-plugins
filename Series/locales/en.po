@@ -1,0 +1,33 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Limnoria\n"
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+#: plugin.py
+msgid "<show name>\n\nReturns the previous and next episode of the given TV series, sourced from TVmaze."
+msgstr "<show name>\n\nReturns the previous and next episode of the given TV series, sourced from TVmaze."
+
+#: plugin.py
+msgid "<show name>\n\nReturns the status, premiered year, and previous/next episode of the\ngiven TV series, sourced from TVmaze."
+msgstr "<show name>\n\nReturns the status, premiered year, and previous/next episode of the\ngiven TV series, sourced from TVmaze."
+
+#: plugin.py
+msgid "Show not found."
+msgstr "Show not found."
+
+#: plugin.py
+msgid "Failed to parse response from TVmaze."
+msgstr "Failed to parse response from TVmaze."
+
+#: plugin.py
+msgid "No episode information available."
+msgstr "No episode information available."
+
+#: plugin.py
+msgid "Previous Episode: none."
+msgstr "Previous Episode: none."
+
+#: plugin.py
+msgid "Next Episode: not yet scheduled."
+msgstr "Next Episode: not yet scheduled."

@@ -1,0 +1,28 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR Terje Hoås
+# This file is distributed under the same license as the ImgGet package.
+# FIRST AUTHOR <terje@robogoat.dev>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: ImgGet\n"
+"POT-Creation-Date: 2024-01-01 00:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: English\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Could not connect to google at this point"
+msgstr "Could not connect to google at this point"
+
+msgid "Got a strange response from Google. *confused*"
+msgstr "Got a strange response from Google. *confused*"
+
+msgid "Your search did not match any documents."
+msgstr "Your search did not match any documents."
+
+msgid "Attempted to link to mirror, but mirror url for this channel is not set."
+msgstr "Attempted to link to mirror, but mirror url for this channel is not set."

@@ -29,13 +29,10 @@
 ###
 
 import supybot.conf as conf
-import supybot.registry as registry
 try:
     from supybot.i18n import PluginInternationalization
     _ = PluginInternationalization('Kommune')
-except:
-    # Placeholder that allows to run the plugin on a bot
-    # without the i18n module
+except ImportError:
     _ = lambda x: x
 
 
@@ -52,6 +49,3 @@ Kommune = conf.registerPlugin('Kommune')
 # This is where your configuration variables (if any) should go.  For example:
 # conf.registerGlobalValue(Kommune, 'someConfigVariableName',
 #     registry.Boolean(False, _("""Help for someConfigVariableName.""")))
-
-
-# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

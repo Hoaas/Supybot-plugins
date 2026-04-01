@@ -1,4 +1,3 @@
-# coding=utf8
 ###
 # Copyright (c) 2010, Terje Hoås
 # All rights reserved.
@@ -32,25 +31,18 @@
 import supybot.conf as conf
 import supybot.registry as registry
 
+
 def configure(advanced):
-    # This will be called by supybot to configure this module.  advanced is
-    # a bool that specifies whether the user identified himself as an advanced
-    # user or not.  You should effect your configuration by manipulating the
-    # registry as appropriate.
     from supybot.questions import expect, anything, something, yn
     conf.registerPlugin('Yr', True)
 
 
 Yr = conf.registerPlugin('Yr')
-# This is where your configuration variables (if any) should go.  For example:
-# conf.registerGlobalValue(Temperature, 'someConfigVariableName',
-#     registry.Boolean(False, """Help for someConfigVariableName."""))
-conf.registerChannelValue(Yr, 'lang', registry.String('en', """Default language
-    to use."""))
-conf.registerChannelValue(Yr, 'location', registry.String('Oslo', """Default
-    location to use. 'en' (English), 'bm' (Norwegian (Bokmål)) or 'nn'
-    (Norwegian (Nynorsk))."""))
-conf.registerChannelValue(Yr, 'pollen', registry.Integer(1, """Default
-    ID to use on the command 'pollen'."""))
-
-# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
+conf.registerChannelValue(Yr, 'timezone', registry.String('UTC', """Timezone
+    used to display times for the 'sun' command. Must be a valid tz database
+    name (e.g. 'Europe/Oslo', 'America/New_York'). Defaults to UTC, in which
+    case times are shown with a '(UTC)' label."""))
+conf.registerGlobalValue(Yr, 'language', registry.String('', """Override the
+    language for this plugin. Leave empty to use the global supybot.language
+    setting. Accepts any locale code with a matching .po file, including 'no'
+    (Norwegian)."""))

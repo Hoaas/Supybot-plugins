@@ -35,48 +35,69 @@ from supybot.commands import *
 import supybot.plugins as plugins
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
+
 try:
-    from supybot.i18n import PluginInternationalization
+    from supybot.i18n import PluginInternationalization, internationalizeDocstring
     _ = PluginInternationalization('PasswordTester')
 except ImportError:
-    # Placeholder that allows to run the plugin on a bot
-    # without the i18n module
     _ = lambda x: x
+    internationalizeDocstring = lambda f: f
+
+
+def hashPassword(password):
+    """Return a (prefix, suffix) tuple of the SHA1 hash of password.
+
+    prefix is the first 5 hex characters (lowercase), suffix is the
+    remainder uppercased — matching the HIBP k-anonymity API format.
+    """
+    digest = hashlib.sha1(password.encode()).hexdigest()
+    return digest[:5], digest[5:].upper()
+
+
+def parseHibpResponse(text, suffix):
+    """Parse a HIBP range-API response and return the breach count for suffix.
+
+    text is the decoded response body (lines of 'SUFFIX:COUNT').
+    suffix is the uppercase hex tail to look up.
+    Returns the count as an int, or 0 if the suffix is not found.
+    """
+    for line in text.splitlines():
+        parts = line.split(':')
+        if len(parts) == 2 and parts[0].strip().upper() == suffix:
+            try:
+                return int(parts[1].strip())
+            except ValueError:
+                return 0
+    return 0
+
+
+_HIBP_URL = 'https://api.pwnedpasswords.com/range/'
 
 
 class PasswordTester(callbacks.Plugin):
-    """Checks if the given string is in Troy Hunts HaveIBeenPwned.com API."""
+    """Checks a password against the HaveIBeenPwned Pwned Passwords API."""
     threaded = True
 
-    url = "https://api.pwnedpasswords.com/range/"
-
     @wrap(['text'])
+    @internationalizeDocstring
     def password(self, irc, msg, args, password):
         """<password>
 
-        Returns if and how many times this password has been in data breaches."""
-
-        sha1 = hashlib.sha1(password.encode()).hexdigest()
-        sha1_prefix = sha1[:5]
-        sha1_suffix = sha1[5:].upper()
-
+        Returns if and how many times this password has been seen in data breaches."""
+        prefix, suffix = hashPassword(password)
         try:
-            response = utils.web.getUrl(self.url + sha1_prefix)
+            response = utils.web.getUrl(_HIBP_URL + prefix)
             text = response.decode('ascii', 'ignore').strip()
-            if sha1_suffix in text:
-                # Password is pwned
-                frequency = [s for s in text.splitlines() if sha1_suffix in s][0].split(':')[1]
-                irc.reply("This password has been present %s times in data breaches." % frequency)
-                return
-            else:
-                irc.reply("Password is safe to use!")
-                return
-        except:
-            irc.reply("The call to HIBP failed in some way. Unable to check password status at this time.")
+        except Exception as e:
+            self.log.warning('HIBP lookup failed: %s', e)
+            irc.reply(_('The call to HIBP failed. Unable to check password status at this time.'))
             return
+
+        count = parseHibpResponse(text, suffix)
+        if count:
+            irc.reply(_('This password has been seen {count} times in data breaches.').format(count=count))
+        else:
+            irc.reply(_('This password has not been seen in any known data breaches.'))
 
 
 Class = PasswordTester
-
-
-# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:

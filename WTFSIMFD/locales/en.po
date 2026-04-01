@@ -1,0 +1,10 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Limnoria\n"
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+#: plugin.py
+msgid "takes no arguments\n\nFetches a random dinner suggestion from WhatTheFuckShouldIMakeForDinner.com."
+msgstr "takes no arguments\n\nFetches a random dinner suggestion from WhatTheFuckShouldIMakeForDinner.com."
+

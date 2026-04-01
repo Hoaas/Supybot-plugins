@@ -1,0 +1,21 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Limnoria\n"
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+#: plugin.py
+msgid "takes no arguments\n\nInformation about the current brain."
+msgstr "takes no arguments\n\nInformation about the current brain."
+
+#: plugin.py
+msgid "<message>\n\nReplies to message using Markov Chain Technology™."
+msgstr "<message>\n\nReplies to message using Markov Chain Technology™."
+
+#: plugin.py
+msgid "No brains in private! (each channel have a different brain)"
+msgstr "No brains in private! (each channel have a different brain)"
+
+#: plugin.py
+msgid "Not in a channel, not sure what database to use."
+msgstr "Not in a channel, not sure what database to use."

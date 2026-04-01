@@ -1,4 +1,3 @@
-# coding=utf8
 ###
 # Copyright (c) 2011, Terje Hoås
 # All rights reserved.
@@ -29,11 +28,8 @@
 
 ###
 
-import os
-import urllib.request, urllib.parse, urllib.error
-import urllib.request, urllib.error, urllib.parse
-import json
-import datetime
+import urllib.parse
+
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
@@ -41,29 +37,32 @@ import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 
 
+def fetchOracle(text):
+    """Fetch the bus oracle answer for the given query text.
+
+    Returns the response string, or raises an exception on failure.
+    """
+    url = f'http://busstjener.idi.ntnu.no/busstuc/oracle?q={urllib.parse.quote(text)}'
+    data = utils.web.getUrl(url).decode()
+    return data.strip().replace('\n', ' ')
+
+
 class AtB(callbacks.Plugin):
-    """Returns real time data on next passing on busses in Trondheim. 
-    Gets data from BusBuddy API (http://api.busbuddy.norrs.no:8080/) which is supplied unofficially from AtB (atb.no).
-    Also calculate it the price for a season card."""
+    """Bus information for Trondheim via the NTNU bus oracle."""
     threaded = True
-    
+
+    @wrap(['text'])
     def buss(self, irc, msg, args, text):
-        """<tekst>
-        Returnerer tekst fra bussorakelet i Trondheim.
+        """<stop or question>
+
+        Returns real-time bus information for Trondheim from the NTNU bus
+        oracle (busstjener.idi.ntnu.no).
         """
-        #url = 'http://busstuc-atb.lingit.no/json.php?callback=bussOrakel&question='
-        #url = 'https://www.atb.no/xmlhttprequest.php?service=routeplannerOracle.getOracleAnswer&question='
-        url = 'http://busstjener.idi.ntnu.no/busstuc/oracle?q='
-        url += urllib.parse.quote(text)
-        data = utils.web.getUrl(url).decode()
-        data = data.strip()
-        data = data.replace('\n', ' ')
-
-        irc.reply(data)
-
-    buss = wrap(buss, ['text'])
+        try:
+            answer = fetchOracle(text)
+        except Exception:
+            irc.error('Could not fetch bus information.', Raise=True)
+            return
+        irc.reply(answer)
 
 Class = AtB
-
-
-# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:

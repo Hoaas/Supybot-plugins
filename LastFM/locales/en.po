@@ -1,0 +1,29 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Limnoria\n"
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+#: plugin.py
+msgid "API key not set. See 'config help supybot.plugins.LastFM.apikey'."
+msgstr "API key not set. See 'config help supybot.plugins.LastFM.apikey'."
+
+#: plugin.py
+msgid "Storing LastFM nick %s for user %s."
+msgstr "Storing LastFM nick %s for user %s."
+
+#: plugin.py
+msgid "No users in the channel currently scrobbling."
+msgstr "No users in the channel currently scrobbling."
+
+#: plugin.py
+msgid "<username> [nick]\n\nLinks the caller's nick to <username> on LastFM. If [nick] is given, that nick is linked instead."
+msgstr "<username> [nick]\n\nLinks the caller's nick to <username> on LastFM. If [nick] is given, that nick is linked instead."
+
+#: plugin.py
+msgid "[--allatonce] [--skipplays]\n\nShows the currently playing track for all nicks in the channel."
+msgstr "[--allatonce] [--skipplays]\n\nShows the currently playing track for all nicks in the channel."
+
+#: plugin.py
+msgid "[--notags] [user]\n\nReturns the last played track for user. If no username is given, the nick of the caller is used."
+msgstr "[--notags] [user]\n\nReturns the last played track for user. If no username is given, the nick of the caller is used."
