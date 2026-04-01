@@ -29,9 +29,8 @@
 ###
 import json
 import time
-from datetime import datetime, timezone
-
 import urllib.parse
+from datetime import datetime, timezone
 
 from supybot import dbi, utils, plugins, ircutils, callbacks
 from supybot.commands import *
@@ -388,7 +387,7 @@ class LastFM(callbacks.Plugin):
         try:
             text = utils.web.getUrl(API_URL, data=params.encode()).decode()
             js = json.loads(text)
-        except Exception:
+        except (utils.web.Error, json.JSONDecodeError):
             self.log.info('LastFM: failed to fetch track.getInfo for %s - %s', artist, track)
             return ''
 
@@ -420,7 +419,7 @@ class LastFM(callbacks.Plugin):
         try:
             text = utils.web.getUrl(API_URL, data=params.encode()).decode()
             js = json.loads(text)
-        except Exception:
+        except (utils.web.Error, json.JSONDecodeError):
             self.log.info('LastFM: failed to fetch artist.getTopTags for %s', artist)
             return ''
         return parseTopTags(js)
