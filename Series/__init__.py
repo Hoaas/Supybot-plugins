@@ -41,6 +41,8 @@ __author__ = supybot.Author('Terje Hoås', 'Hoaas', 'terje@robogoat.dev')
 
 __contributors__ = {}
 
+__url__ = ''
+
 from . import config
 from . import plugin
 from importlib import reload
