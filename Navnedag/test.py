@@ -30,9 +30,36 @@
 
 from supybot.test import *
 
+from . import plugin as navnedag_plugin
 
-class NavnedagTestCase(PluginTestCase):
+
+class NavnedagHelperTestCase(SupyTestCase):
+    def testNewYearsDay(self):
+        info = navnedag_plugin.namedata['01-01']
+        self.assertIn('Jesus', info[0])
+
+    def testChristmasDay(self):
+        info = navnedag_plugin.namedata['12-25']
+        self.assertIn('juledag', info[0])
+
+    def testDecember26(self):
+        info = navnedag_plugin.namedata['12-26']
+        self.assertIn('Stefan', info[0])
+
+    def testEntryHasAtLeastOneName(self):
+        for key, value in navnedag_plugin.namedata.items():
+            self.assertTrue(len(value) >= 1, f'Entry for {key} has no name')
+
+    def testMissingDateRaisesKeyError(self):
+        with self.assertRaises(KeyError):
+            _ = navnedag_plugin.namedata['00-00']
+
+
+class NavnedagCommandTestCase(PluginTestCase):
     plugins = ('Navnedag',)
 
+    def testNavnedagNoError(self):
+        self.assertNotError('navnedag')
 
-# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
+    def testNavnedagReturnsName(self):
+        self.assertRegexp('navnedag', r'\w+')
