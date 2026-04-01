@@ -1,10 +1,27 @@
-Gets a random suggestion from WhatTheFuckShouldIMakeForDinner.com.
-Can also utput a direct URL to the image for todays FoodPornDaily.com.
+# WTFSIMFD
 
-Examples:
+A [Limnoria](https://github.com/ProgVal/Limnoria) IRC bot plugin that fetches a
+random dinner suggestion from [WhatTheFuckShouldIMakeForDinner.com](http://www.whatthefuckshouldimakefordinner.com/).
 
-12:45:08 <@Hoaas> !dinner
-12:45:14 <@Bunisher> You won't not make some fucking Choucroute. (http://www.cookstr.com/recipes/choucroute)
+## Commands
 
-12:44:42 <@Hoaas> !fp
-12:44:45 <@Bunisher> http://foodporndaily.com/pictures/creamy-toasted-coconut-ice-cream-with-toasted-coconut-flakes.jpg
+### `dinner`
+
+Fetches a random dinner suggestion.
+
+```
+<you> dinner
+<bot> You won't not make some fucking Choucroute. (http://www.cookstr.com/recipes/choucroute)
+```
+
+## Installation
+
+```bash
+pip install "limnoria-wtfsimfd @ git+https://github.com/Hoaas/Supybot-plugins.git#subdirectory=WTFSIMFD"
+```
+
+Or from a local clone:
+
+```bash
+pip install ./WTFSIMFD/
+```

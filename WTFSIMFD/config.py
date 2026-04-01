@@ -1,4 +1,3 @@
-# coding=utf8
 ###
 # Copyright (c) 2010, Terje Hoås
 # All rights reserved.
@@ -47,4 +46,3 @@ WTFSIMFD = conf.registerPlugin('WTFSIMFD')
 #     registry.Boolean(False, """Help for someConfigVariableName."""))
 
 
-# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
