@@ -195,13 +195,14 @@ def searchKommuner(kommuner, search):
 
 def formatKommune(k):
     """Return a formatted IRC reply string for a kommune dict."""
+    malform = k['Målform'].lower()
     return (
         f"{k['Nr']} - {k['Kommunenavn']} "
         f"(Adm. senter {k['Adm. senter']}) "
         f"i {k['Fylke']}. "
         f"{k['Folketall']} innbyggere. "
-        f"{k['Areal']} km\u00b2. "
-        f"M\u00e5lform: {k['M\u00e5lform'].lower()}."
+        f"{k['Areal']} km². "
+        f"Målform: {malform}."
     )
 
 
