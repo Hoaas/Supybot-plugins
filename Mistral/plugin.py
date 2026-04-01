@@ -388,7 +388,6 @@ class Mistral(callbacks.Plugin):
                         agent_id=self.agent.id,
                         inputs=inputs_payload,
                         instructions=conversation_instructions,
-                        stream=False,
                     )
                 except Exception as agent_err:
                     err_str = str(agent_err)
