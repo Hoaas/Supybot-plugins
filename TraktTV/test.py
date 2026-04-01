@@ -198,7 +198,7 @@ def _make_auth_pickle():
     auth = {
         'access_token': 'fake_access_token',
         'refresh_token': 'fake_refresh_token',
-        'expires_in': 7776000,        # 90 days in seconds
+        'expires_in': 86400,          # 24 hours — current Trakt token lifetime
         'created_at': now - 1000,     # created ~17 minutes ago — well within validity
     }
     buf = io.BytesIO(pickle.dumps(auth))

@@ -28,6 +28,7 @@
 
 ###
 
+import os
 import json
 import time
 import pickle
@@ -109,11 +110,15 @@ class TraktTV(callbacks.Plugin):
         self.log.debug('Auth token valid for %s days.', (expires_at - now) / (60 * 60 * 24))
         self.log.debug('Auth token created at %s', datetime.datetime.fromtimestamp(created, tz=datetime.timezone.utc))
 
-        if expires_at - now < 60 * 60 * 24 * 60:
-            # If less than 60 days of validity remain, renew
-            # (it's valid for 90 days, so we renew on first use after a month)
+        if expires_at - now < 60 * 60:
+            # Renew if less than 1 hour of validity remains.
+            # Access tokens now expire in 24 hours (since March 2025),
+            # so renew proactively rather than on every call.
             refresh_token = auth.get('refresh_token')
             auth = self.renew_access_token(refresh_token)
+            if auth is None:
+                self.log.warning('TraktTV: Token renewal failed; re-authentication required.')
+                return None
 
         return auth.get('access_token')
 
@@ -130,11 +135,22 @@ class TraktTV(callbacks.Plugin):
 
         headers = {
             'Content-Type': 'application/json',
+            'User-Agent': 'limnoria-trakttv/1.0',
         }
 
         token_url = f'{api_url}/oauth/token'
 
-        response = utils.web.getUrl(token_url, headers=headers, data=json.dumps(values))
+        try:
+            response = utils.web.getUrl(token_url, headers=headers, data=json.dumps(values))
+        except utils.web.Error as err:
+            self.log.warning('TraktTV: Failed to renew access token: %s', err)
+            try:
+                os.remove(filename)
+                self.log.info('TraktTV: Removed stale token pickle after failed renewal.')
+            except FileNotFoundError:
+                pass
+            return None
+
         response = response.decode()
 
         self.log.debug('Renew token response: %s', response)
@@ -152,6 +168,7 @@ class TraktTV(callbacks.Plugin):
         }
         headers = {
             'Content-Type': 'application/json',
+            'User-Agent': 'limnoria-trakttv/1.0',
         }
 
         codes_url = f'{api_url}/oauth/device/code'
@@ -222,6 +239,21 @@ class TraktTV(callbacks.Plugin):
             pickle.dump(auth, pkl)
         irc.reply('Authed!')
 
+    @wrap([])
+    def clearauth(self, irc, msg, args):
+        """(takes no arguments)
+
+        Clears the stored OAuth token and initiates a fresh device-flow
+        authentication. Use this if you are getting 403 Forbidden errors
+        due to an expired or revoked token."""
+
+        try:
+            os.remove(filename)
+            self.log.info('TraktTV: Cleared stored OAuth token.')
+        except FileNotFoundError:
+            pass
+        self.auth(irc)
+
     @wrap([optional('text')])
     def np(self, irc, msg, args, nick):
         """[nick]
@@ -237,6 +269,7 @@ class TraktTV(callbacks.Plugin):
             'Content-type': 'application/json',
             'trakt-api-key': self.get_client_id(),
             'trakt-api-version': '2',
+            'User-Agent': 'limnoria-trakttv/1.0',
         }
 
         access_token = self.get_access_token()
@@ -253,6 +286,9 @@ class TraktTV(callbacks.Plugin):
                 return
             if '401' in err_str:
                 self.auth(irc)
+                return
+            if '403' in err_str:
+                irc.error('Got 403 Forbidden from Trakt. Your OAuth token may have expired. Use the auth command to re-authenticate.')
                 return
             irc.error(err_str)
             return
@@ -455,6 +491,7 @@ class TraktTV(callbacks.Plugin):
         headers = {
             'Content-type': 'application/json',
             'trakt-api-version': '2',
+            'User-Agent': 'limnoria-trakttv/1.0',
         }
 
         if client_id:
@@ -470,7 +507,13 @@ class TraktTV(callbacks.Plugin):
 
         url = f'{api_url}{url}'
 
-        data = utils.web.getUrl(url, headers=headers).decode()
+        try:
+            data = utils.web.getUrl(url, headers=headers).decode()
+        except utils.web.Error as err:
+            err_str = str(err)
+            if '403' in err_str:
+                raise callbacks.Error('Got 403 Forbidden from Trakt. Your API key may be invalid or your OAuth token expired. Use the auth command to re-authenticate.')
+            raise callbacks.Error(f'Trakt API error: {err_str}')
         data = json.loads(data)
         return data
 
