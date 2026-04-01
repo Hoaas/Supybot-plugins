@@ -1,5 +1,3 @@
-#!/usr/local/bin/python
-#-*- coding: utf8 -*-
 ###
 # Copyright (c) 2000, 2006 Tom Morton, Sebastien Dailly
 # Copyright (c) 2010, Nicolas Coevoet
@@ -9,35 +7,57 @@
 # modify it under the terms of the GNU General Public License
 # as published by the Free Software Foundation; either version 2
 # of the License, or (at your option) any later version.
-#        
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 
+import re
+import time
+import random
+import subprocess
+
 import supybot.conf as conf
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
-import supybot.ircutils as ircutils
-import supybot.callbacks as callbacks
-import supybot.ircmsgs as ircmsgs
 import supybot.ircdb as ircdb
+import supybot.ircmsgs as ircmsgs
+import supybot.ircutils as ircutils
 import supybot.schedule as schedule
-from random import *
-import subprocess
-import re
-import time
+import supybot.callbacks as callbacks
+
+try:
+    from supybot.i18n import PluginInternationalization
+    _ = PluginInternationalization('Hailo')
+except ImportError:
+    _ = lambda x: x
+
+
+def sanitize(t):
+    """Strip shell-dangerous characters from t. Returns cleaned string or None on error."""
+    b = t
+    try:
+        t = t.replace('`', '')
+        t = t.replace('|', '')
+        t = t.replace('&', '')
+        t = t.replace('>', '')
+        t = t.replace('<', '')
+        t = t.replace(';', '')
+        t = t.replace('"', '')
+        return t
+    except Exception:
+        return None
 
 
 class Hailo(callbacks.Plugin):
-    """Hailo plugin allows your bot to learn and reply
-    like human."""
+    """Hailo plugin allows your bot to learn and reply like human."""
 
     threaded = True
 
@@ -50,25 +70,24 @@ class Hailo(callbacks.Plugin):
     def cmd(self, channel):
         dataDir = conf.supybot.directories.data
         channel = channel.lower()
-        chandir = dataDir.dirize(channel)
-        dataDir = dataDir.dirize(channel + "/hailo.sqlite")
-        return 'hailo -b %s' % dataDir
+        dataDir = dataDir.dirize(f'{channel}/hailo.sqlite')
+        return f'hailo -b {dataDir}'
 
-    def brainstats (self,irc,msg,args):
-        """Information about the current brain.
+    def brainstats(self, irc, msg, args):
+        """takes no arguments
 
+        Information about the current brain.
         """
         if not irc.isChannel(msg.args[0]):
-            irc.reply("No brains in private! (each channel have a different brain)")
+            irc.reply('No brains in private! (each channel have a different brain)')
             return
-        out = subprocess.getoutput('%s %s' % (self.cmd(msg.args[0]),'-s'))
-        out = out.replace ('\n',', ')
+        out = subprocess.getoutput(f'{self.cmd(msg.args[0])} -s')
+        out = out.replace('\n', ', ')
         irc.reply(out)
     brainstats = wrap(brainstats)
-  
 
     def doPrivmsg(self, irc, msg):
-        if callbacks.addressed(irc.nick, msg): #message is direct command
+        if callbacks.addressed(irc.nick, msg):  # message is direct command
             return
         (channel, text) = msg.args
 
@@ -81,12 +100,12 @@ class Hailo(callbacks.Plugin):
         replyWhenSpokenTo = self.registryValue('replyWhenSpokenTo', channel)
 
         mention = irc.nick.lower() in text.lower()
-        spokenTo = msg.args[1].lower().startswith('%s: ' % irc.nick.lower())
+        spokenTo = msg.args[1].lower().startswith(f'{irc.nick.lower()}: ')
 
         if replyWhenSpokenTo and spokenTo:
             reply = 1000
-            text = text.replace('%s: ' % irc.nick, '')
-            text = text.replace('%s: ' % irc.nick.lower(), '')
+            text = text.replace(f'{irc.nick}: ', '')
+            text = text.replace(f'{irc.nick.lower()}: ', '')
 
         if replyOnMention and mention:
             if not replyWhenSpokenTo and spokenTo:
@@ -94,7 +113,7 @@ class Hailo(callbacks.Plugin):
             else:
                 reply = 1000
 
-        if randint(0, 999) < reply:
+        if random.randint(0, 999) < reply:
             self.reply(irc, msg, text)
 
         if learn:
@@ -109,31 +128,20 @@ class Hailo(callbacks.Plugin):
             irc.error('Not in a channel, not sure what database to use.')
             return
 
-        reply = self.registryValue('reply', channel)
         self.reply(irc, msg, message)
     hailo = wrap(hailo, ['text'])
 
     def sanitize(self, t):
-        b = t
-        try:
-            t = t.replace('`','')
-            t = t.replace('`','')
-            t = t.replace('|','')
-            t = t.replace('&','')
-            t = t.replace('>', '')
-            t = t.replace('<', '')
-            t = t.replace(';', '')
-            t = t.replace('"', '')
-            return t
-        except:
-            self.log.error('Hailo crashed on this message: ' + str(b))
-        return
+        result = sanitize(t)
+        if result is None:
+            self.log.error('Hailo crashed on this message: %s', str(t))
+        return result
 
     # Remove nicks when adding to DB.
     def strip_nick(self, irc, msg, text):
         for user in irc.state.channels[msg.args[0]].users:
-            if len(user) <= 4: # Do not replace short nicks, as they might very
-                               # well be part of a word
+            if len(user) <= 4:  # Do not replace short nicks, as they might very
+                                # well be part of a word
                 continue
             text = text.replace(user, self.magicnick)
             text = text.replace(user.lower(), self.magicnick)
@@ -152,10 +160,8 @@ class Hailo(callbacks.Plugin):
                 continue
             users.append(u)
 
-
-
         # Get a random user from the given list of users
-        randuser = lambda u: u[randint(0, len(u)-1)]
+        randuser = lambda u: u[random.randint(0, len(u) - 1)]
 
         # For each occurance of magicnick, replace with a random nick.
         # Also check for lowercased versions or capitalize, even though this
@@ -175,41 +181,37 @@ class Hailo(callbacks.Plugin):
 
         # Bit of backwards compability.
         for i in range(text.lower().count('nick')):
-            text = text.replace('nick', randuser(users), 1) # for old DBs
-            text = text.replace('Nick', randuser(users), 1) # for old DBs
+            text = text.replace('nick', randuser(users), 1)  # for old DBs
+            text = text.replace('Nick', randuser(users), 1)  # for old DBs
 
         for i in range(text.lower().count(irc.nick.lower())):
-            text = text.replace(irc.nick, randuser(users), 1) # for old DBs
-            text = text.replace(irc.nick.lower(), randuser(users), 1) # for old DBs
-            text = text.replace(irc.nick.capitalize(), randuser(users), 1) # for old DBs
+            text = text.replace(irc.nick, randuser(users), 1)  # for old DBs
+            text = text.replace(irc.nick.lower(), randuser(users), 1)  # for old DBs
+            text = text.replace(irc.nick.capitalize(), randuser(users), 1)  # for old DBs
         return text
 
     def learn(self, irc, msg, text):
         text = self.sanitize(text)
         text = self.strip_nick(irc, msg, text)
-        subprocess.getoutput('%s %s' % (self.cmd(msg.args[0]), '-l "%s"' % text))
+        subprocess.getoutput(f'{self.cmd(msg.args[0])} -l "{text}"')
 
     def reply(self, irc, msg, text):
         nick = msg.nick
         channel = msg.args[0]
         text = self.sanitize(text)
         text = self.strip_nick(irc, msg, text)
-        out = subprocess.getoutput('%s %s' % (self.cmd(msg.args[0]),'-r "%s"' % text))
+        out = subprocess.getoutput(f'{self.cmd(msg.args[0])} -r "{text}"')
         if out and out != text and out != nick and not out.startswith('DBD::SQLite::db'):
-            out = out.replace('\n','').replace('\t','')
+            out = out.replace('\n', '').replace('\t', '')
             out = out.replace(irc.nick, self.magicnick)
             out = self.add_nick(irc, msg, out)
             out = out.strip()
             if out.startswith(irc.nick):
-                self.log.info("Hailo tried to output " + str(out))
+                self.log.info('Hailo tried to output %s', str(out))
                 return
             if out != nick:
                 irc.reply(out)
             return
-        self.log.warning('Hailo tried to output: "%s"' % str(out))
-        
+        self.log.warning('Hailo tried to output: "%s"', str(out))
+
 Class = Hailo
-
-
-# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
-

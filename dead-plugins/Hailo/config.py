@@ -28,9 +28,24 @@
 
 ###
 
-from supybot.test import *
+import supybot.conf as conf
+import supybot.registry as registry
 
-class HailoTestCase(PluginTestCase):
-    plugins = ('Hailo',)
+def configure(advanced):
+    from supybot.questions import expect, anything, something, yn
+    conf.registerPlugin('Hailo', True)
 
-# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
+Hailo = conf.registerPlugin('Hailo')
+
+conf.registerChannelValue(Hailo, 'learn',
+    registry.Boolean(True, """Learn on each message in a channel."""))
+
+conf.registerChannelValue(Hailo, 'reply',
+    registry.NonNegativeInteger(0,"""permille (‰ (1/1000)) of chance of auto reply."""))
+
+conf.registerChannelValue(Hailo, 'replyOnMention', registry.Boolean(True,
+    """Reply when the bots nick is mentioned in a sentence."""))
+
+conf.registerChannelValue(Hailo, 'replyWhenSpokenTo', registry.Boolean(True,
+    """Reply if the bots nick is the first in a sentence. Takes precedence over
+    replyOnMention."""))
