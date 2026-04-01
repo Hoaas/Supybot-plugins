@@ -39,9 +39,45 @@ try:
     from supybot.i18n import PluginInternationalization
     _ = PluginInternationalization('Olympics')
 except ImportError:
-    # Placeholder that allows to run the plugin on a bot
-    # without the i18n module
     _ = lambda x: x
+
+
+def getTotalMedals(country):
+    """Return (gold, silver, bronze) totals for a country dict."""
+    medals_number = country.get('medalsNumber', [])
+    for medal_entry in medals_number:
+        if medal_entry.get('type') == 'Total':
+            return (medal_entry.get('gold', 0), medal_entry.get('silver', 0), medal_entry.get('bronze', 0))
+    return (0, 0, 0)
+
+
+def getMedalCounts(country, *keys):
+    """Return a tuple of medal counts for the given keys from the Total entry."""
+    medals_number = country.get('medalsNumber', [])
+    total_medals = {}
+    for medal_entry in medals_number:
+        if medal_entry.get('type') == 'Total':
+            total_medals = medal_entry
+            break
+    return tuple(total_medals.get(key, 0) for key in keys)
+
+
+def createReply(country, place):
+    """Format a single medal standings line for a country."""
+    medals_number = country.get('medalsNumber', [])
+    total_medals = {}
+    for medal_entry in medals_number:
+        if medal_entry.get('type') == 'Total':
+            total_medals = medal_entry
+            break
+
+    gold = total_medals.get('gold', 0)
+    silver = total_medals.get('silver', 0)
+    bronze = total_medals.get('bronze', 0)
+    total = total_medals.get('total', 0)
+    name = country.get('description', 'Unknown')
+
+    return f'{place}. {name} - \U0001f947{gold} \U0001f948{silver} \U0001f949{bronze} (Total: {total})'
 
 
 class Olympics(callbacks.Plugin):
@@ -52,8 +88,10 @@ class Olympics(callbacks.Plugin):
 
     @wrap
     def medals(self, irc, msg, args):
+        """takes no arguments
+
+        Return the top medal winners for the current Olympics.
         """
-        Return top medal winners."""
         try:
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
@@ -62,13 +100,11 @@ class Olympics(callbacks.Plugin):
                 'Referer': 'https://www.olympics.com/'
             }
             data = utils.web.getUrl(self.url, headers=headers).decode()
-            
+
             m = json.loads(data)
-            
-            # Extract medals data from the API response
+
             medal_standings = m.get('medalStandings', {})
-            
-            # medalStandings is a dict with 'medalsTable' containing the list of countries
+
             all_countries = []
             if isinstance(medal_standings, dict):
                 for key in medal_standings.keys():
@@ -76,56 +112,12 @@ class Olympics(callbacks.Plugin):
                     if isinstance(value, list):
                         all_countries = value
                         break
-            
-            # Sort by the official rank field from the API
+
             sortedlist = sorted(all_countries, key=lambda k: k.get('rank', 999))
-            
-            # Display top 5 countries
+
             for i, country in enumerate(sortedlist[:5], 1):
-                irc.reply(self.createReply(country, i))
+                irc.reply(createReply(country, i))
         except Exception as e:
-            irc.error(f"Error: {type(e).__name__}: {str(e)}")
-
-    def getTotalMedals(self, country):
-        """Extract total medals for a country."""
-        medals_number = country.get('medalsNumber', [])
-        for medal_entry in medals_number:
-            if medal_entry.get('type') == 'Total':
-                return (medal_entry.get('gold', 0), medal_entry.get('silver', 0), medal_entry.get('bronze', 0))
-        return (0, 0, 0)
-
-    def getMedalCounts(self, country, *keys):
-        """Extract medal counts from medalsNumber array for sorting."""
-        medals_number = country.get('medalsNumber', [])
-        total_medals = {}
-        for medal_entry in medals_number:
-            if medal_entry.get('type') == 'Total':
-                total_medals = medal_entry
-                break
-        return tuple(total_medals.get(key, 0) for key in keys)
-
-    def createReply(self, country, place):
-        # Extract total medals from medalsNumber array
-        medals_number = country.get('medalsNumber', [])
-        total_medals = {}
-        for medal_entry in medals_number:
-            if medal_entry.get('type') == 'Total':
-                total_medals = medal_entry
-                break
-        
-        gold = total_medals.get('gold', 0)
-        silver = total_medals.get('silver', 0)
-        bronze = total_medals.get('bronze', 0)
-        total = total_medals.get('total', 0)
-        
-        formattedString = "{}. {} - 🥇{} 🥈{} 🥉{} (Total: {})".format(
-            place,
-            country.get("description", "Unknown"),
-            gold,
-            silver,
-            bronze,
-            total
-        )
-        return formattedString
+            irc.error(f'Error: {type(e).__name__}: {str(e)}')
 
 Class = Olympics

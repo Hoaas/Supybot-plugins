@@ -2,7 +2,7 @@
 requires = ["setuptools"]
 
 [project]
-name = "limnoria-riomedals"
+name = "limnoria-olympics"
 version = "0.0.0"
 authors = [
     { name = "Terje Hoås" },
@@ -18,10 +18,10 @@ classifiers = [
 ]
 
 [project.entry-points.'limnoria.plugins']
-RioMedals = "limnoria_riomedals"
+Olympics = "limnoria_olympics"
 
 [tool.setuptools.package-dir]
-"limnoria_riomedals" = "."
+"limnoria_olympics" = "."
 
 [tool.setuptools.package-data]
-"limnoria_riomedals" = ["locales/*.po"]
+"limnoria_olympics" = ["locales/*.po"]
