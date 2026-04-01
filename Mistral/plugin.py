@@ -327,17 +327,6 @@ class Mistral(callbacks.Plugin):
         context_parts.append(f"Current question: {text}")
         return "\n".join(context_parts)
 
-    def _build_conversation_instructions(self, channel):
-        """Build the per-conversation instructions string for *channel*.
-
-        This is passed as the *instructions* kwarg to conversations.start()
-        and overrides/supplements the agent-level instructions for this call.
-        """
-        lang = self.registryValue('language', channel)
-        if lang:
-            return f"Always reply in the following language: {lang}."
-        return "Reply in the same language the user wrote in."
-
     @wrap(['text'])
     def mistral(self, irc, msg, args, text):
         """<text>
@@ -374,7 +363,6 @@ class Mistral(callbacks.Plugin):
             context_message = self.create_context_message(irc, msg, text)
 
             if self.agent:
-                conversation_instructions = self._build_conversation_instructions(channel)
                 inputs_payload = [
                     {
                         "role": "user",
@@ -387,7 +375,6 @@ class Mistral(callbacks.Plugin):
                     response = self.client.beta.conversations.start(
                         agent_id=self.agent.id,
                         inputs=inputs_payload,
-                        instructions=conversation_instructions,
                     )
                 except Exception as agent_err:
                     err_str = str(agent_err)
@@ -402,17 +389,10 @@ class Mistral(callbacks.Plugin):
                         raise
                 if self.agent is None:
                     # Fell back after 404 — use chat.complete for this call.
-                    lang = self.registryValue('language', channel)
-                    lang_instruction = (
-                        f"Always reply in the following language: {lang}."
-                        if lang else
-                        "Reply in the same language the user wrote in."
-                    )
-                    system_prompt = f"{self._build_agent_instructions()} {lang_instruction}"
                     response = self.client.chat.complete(
                         model=self.registryValue('model'),
                         messages=[
-                            {"role": "system", "content": system_prompt},
+                            {"role": "system", "content": self._build_agent_instructions()},
                             {"role": "user", "content": context_message}
                         ],
                         temperature=self.registryValue('temperature')
@@ -425,16 +405,10 @@ class Mistral(callbacks.Plugin):
                         self.log.error("extract_response_text returned None for response: %s", repr(response))
                     sources = extract_sources(response)
             else:
-                lang = self.registryValue('language', channel)
-                if lang:
-                    lang_instruction = f"Always reply in the following language: {lang}."
-                else:
-                    lang_instruction = "Reply in the same language the user wrote in."
-                system_prompt = f"{self._build_agent_instructions()} {lang_instruction}"
                 response = self.client.chat.complete(
                     model=self.registryValue('model'),
                     messages=[
-                        {"role": "system", "content": system_prompt},
+                        {"role": "system", "content": self._build_agent_instructions()},
                         {"role": "user", "content": context_message}
                     ],
                     temperature=self.registryValue('temperature')
@@ -490,41 +464,6 @@ class Mistral(callbacks.Plugin):
                 irc.reply(f"Agent created ({self.agent.id}) with template '{template}'.")
             else:
                 irc.reply(_("Error: Failed to create agent. Check bot logs."))
-
-    @wrap([optional('text')])
-    def mistrallang(self, irc, msg, args, lang):
-        """[<language>]
-
-        Gets or sets the language for Mistral replies in this channel.
-        Use an IETF tag such as 'en', 'no', 'de'. Use 'off' or leave blank
-        to reset to auto-detect (reply in the user's language)."""
-
-        channel = msg.args[0]
-        if not irc.isChannel(channel):
-            irc.reply(_("This command must be used in a channel."))
-            return
-
-        if lang is None:
-            current = self.registryValue('language', channel)
-            if current:
-                irc.reply(f"Language for {channel} is set to '{current}'.")
-            else:
-                irc.reply(f"Language for {channel} is set to auto-detect.")
-            return
-
-        if lang.lower() == 'off':
-            lang = ''
-
-        try:
-            conf.supybot.plugins.Mistral.language.get(channel).setValue(lang)
-        except Exception as e:
-            irc.reply(f"Error setting language: {e}")
-            return
-
-        if lang:
-            irc.reply(f"Language for {channel} set to '{lang}'.")
-        else:
-            irc.reply(f"Language for {channel} reset to auto-detect.")
 
     def die(self):
         """Clean up when the plugin is unloaded."""

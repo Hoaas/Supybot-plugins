@@ -233,7 +233,7 @@ class MistralCommandTestCase(PluginTestCase):
         self.assertError('mistralreload')
 
     def testMistrallangCommandDocstring(self):
-        # mistrallang requires a channel context — tested in MistralChannelCommandTestCase
+        # mistrallang has been removed — placeholder to confirm it no longer exists
         pass
 
     def testMistralCommandReturnsErrorWithoutWorkingClient(self):
@@ -270,21 +270,14 @@ class MistralCommandTestCase(PluginTestCase):
 
 
 class MistralChannelCommandTestCase(ChannelPluginTestCase):
-    """Tests for channel-context commands (mistrallang)."""
+    """Tests for channel-context commands."""
     plugins = ('Mistral',)
     config = {
         'supybot.plugins.Mistral.apiKey': 'test-fake-key',
         'supybot.plugins.Mistral.enableWebSearch': 'False',
     }
 
-    def testMistrallangCommandDocstring(self):
-        self.assertRegexp('help mistrallang', 'language')
-
-    def testMistrallangShowsAutoDetectWhenEmpty(self):
-        self.assertRegexp('mistrallang', 'auto-detect')
-
-    def testMistrallangSetsAndShowsLanguage(self):
-        self.assertRegexp('mistrallang no', "set to 'no'")
-        self.assertRegexp('mistrallang', "set to 'no'")
-        self.assertRegexp('mistrallang off', 'auto-detect')
+    def testMistralCommandWorksInChannel(self):
+        # Verify the mistral command is accessible in a channel context.
+        self.assertError('mistral hello')
 

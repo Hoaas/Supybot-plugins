@@ -78,8 +78,3 @@ conf.registerGlobalValue(Mistral, 'promptTemplate',
     the agent's system instructions. Templates are stored as .txt files in the plugin's
     prompts/ directory. Bundled templates: small_channel, large_channel.
     Change takes effect after 'mistralreload'.""")))
-
-conf.registerChannelValue(Mistral, 'language',
-    registry.String('', _("""Language for bot replies in this channel. Use an IETF
-    language tag such as 'en', 'no', 'de', 'fr'. Leave empty to auto-detect from
-    the user's message (recommended).""")))
