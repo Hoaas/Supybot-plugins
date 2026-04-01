@@ -30,15 +30,34 @@
 
 import json
 
-from supybot import utils, plugins, ircutils, callbacks
+import supybot.utils as utils
 from supybot.commands import *
+import supybot.callbacks as callbacks
 try:
     from supybot.i18n import PluginInternationalization
     _ = PluginInternationalization('GodtNo')
 except ImportError:
-    # Placeholder that allows to run the plugin on a bot
-    # without the i18n module
     _ = lambda x: x
+
+
+def formatRecipe(data):
+    """Parse a godt.no GraphQL JSON response and return a formatted string.
+
+    Returns a string on success, or None if the response contains no recipe.
+    data may be bytes or str.
+    """
+    if isinstance(data, bytes):
+        data = data.decode()
+    j = json.loads(data)
+    randomRecipe = j.get('data', {}).get('randomRecipe')
+    if randomRecipe is None:
+        return None
+    title = randomRecipe.get('title', '').strip()
+    cookingTime = randomRecipe.get('cookingTime')
+    relativeUrl = randomRecipe.get('links', {}).get('relativeUrl', '')
+    if cookingTime is not None:
+        return f'{title} ({cookingTime} minutter) - https://godt.no{relativeUrl}'
+    return f'{title} - https://godt.no{relativeUrl}'
 
 
 class GodtNo(callbacks.Plugin):
@@ -47,25 +66,43 @@ class GodtNo(callbacks.Plugin):
 
     @wrap([])
     def middag(self, irc, msg, args):
-        """Henter tilfeldig middag fra godt.no
-        """
-        url = 'https://www.godt.no/api/graphql?operationName=randomRecipe&variables=%7B%22input%22%3A%7B%22filter%22%3A%5B%7B%22field%22%3A%22status%22%2C%22value%22%3A%22published%22%7D%2C%7B%22field%22%3A%22tag_id%22%2C%22value%22%3A133%7D%5D%7D%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%22a3c1210eb33c7eb2eb9cbd1d102450ddf078e50740af9d9eb87c48a1761763e1%22%7D%7D'
+        """takes no arguments
 
+        Returns a random dinner recipe from godt.no."""
+        url = 'https://www.godt.no/api/graphql'
+        query = ('query randomRecipe($input: RandomlySortedSearchInput!) {'
+                 ' randomRecipe(input: $input) { id title cookingTime links { relativeUrl } } }')
+        payload = json.dumps({
+            'operationName': 'randomRecipe',
+            'variables': {
+                'input': {
+                    'filter': [
+                        {'field': 'status', 'value': 'published'},
+                        {'field': 'tag_id', 'value': '8'},
+                    ]
+                }
+            },
+            'query': query,
+        }).encode()
         headers = {
-            'User-Agent': 'https://github.com/Hoaas/Supybot-plugins'
+            'User-Agent': 'https://github.com/Hoaas/Supybot-plugins',
+            'Content-Type': 'application/json',
+            'apollo-require-preflight': 'true',
         }
 
-        data = utils.web.getUrl(url, headers=headers)
-        j = json.loads(data)
-        randomRecipe = j.get('data').get('randomRecipe')
-        title = randomRecipe.get('title').strip()
-        time = randomRecipe.get('preparationTime')
-        relativeUrl = randomRecipe.get('links').get('relativeUrl')
+        try:
+            data = utils.web.getUrl(url, headers=headers, data=payload)
+            result = formatRecipe(data)
+        except Exception as e:
+            self.log.error('GodtNo: failed to fetch recipe: %s', e)
+            irc.error(_('Could not fetch a recipe from godt.no.'))
+            return
 
-        irc.reply('%s (%d minutter) - https://godt.no%s' % (title, time, relativeUrl))
-        
+        if result is None:
+            irc.error(_('Could not fetch a recipe from godt.no.'))
+            return
+
+        irc.reply(result)
+
 
 Class = GodtNo
-
-
-# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
