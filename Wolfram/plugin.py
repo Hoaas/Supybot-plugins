@@ -16,6 +16,9 @@ except ImportError:
 
 
 _WOLFRAM_URL = 'https://api.wolframalpha.com/v2/query?'
+_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+}
 
 
 def formatPodText(text):
@@ -100,7 +103,7 @@ class Wolfram(callbacks.Plugin):
 
         url = _WOLFRAM_URL + urllib.parse.urlencode({'input': question, 'appid': apikey, 'format': 'plaintext,image'})
         try:
-            xml = utils.web.getUrl(url)
+            xml = utils.web.getUrl(url, headers=_HEADERS)
         except Exception as e:
             self.log.warning('Wolfram Alpha request failed: %s', e)
             irc.error(_('Failed to contact Wolfram Alpha.'))
