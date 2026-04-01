@@ -1,0 +1,18 @@
+# TraktTV plugin - English strings
+# Copyright (C) 2012, Terje Hoås
+# This file is distributed under the same license as the TraktTV plugin.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: TraktTV Limnoria plugin\n"
+"POT-Creation-Date: 2026-04-01\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Client ID to use Trakt API. A key can be requested from https://trakt.tv/oauth/applications by creating a new application."
+msgstr "Client ID to use Trakt API. A key can be requested from https://trakt.tv/oauth/applications by creating a new application."
+
+msgid "Client Secret to use Trakt API. A key can be requested from https://trakt.tv/oauth/applications by creating a new application."
+msgstr "Client Secret to use Trakt API. A key can be requested from https://trakt.tv/oauth/applications by creating a new application."
