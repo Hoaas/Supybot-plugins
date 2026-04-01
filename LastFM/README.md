@@ -2,7 +2,8 @@ Shows the currently playing or last played track for a Last.fm user.
 
 ## Setup
 
-Obtain a Last.fm API key at https://www.last.fm/api/account and configure it:
+Obtain a Last.fm API key at https://www.last.fm/api/accounts and configure it.
+Each user must register their own key — sharing or bundling an API key violates the [Last.fm API Terms of Service](https://www.last.fm/api/tos).
 
 ```
 config supybot.plugins.LastFM.apikey <your-api-key>

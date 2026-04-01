@@ -46,4 +46,4 @@ def configure(advanced):
 LastFM = conf.registerPlugin('LastFM')
 conf.registerGlobalValue(LastFM, 'apikey',
     registry.String('Not set', """API key for the LastFM API.
-    Obtain one at https://www.last.fm/api.""", private=True))
+    Obtain one at https://www.last.fm/api/accounts.""", private=True))
