@@ -1,0 +1,17 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Limnoria\n"
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+#: plugin.py
+msgid "Failed to fetch municipality data from Wikipedia."
+msgstr "Failed to fetch municipality data from Wikipedia."
+
+#: plugin.py
+msgid "No municipality data available."
+msgstr "No municipality data available."
+
+#: plugin.py
+msgid "No municipality found matching \u2019%s\u2019."
+msgstr "No municipality found matching \u2019%s\u2019."
