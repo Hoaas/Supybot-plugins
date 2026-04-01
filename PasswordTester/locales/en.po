@@ -1,0 +1,21 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Limnoria\n"
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+#: plugin.py
+msgid "<password>\n\nReturns if and how many times this password has been seen in data breaches."
+msgstr "<password>\n\nReturns if and how many times this password has been seen in data breaches."
+
+#: plugin.py
+msgid "The call to HIBP failed. Unable to check password status at this time."
+msgstr "The call to HIBP failed. Unable to check password status at this time."
+
+#: plugin.py
+msgid "This password has been seen {count} times in data breaches."
+msgstr "This password has been seen {count} times in data breaches."
+
+#: plugin.py
+msgid "This password has not been seen in any known data breaches."
+msgstr "This password has not been seen in any known data breaches."
