@@ -62,10 +62,20 @@ def parseWolframXml(xml):
         title = pod.attrib.get('title', '')
         if 'input' in title.lower():
             continue
-        for plaintext in pod.findall('.//plaintext'):
-            if plaintext.text:
-                pods.append((title, formatPodText(plaintext.text)))
-                break  # one plaintext per pod
+        for subpod in pod.findall('.//subpod'):
+            # Prefer <plaintext> content; fall back to <img alt="..."> for
+            # pods that only have an image representation.
+            text = None
+            pt = subpod.find('plaintext')
+            if pt is not None and pt.text:
+                text = pt.text
+            else:
+                img = subpod.find('img')
+                if img is not None:
+                    text = img.attrib.get('alt', '').strip() or None
+            if text:
+                pods.append((title, formatPodText(text)))
+                break  # one subpod per pod
     return {'pods': pods}
 
 
@@ -88,7 +98,7 @@ class Wolfram(callbacks.Plugin):
 
         maxoutput = dict(options).get('lines', 2)
 
-        url = _WOLFRAM_URL + urllib.parse.urlencode({'input': question, 'appid': apikey})
+        url = _WOLFRAM_URL + urllib.parse.urlencode({'input': question, 'appid': apikey, 'format': 'plaintext,image'})
         try:
             xml = utils.web.getUrl(url)
         except Exception as e:
