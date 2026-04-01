@@ -1,0 +1,13 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Limnoria\n"
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+#: plugin.py
+msgid "API key not set. See 'config help supybot.plugins.OMDb.apikey'."
+msgstr "API key not set. See 'config help supybot.plugins.OMDb.apikey'."
+
+#: plugin.py
+msgid "[--year <year>] <movie>\n\n Shows information about the given movie or series title, including\n Metacritic, Rotten Tomatoes, and IMDb ratings."
+msgstr "[--year <year>] <movie>\n\n Shows information about the given movie or series title, including\n Metacritic, Rotten Tomatoes, and IMDb ratings."

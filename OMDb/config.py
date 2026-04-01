@@ -33,9 +33,7 @@ import supybot.registry as registry
 try:
     from supybot.i18n import PluginInternationalization
     _ = PluginInternationalization('OMDb')
-except:
-    # Placeholder that allows to run the plugin on a bot
-    # without the i18n module
+except ImportError:
     _ = lambda x: x
 
 
@@ -55,4 +53,3 @@ OMDb = conf.registerPlugin('OMDb')
 
 conf.registerGlobalValue(OMDb, 'apikey', registry.String('Not set', """API key to use OMDb API. A key can be requested from https://www.omdbapi.com/apikey.aspx.""", private=True))
 
-# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

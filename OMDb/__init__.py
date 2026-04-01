@@ -40,7 +40,7 @@ import supybot.world as world
 __version__ = ""
 
 # XXX Replace this with an appropriate author or supybot.Author instance.
-__author__ = supybot.authors.unknown
+__author__ = supybot.Author('Terje Hoås', 'Hoaas', 'terje@robogoat.dev')
 
 # This is a dictionary mapping supybot.Author instances to lists of
 # contributions.
@@ -64,5 +64,3 @@ if world.testing:
 Class = plugin.Class
 configure = config.configure
 
-
-# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
