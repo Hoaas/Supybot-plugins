@@ -5,8 +5,9 @@ Originally found online (believed to be written by Ed Summers), then modified by
 ## Commands
 
 ### `wolfram [--lines <num>] <query>`
+### `alpha [--lines <num>] <query>`
 
-Ask Wolfram Alpha a question. "Input interpretation" pods are always skipped; up to `--lines` result pods are returned (default 2).
+Ask Wolfram Alpha a question. `alpha` is an alias for `wolfram`. "Input interpretation" pods are always skipped; up to `--lines` result pods are returned (default 2).
 
 **Examples:**
 
@@ -14,10 +15,7 @@ Ask Wolfram Alpha a question. "Input interpretation" pods are always skipped; up
 !wolfram 5+5
 Result: 10
 
-!wolfram 527 USD in EUR
-Result: €481.10 (euros)  (2026 estimate)
-
-!wolfram distance Paris London
+!alpha distance Paris London
 Result: 342 km (kilometers)
 
 !wolfram --lines 1 population of Norway

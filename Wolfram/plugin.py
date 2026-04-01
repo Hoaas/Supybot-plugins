@@ -76,14 +76,7 @@ class Wolfram(callbacks.Plugin):
     """Plugin for querying the Wolfram Alpha API."""
     threaded = True
 
-    @wrap([getopts({'lines': 'positiveInt'}), 'text'])
-    @internationalizeDocstring
-    def wolfram(self, irc, msg, args, options, question):
-        """[--lines <num>] <query>
-
-        Ask Wolfram Alpha a question. Uses the Wolfram Alpha API.
-        --lines sets the maximum number of results to return (default 2).
-        """
+    def _query(self, irc, options, question):
         apikey = self.registryValue('apikey')
         if not apikey or apikey == 'Not set':
             irc.reply(_("API key not set. See 'config help supybot.plugins.Wolfram.apikey'."))
@@ -115,6 +108,26 @@ class Wolfram(callbacks.Plugin):
                 return
             for title, text in pods[:maxoutput]:
                 irc.reply(f'{title}: {text}')
+
+    @wrap([getopts({'lines': 'positiveInt'}), 'text'])
+    @internationalizeDocstring
+    def wolfram(self, irc, msg, args, options, question):
+        """[--lines <num>] <query>
+
+        Ask Wolfram Alpha a question. Uses the Wolfram Alpha API.
+        --lines sets the maximum number of results to return (default 2).
+        """
+        self._query(irc, options, question)
+
+    @wrap([getopts({'lines': 'positiveInt'}), 'text'])
+    @internationalizeDocstring
+    def alpha(self, irc, msg, args, options, question):
+        """[--lines <num>] <query>
+
+        Ask Wolfram Alpha a question. Uses the Wolfram Alpha API.
+        --lines sets the maximum number of results to return (default 2).
+        """
+        self._query(irc, options, question)
 
 
 Class = Wolfram

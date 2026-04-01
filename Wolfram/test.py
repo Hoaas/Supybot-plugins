@@ -153,6 +153,7 @@ class WolframCommandTestCase(PluginTestCase):
         utils.web.getUrl = lambda url, **kw: xml
         try:
             self.assertResponse('wolfram 5+5', 'Result: 10')
+            self.assertResponse('alpha 5+5', 'Result: 10')
         finally:
             utils.web.getUrl = original
 
@@ -161,7 +162,7 @@ class WolframCommandTestCase(PluginTestCase):
         original = utils.web.getUrl
         utils.web.getUrl = lambda url, **kw: xml
         try:
-            self.assertResponse('wolfram 5+5', 'Result: 10')
+            self.assertResponse('alpha 5+5', 'Result: 10')
         finally:
             utils.web.getUrl = original
 
@@ -175,7 +176,7 @@ class WolframCommandTestCase(PluginTestCase):
         utils.web.getUrl = lambda url, **kw: xml
         try:
             # Default maxoutput=2: only first two pods returned.
-            self.assertResponse('wolfram 5+5', 'Result: 10')
+            self.assertResponse('alpha 5+5', 'Result: 10')
         finally:
             utils.web.getUrl = original
 
@@ -184,7 +185,7 @@ class WolframCommandTestCase(PluginTestCase):
         original = utils.web.getUrl
         utils.web.getUrl = lambda url, **kw: xml
         try:
-            self.assertNotError('wolfram --lines 1 5+5')
+            self.assertNotError('alpha --lines 1 5+5')
         finally:
             utils.web.getUrl = original
 
@@ -192,7 +193,7 @@ class WolframCommandTestCase(PluginTestCase):
         original = utils.web.getUrl
         utils.web.getUrl = lambda url, **kw: _noresult()
         try:
-            self.assertError('wolfram unknowngarbage')
+            self.assertError('alpha unknowngarbage')
         finally:
             utils.web.getUrl = original
 
@@ -200,7 +201,7 @@ class WolframCommandTestCase(PluginTestCase):
         original = utils.web.getUrl
         utils.web.getUrl = lambda url, **kw: _didyoumean('5 + 5')
         try:
-            self.assertResponse('wolfram 5 ++ 5', 'Did you mean: 5 + 5?')
+            self.assertResponse('alpha 5 ++ 5', 'Did you mean: 5 + 5?')
         finally:
             utils.web.getUrl = original
 
@@ -208,7 +209,7 @@ class WolframCommandTestCase(PluginTestCase):
         original = utils.web.getUrl
         utils.web.getUrl = lambda url, **kw: _apierror('Invalid appid')
         try:
-            self.assertError('wolfram anything')
+            self.assertError('alpha anything')
         finally:
             utils.web.getUrl = original
 
@@ -216,10 +217,10 @@ class WolframCommandTestCase(PluginTestCase):
         original = utils.web.getUrl
         utils.web.getUrl = lambda url, **kw: (_ for _ in ()).throw(IOError('network down'))
         try:
-            self.assertError('wolfram anything')
+            self.assertError('alpha anything')
         finally:
             utils.web.getUrl = original
 
     def testWolframNoApiKey(self):
         with conf.supybot.plugins.Wolfram.apikey.context(''):
-            self.assertNotError('wolfram anything')
+            self.assertNotError('alpha anything')
