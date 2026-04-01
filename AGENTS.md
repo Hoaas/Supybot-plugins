@@ -25,7 +25,6 @@ limnoria-test PluginName/ -k testMethodName
 limnoria-test */
 ```
 
-There is no `Makefile`, `tox.ini`, `setup.py`, or CI configuration in this repository.
 Install Limnoria via pip (`pip install limnoria`) to get the `limnoria-test` command.
 
 ---
@@ -76,7 +75,7 @@ import supybot
 import supybot.world as world
 
 __version__ = ""
-__author__ = supybot.authors.unknown
+__author__ = supybot.Author('Terje Hoås', 'Hoaas', 'terje@robogoat.dev')
 __contributors__ = {}
 __url__ = ''
 
@@ -108,6 +107,12 @@ try:
 except ImportError:
     _ = lambda x: x
 
+
+def formatResult(item):
+    """Module-level helper — pure logic, no bot dependency."""
+    return f'{item["name"]}: {item["value"]}'
+
+
 class PluginName(callbacks.Plugin):
     """Plugin docstring shown to users with 'help PluginName'."""
     threaded = True
@@ -118,10 +123,18 @@ class PluginName(callbacks.Plugin):
 
         Description shown by the 'help' command.
         """
-        irc.reply(text)
+        data = utils.web.getUrl(f'https://example.com/api?q={text}').decode()
+        result = formatResult(json.loads(data))
+        irc.reply(result)
 
 Class = PluginName   # Always the last line — required by Supybot
 ```
+
+### Command architecture
+
+Keep command methods **thin**: fetch data, call a helper, reply. Extract all
+non-trivial logic (parsing, filtering, formatting) into **module-level helper
+functions**. This makes the logic testable without a running bot or network.
 
 ---
 
@@ -165,16 +178,7 @@ except ImportError:
 
 ### String formatting
 
-Prefer f-strings. Avoid string concatenation with `+` for more than two strings.
-
-```python
-# Bad
-s = a + b + c
-# Good
-s = f'{a}{b}{c}'
-```
-
-Use only `%s` (not `%d`, `%f`) in format strings unless float precision is needed.
+Prefer f-strings. Avoid `+` concatenation for more than two strings, and use only `%s` (not `%d`, `%f`) in format strings unless float precision is needed.
 
 ### Naming conventions
 
@@ -233,11 +237,25 @@ if not apikey or apikey == 'Not set':
 
 ### IRC formatting
 
+Use `ircutils.bold(text)`, `ircutils.mircColor(text, 'Red')`, or `ircutils.mircColor(text, 12)` for IRC text formatting.
+
+### Timezones
+
+Always use timezone-aware datetimes. Comparing an aware datetime to a naive
+one raises a `TypeError` at runtime in Python 3.
+
 ```python
-ircutils.bold(text)
-ircutils.mircColor(text, 'Red')   # named colour
-ircutils.mircColor(text, 12)      # colour by number
+from datetime import datetime, timezone
+
+# Bad — naive, will crash if compared to an aware datetime
+now = datetime.now()
+
+# Good — aware
+now = datetime.now(timezone.utc)
 ```
+
+Keep `tzinfo` throughout your code; don't strip it with `.replace(tzinfo=None)`
+unless you are certain all datetimes in the comparison are naive.
 
 ---
 
@@ -267,6 +285,120 @@ ircutils.mircColor(text, 12)      # colour by number
 
 ---
 
+## Internationalisation (i18n)
+
+Only add i18n if the plugin has meaningful user-visible strings worth
+translating (error messages, formatted output, docstrings). If the plugin
+simply proxies raw data from an external source with no plugin-authored
+strings, skip i18n.
+
+### Standard setup
+
+Update the i18n import to also import `internationalizeDocstring`:
+
+```python
+try:
+    from supybot.i18n import (PluginInternationalization,
+                              internationalizeDocstring)
+    _ = PluginInternationalization('PluginName')
+except ImportError:
+    _ = lambda x: x
+    internationalizeDocstring = lambda f: f
+```
+
+Add `@internationalizeDocstring` to each command method — place it **between**
+`@wrap([...])` and `def`, not above `@wrap`:
+
+```python
+@wrap(['text'])
+@internationalizeDocstring
+def mycommand(self, irc, msg, args, text):
+    ...
+```
+
+Wrap every user-visible string with `_()`. This includes error messages and
+`irc.reply()` strings, but **not** data coming from APIs.
+
+### `.po` files
+
+Write `locales/en.po` as the source language file. The `msgid` is the English
+string from source; `msgstr` is also English (may improve wording or translate
+argument names in docstrings).
+
+```po
+msgid ""
+msgstr ""
+"Project-Id-Version: Limnoria\n"
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+#: plugin.py
+msgid "No results found"
+msgstr "No results found"
+```
+
+For docstrings, the `msgid` must match what Limnoria's `normalize()` produces:
+newlines collapsed to spaces except `\n\n` paragraph breaks, leading/trailing
+whitespace stripped:
+
+```po
+msgid "<location>\n\nShows water temperatures for locations around Norway."
+msgstr "<location>\n\nShows water temperatures for locations around Norway."
+```
+
+The `pyproject.toml` should include `"locales/*.po"` in `package_data`.
+
+### Norwegian language support
+
+`supybot.language` only accepts `de`, `en`, `es`, `fi`, `fr`, `it`, `ru` —
+Norwegian (`no`) is rejected by the validator. To support `no`, use a
+call-time translation wrapper instead of the bare `PluginInternationalization`
+instance, and add a per-plugin `language` config var.
+
+**`config.py`** — add alongside other config vars:
+
+```python
+conf.registerGlobalValue(PluginName, 'language', registry.String('', """Override
+    the language for this plugin. Leave empty to use the global
+    supybot.language setting. Accepts any locale code with a matching .po
+    file, including 'no' (Norwegian)."""))
+```
+
+**`plugin.py`** — replace the standard i18n block with:
+
+```python
+try:
+    import supybot.i18n as _i18n
+    from supybot.i18n import PluginInternationalization, internationalizeDocstring
+    _i18nInstance = PluginInternationalization('PluginName')
+
+    def _(s):
+        import supybot.conf as _conf
+        try:
+            lang = _conf.supybot.plugins.PluginName.language()
+        except Exception:
+            lang = ''
+        lang = lang or _i18n.currentLocale
+        if _i18nInstance.currentLocaleName != lang:
+            _i18nInstance.loadLocale(lang)
+        return _i18nInstance(s)
+
+except ImportError:
+    _ = lambda x: x
+    internationalizeDocstring = lambda f: f
+```
+
+`internationalizeDocstring` still works correctly because it calls
+`plugin_module._.__call__(docstring)` — the wrapper `_` is callable.
+
+Write `locales/no.po` with Norwegian translations. To activate on a live bot:
+
+```
+config supybot.plugins.PluginName.language no
+```
+
+---
+
 ## Writing Tests
 
 Limnoria provides `supybot.test.PluginTestCase` and
@@ -275,19 +407,80 @@ command must run inside a channel context.
 
 Both inherit from `unittest.TestCase`, so standard unittest conventions apply.
 
-### Minimal `test.py`
+### Two-class pattern
+
+Each plugin's `test.py` should have two test classes:
+
+**Class 1: `PluginNameHelperTestCase(SupyTestCase)`** — tests extracted
+module-level helper functions directly. No bot, no network, no mocking needed.
+Use small builder helpers to construct fixture data cleanly. Cover: happy path,
+no match, case insensitivity, stale/old data filtered, malformed/missing fields
+skipped, multiple results.
+
+**Class 2: `PluginNameCommandTestCase(PluginTestCase)`** — tests the full bot
+command with `utils.web.getUrl` monkey-patched. Use English strings in
+assertions (tests run in the default `en` locale).
 
 ```python
 from supybot.test import *
+import supybot.utils as utils
 
-class PluginNameTestCase(PluginTestCase):
-    plugins = ('PluginName',)
 
-    def testMyCommand(self):
-        self.assertNotError('mycommand some input')
+def makeEntry(name='Oslo', temp=18.5):
+    """Builder helper for fixture data."""
+    return {'name': name, 'temp': temp}
 
-    def testMyCommandResponse(self):
-        self.assertResponse('echo hello', 'hello')
+
+class WeatherHelperTestCase(SupyTestCase):
+
+    def testFindWeather(self):
+        data = [makeEntry('Oslo'), makeEntry('Bergen')]
+        self.assertEqual(findWeather(data, 'oslo')[0]['name'], 'Oslo')
+
+    def testFindWeatherNoMatch(self):
+        self.assertEqual(findWeather([], 'Oslo'), [])
+
+    def testFormatWeather(self):
+        self.assertEqual(formatWeather(makeEntry()), 'Oslo: 18.5°C')
+
+
+class WeatherCommandTestCase(PluginTestCase):
+    plugins = ('Weather',)
+
+    def testWeather(self):
+        original = utils.web.getUrl
+        utils.web.getUrl = lambda url, **kw: b'[{"name":"Oslo","temp":18.5}]'
+        try:
+            self.assertResponse('weather Oslo', 'Oslo: 18.5°C')
+        finally:
+            utils.web.getUrl = original
+
+    def testWeatherNotFound(self):
+        original = utils.web.getUrl
+        utils.web.getUrl = lambda url, **kw: b'[]'
+        try:
+            self.assertResponse('weather Nowhere', 'No results found.')
+        finally:
+            utils.web.getUrl = original
+```
+
+### Plugins requiring API keys
+
+Set a fake key at the test class level so the key-check passes before the
+mocked fetch is called:
+
+```python
+class OMDbCommandTestCase(PluginTestCase):
+    plugins = ('OMDb',)
+    config = {'supybot.plugins.OMDb.apikey': 'testkey'}
+
+    def testMovie(self):
+        original = utils.web.getUrl
+        utils.web.getUrl = lambda url, **kw: b'{"Title":"Dune","Year":"2021"}'
+        try:
+            self.assertResponse('movie Dune', 'Dune (2021)')
+        finally:
+            utils.web.getUrl = original
 ```
 
 ### Key test assertions
@@ -304,48 +497,6 @@ class PluginNameTestCase(PluginTestCase):
 | `assertActionRegexp(query, regexp)` | `/me` action matching regexp |
 | `getMsg(query)` | Send command and return the raw `IrcMsg` |
 | `feedMsg(query, to=None, frm=None)` | Send message without asserting anything |
-
-### Setup and teardown
-
-```python
-def setUp(self):
-    super().setUp()
-    self.prefix = 'foo!bar@baz'
-    self.feedMsg('register tester moo', to=self.nick, frm=self.prefix)
-    self.getMsg(' ')   # consume the response
-
-def tearDown(self):
-    # cleanup here
-    super().tearDown()
-```
-
-### Config in tests
-
-```python
-import supybot.conf as conf
-
-class MyTestCase(PluginTestCase):
-    # Set at class level:
-    config = {'supybot.commands.nested': False}
-
-    def testThing(self):
-        # Set temporarily inside a test:
-        with conf.supybot.commands.nested.context(False):
-            self.assertNotError('mycommand')
-```
-
-### Testing helper code (non-command logic)
-
-For unit-testing helper functions without running bot commands, subclass
-`supybot.test.SupyTestCase` instead:
-
-```python
-from supybot.test import *
-
-class MyHelperTestCase(SupyTestCase):
-    def testParseResult(self):
-        self.assertEqual(parseResult('foo'), 'expected')
-```
 
 Every command in a plugin **must have a docstring** — `PluginTestCase` checks
 this automatically.
