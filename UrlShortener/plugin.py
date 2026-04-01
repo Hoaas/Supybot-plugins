@@ -1,4 +1,3 @@
-# coding=utf8
 ###
 # Copyright (c) 2010, Terje Hoås
 # All rights reserved.
@@ -29,7 +28,8 @@
 
 ###
 
-import urllib.request, urllib.error, urllib.parse, urllib.request, urllib.parse, urllib.error
+import urllib.parse
+
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
@@ -37,32 +37,36 @@ import supybot.ircmsgs as ircmsgs
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 
+try:
+    from supybot.i18n import PluginInternationalization
+    _ = PluginInternationalization('UrlShortener')
+except ImportError:
+    _ = lambda x: x
+
 
 class UrlShortener(callbacks.Plugin):
-    """URLs above a certain lenght is shortened."""
+    """Automatically shortens URLs above a configurable length threshold using
+    the is.gd API."""
     threaded = True
 
     def doPrivmsg(self, irc, msg):
+        channel = msg.args[0].lower()
+        if not irc.isChannel(channel):
+            return
         if ircmsgs.isAction(msg):
             text = ircmsgs.unAction(msg)
         else:
             text = msg.args[1]
-        channel = msg.args[0].lower()
         for longurl in utils.web.urlRe.findall(text):
             if not len(longurl) > self.registryValue('length', channel):
                 continue
-            longurl = urllib.parse.quote(longurl);
-            isgdurl = "http://is.gd/api.php?longurl=" + longurl
+            encoded = urllib.parse.quote(longurl, safe='')
+            isgdurl = f'https://is.gd/create.php?format=simple&url={encoded}'
             try:
-                req = urllib.request.Request(isgdurl)
-                f = urllib.request.urlopen(req)
-                shorturl = f.read()
-                irc.reply("Short url: " + shorturl)
-            except:
-                self.log.warning("Failed to shorten url: " + longurl)
+                shorturl = utils.web.getUrl(isgdurl).decode()
+                irc.reply(_('Short url: %s') % shorturl)
+            except Exception as e:
+                self.log.warning('Failed to shorten url: %s', longurl)
 
-        
+
 Class = UrlShortener
-
-
-# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:

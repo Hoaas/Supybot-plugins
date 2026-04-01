@@ -1,4 +1,3 @@
-# coding=utf8
 ###
 # Copyright (c) 2010, Terje Hoås
 # All rights reserved.
@@ -42,11 +41,7 @@ def configure(advanced):
 
 
 UrlShortener = conf.registerPlugin('UrlShortener')
-# This is where your configuration variables (if any) should go.  For example:
-# conf.registerGlobalValue(UrlShortener, 'someConfigVariableName',
-#     registry.Boolean(False, """Help for someConfigVariableName."""))
 conf.registerChannelValue(UrlShortener, 'length',
-	registry.Integer(170, """How long an URL needs to be before it gets shortened."""))
+    registry.Integer(170, """How long an URL needs to be before it gets shortened."""))
 
 
-# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
