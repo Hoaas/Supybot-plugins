@@ -5,19 +5,19 @@ Does stuff with Wolfram Alpha webservice.
 import supybot
 import supybot.world as world
 
-__version__ = "0.1"
-__author__ = "Ed Summers"
-__contributors__ = {}
-__url__ = '' 
+__version__ = ""
+__author__ = supybot.Author(name='Ed Summers')
+__contributors__ = {supybot.Author('Terje Hoås', 'Hoaas', 'terje@robogoat.dev'): []}
+__url__ = ''
 
 from . import config
 from . import plugin
 from importlib import reload
-reload(plugin) # In case we're being reloaded.
 reload(config)
+reload(plugin)
 
 if world.testing:
-    import test
+    from . import test
 
 Class = plugin.Class
 configure = config.configure

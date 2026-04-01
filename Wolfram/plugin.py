@@ -1,76 +1,117 @@
-from supybot.commands import *
-import supybot.callbacks as callbacks
-
-import urllib.request, urllib.parse, urllib.error
+import urllib.parse
 from xml.etree import ElementTree
 
-class Wolfram(callbacks.Privmsg):
+import supybot.utils as utils
+from supybot.commands import *
+import supybot.plugins as plugins
+import supybot.callbacks as callbacks
+import supybot.ircutils as ircutils
 
-    def alpha(self, irc, msg, args, options, question):
-        """[--lines num] <query>
+try:
+    from supybot.i18n import PluginInternationalization, internationalizeDocstring
+    _ = PluginInternationalization('Wolfram')
+except ImportError:
+    _ = lambda x: x
+    internationalizeDocstring = lambda f: f
 
-        Ask Mr. Wolfram a question, get an "answer"...maybe? It uses the Wolfram Alpha API.
-        <http://products.wolframalpha.com/docs/WolframAlpha-API-Reference.pdf>
+
+_WOLFRAM_URL = 'https://api.wolframalpha.com/v2/query?'
+
+
+def formatPodText(text):
+    """Clean up a Wolfram pod plaintext value for IRC display.
+
+    Replaces ' | ' with ': ' and newlines with ', '.
+    """
+    text = text.replace(' | ', ': ')
+    text = text.replace('\n', ', ')
+    return text
+
+
+def parseWolframXml(xml):
+    """Parse a Wolfram Alpha v2 XML response.
+
+    Returns one of:
+      {'error': str}           — API-level error message
+      {'didyoumean': [str]}    — no results but suggestions exist
+      {'noresults': True}      — no results and no suggestions
+      {'pods': [(title, text), ...]}  — list of (title, plaintext) for all
+                                        pods that have plaintext, excluding
+                                        any pod whose title contains 'input'
+                                        (case-insensitive).
+    """
+    if isinstance(xml, bytes):
+        xml = xml.decode('utf-8', 'ignore')
+    try:
+        tree = ElementTree.fromstring(xml)
+    except ElementTree.ParseError as e:
+        return {'error': str(e)}
+
+    if tree.attrib.get('success') == 'false':
+        for results in tree.findall('.//error'):
+            for err in results.findall('.//msg'):
+                if err.text:
+                    return {'error': err.text}
+        dyms = [d.text for d in tree.findall('.//didyoumean') if d.text]
+        if dyms:
+            return {'didyoumean': dyms}
+        return {'noresults': True}
+
+    pods = []
+    for pod in tree.findall('.//pod'):
+        title = pod.attrib.get('title', '')
+        if 'input' in title.lower():
+            continue
+        for plaintext in pod.findall('.//plaintext'):
+            if plaintext.text:
+                pods.append((title, formatPodText(plaintext.text)))
+                break  # one plaintext per pod
+    return {'pods': pods}
+
+
+class Wolfram(callbacks.Plugin):
+    """Plugin for querying the Wolfram Alpha API."""
+    threaded = True
+
+    @wrap([getopts({'lines': 'positiveInt'}), 'text'])
+    @internationalizeDocstring
+    def wolfram(self, irc, msg, args, options, question):
+        """[--lines <num>] <query>
+
+        Ask Wolfram Alpha a question. Uses the Wolfram Alpha API.
+        --lines sets the maximum number of results to return (default 2).
         """
         apikey = self.registryValue('apikey')
-        if not apikey or apikey == "Not set":
-            irc.reply("API key not set. see 'config help supybot.plugins.Wolfram.apikey'.")
+        if not apikey or apikey == 'Not set':
+            irc.reply(_("API key not set. See 'config help supybot.plugins.Wolfram.apikey'."))
             return
 
-        maxoutput = 2
-        for (key, value) in options:
-            if key == 'lines':
-                maxoutput = value
+        maxoutput = dict(options).get('lines', 2)
 
-        u = "http://api.wolframalpha.com/v2/query?"
-        q = urllib.parse.urlencode({'input': question, 'appid': apikey})
-        xml = urllib.request.urlopen(u + q).read()
-        tree = ElementTree.fromstring(xml)
-
-        if tree.attrib['success'] == "false":
-            for results in tree.findall('.//error'):
-                for err in results.findall('.//msg'):
-                    irc.reply("Error: " + err.text)
-                    return
-            suggestion = False
-            dyms = tree.findall('.//didyoumean')
-            for dym in dyms:
-                if dym.text:
-                    suggestion = True
-                    irc.reply("Did you mean: " + str(dym.text) + "?")
-            if not suggestion:
-                irc.reply("huh, I dunno, I'm still a baby AI. Wait till the singularity I guess?")
+        url = _WOLFRAM_URL + urllib.parse.urlencode({'input': question, 'appid': apikey, 'format': 'plaintext'})
+        try:
+            xml = utils.web.getUrl(url)
+        except Exception as e:
+            self.log.warning('Wolfram Alpha request failed: %s', e)
+            irc.error(_('Failed to contact Wolfram Alpha.'))
             return
 
-        found = False
-        outputcount = 0
-        for pod in tree.findall('.//pod'):
-            title = pod.attrib['title']
-            for plaintext in pod.findall('.//plaintext'):
-                if plaintext.text:
-                    found = True
-                    """if(title == "Input interpretation" or 
-                    title == "Result" or 
-                    title == "Input" or 
-                    title == "Exact result" or 
-                    title == "Decimal approximation"):
-                    """
-                    if outputcount < maxoutput:
-                        output = plaintext.text
-                        output = output.replace(' | ', ': ')
-                        output = output.replace('\n', ', ')
-                        # Skip the input interpretation if only one line out.
-                        if maxoutput == 1 and outputcount == 0:
-                            maxoutput = 2 # hack :D
-                            outputcount += 1
-                            continue
-                        irc.reply(("%s: %s" % (title, output)))
-                        outputcount += 1
-        if not found:
-            irc.reply("huh, I dunno, I'm still a baby AI. Wait till the singularity I guess?")
+        result = parseWolframXml(xml)
 
-    alpha = wrap(alpha, [getopts({'lines':'int'}), 'text'])
+        if 'error' in result:
+            irc.error(_('Error: %s') % result['error'])
+        elif 'didyoumean' in result:
+            for suggestion in result['didyoumean']:
+                irc.reply(_('Did you mean: %s?') % suggestion)
+        elif 'noresults' in result:
+            irc.error(_('No results found.'))
+        else:
+            pods = result['pods']
+            if not pods:
+                irc.error(_('No results found.'))
+                return
+            for title, text in pods[:maxoutput]:
+                irc.reply(f'{title}: {text}')
 
 
 Class = Wolfram
-# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:

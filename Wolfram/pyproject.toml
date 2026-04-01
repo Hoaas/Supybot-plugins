@@ -4,9 +4,7 @@ requires = ["setuptools"]
 [project]
 name = "limnoria-wolfram"
 version = "0.1"
-authors = [
-
-]
+authors = []
 readme = "README.md"
 dependencies = [
     "limnoria",
