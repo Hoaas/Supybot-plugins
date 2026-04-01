@@ -29,7 +29,6 @@
 ###
 
 import supybot.conf as conf
-import supybot.registry as registry
 try:
     from supybot.i18n import PluginInternationalization
     _ = PluginInternationalization('Kommune')
