@@ -88,7 +88,7 @@ class Wolfram(callbacks.Plugin):
 
         maxoutput = dict(options).get('lines', 2)
 
-        url = _WOLFRAM_URL + urllib.parse.urlencode({'input': question, 'appid': apikey, 'format': 'plaintext'})
+        url = _WOLFRAM_URL + urllib.parse.urlencode({'input': question, 'appid': apikey})
         try:
             xml = utils.web.getUrl(url)
         except Exception as e:
